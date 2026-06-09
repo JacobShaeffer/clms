@@ -1,7 +1,12 @@
-# README
+# SolarSPELL Content and Library Management System (CLMS)
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This app is build using devcontainers and should be developed using the vscode extention of the same name.
+
+It is setup to use postgres, but more testing will need to be done to ensure the production deploy will be 
+handled smoothly. Kamal is installed by default with rails, and it should be used for delpoy. Don't know 
+how that works though.
+
+
 
 Things you may want to cover:
 
