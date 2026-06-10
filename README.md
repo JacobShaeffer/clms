@@ -7,6 +7,8 @@ handled smoothly. Kamal is installed by default with rails, and it should be use
 how that works though.
 
 
+TODO:
+1. devise action_mailer needs to be set for production
 
 Things you may want to cover:
 
