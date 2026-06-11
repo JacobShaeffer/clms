@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 
-@import "../../../vendor/javascript/tw-animate-css.js";
+/* @import "../../../vendor/javascript/tw-animate-css.js"; */
 
 
 @custom-variant dark (&:is(.dark *));

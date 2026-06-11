@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  metadata_type: one
+  name: MyString
+  under_review: false
+
+two:
+  user: two
+  metadata_type: two
+  name: MyString
+  under_review: false
