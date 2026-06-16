@@ -1,9 +1,4 @@
 {
-	"servers": {
-		"ruby-ui": {
-			"url": "https://rubyui.com/mcp",
-			"type": "http"
-		}
-	},
-	"inputs": []
+	"inputs": [],
+	"servers": {}
 }

@@ -1,2 +1,64 @@
-<div id="<%= dom_id metadata_type %>" class="w-full sm:w-auto my-5 space-y-5">
+
+
+<div id="<%= dom_id metadata_type %>" class="row">
+  <% accordion_id = dom_id(metadata_type, :accordion) %>
+  <% collapse_id = dom_id(metadata_type, :collapse) %>
+  <div class="accordion pb-2" id="<%= accordion_id %>">
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button 
+          class="accordion-button collapsed" 
+          type="button" 
+          data-bs-toggle="collapse" 
+          data-bs-target="#<%= collapse_id %>" 
+          aria-expanded="true" 
+          aria-controls="<%= collapse_id %>"
+        >
+          <h2><%= metadata_type.name %></h2>
+          <span class="badge text-bg-warning"><%= metadata_type.metadata.count %></span>
+        </button>
+      </h2>
+      <div 
+        id="<%= collapse_id %>" 
+        class="accordion-collapse collapse" 
+        data-bs-parent="<%= accordion_id %>"
+      >
+        <div class="accordion-body">
+          <div class="row">
+            <div class="col-3">
+              <p>Metadata Value</p>
+              <input class="form-control">
+            </div>
+            <div class="col-2">
+              <p>Status</p>
+              <input class="form-control">
+            </div>
+            <div class="col-2 offset-5">
+              <button class="btn float-end btn-primary">Add</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col" style="border: 1px solid black;">
+              <div class="row">
+                <div class="col-6">
+                  <h3>Metadata Value</h3>
+                </div>
+                <div class="col-5">
+                  <h3>Status</h3>
+                </div>
+                <div class="col-1">
+                </div>
+              </div>
+              <%= render partial: "metadata/metadatum", collection: metadata_type.metadata %>
+            </div>
+          </div>
+          <div class="row justify-content-center">
+            <div class="col-auto">
+              <a href="#">Show More</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

@@ -6,6 +6,9 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
 
+    security_opt:
+      - seccomp=unconfined
+
     volumes:
     - ../../clms:/workspaces/clms:cached
 

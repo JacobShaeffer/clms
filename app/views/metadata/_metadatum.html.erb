@@ -1,2 +1,22 @@
-<div id="<%= dom_id metadatum %>" class="w-full sm:w-auto my-5 space-y-5">
+<div class="row">
+    <div class="col-6">
+        <p><%= metadatum.name %></p>
+    </div>
+    <div class="col-5">
+        <p><%= metadatum.under_review %></p>
+    </div>
+    <div class="col-1">
+        <div class="dropdown">
+            <button class="btn btn-secondary rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            ...
+            </button>
+            <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#">Edit</a></li>
+            <li><a class="dropdown-item" href="#">Approve</a></li>
+            <li><a class="dropdown-item" href="#">See all Tagged Items</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger-emphasis" href="#">Delete</a></li>
+            </ul>
+        </div>
+    </div>
 </div>
