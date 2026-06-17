@@ -1,17 +1,27 @@
 
+<!--
+      :open_accordions => @open_accordions,
+      :metadata_type_searches => @metadata_type_searches,
+      :metadata_type_review_filters => @metadata_type_review_filters,
+      :metadata_type_metadata_counts => @metadata_type_metadata_counts,
+      :metadata_type_metadata => @metadata_type_metadata,
+      :metadata_type_modal => @metadata_type_modal,
+      :metadatum_modal => @metadatum_modal
+-->
 
 <div id="<%= dom_id metadata_type %>" class="row">
   <% accordion_id = dom_id(metadata_type, :accordion) %>
   <% collapse_id = dom_id(metadata_type, :collapse) %>
+  <% is_open = @open_accordions.include?(metadata_type.id) %>
   <div class="accordion pb-2" id="<%= accordion_id %>">
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button 
-          class="accordion-button collapsed" 
+          class="accordion-button <%= is_open ? "" : "collapsed" %>" 
           type="button" 
-          data-bs-toggle="collapse" 
-          data-bs-target="#<%= collapse_id %>" 
-          aria-expanded="true" 
+          data-metadata-state-id-param="<%= metadata_type.id %>"
+          data-action="metadata-state#accordion"
+          aria-expanded="<%= is_open ? "true" : "false" %>" 
           aria-controls="<%= collapse_id %>"
         >
           <h2><%= metadata_type.name %></h2>
@@ -20,7 +30,7 @@
       </h2>
       <div 
         id="<%= collapse_id %>" 
-        class="accordion-collapse collapse" 
+        class="accordion-collapse <%= is_open ? "show" : "collapse" %>" 
         data-bs-parent="<%= accordion_id %>"
       >
         <div class="accordion-body">

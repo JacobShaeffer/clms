@@ -9,6 +9,26 @@
   </div>
 </div>
 
-<div id="metadata-types" data-controller="accordion-state">
-  <%= render @metadata_types %>
+<!-- <div id="metadata-types" data-controller="accordion-state"> -->
+<div 
+  id="metadata-types" 
+  data-controller="metadata-state"
+  data-metadata-state-open-accordions-value="<%= @open_accordions.to_json %>"
+  data-metadata-state-metadata-type-searches-value="<%= @metadata_type_searches.to_json %>"
+  data-metadata-state-metadata-type-review-filters-value="<%= @metadata_type_review_filters.to_json %>"
+  data-metadata-state-metadata-type-metadata-counts-value="<%= @metadata_type_metadata_counts.to_json %>"
+  data-metadata-state-metadata-type-modal-value="<%= @metadata_type_modal %>"
+  data-metadata-state-metadatum-modal-value="<%= @metadatum_modal %>"
+>
+  <%= render @metadata_types, 
+    :locals => {
+      :open_accordions => @open_accordions,
+      :metadata_type_searches => @metadata_type_searches,
+      :metadata_type_review_filters => @metadata_type_review_filters,
+      :metadata_type_metadata_counts => @metadata_type_metadata_counts,
+      :metadata_type_metadata => @metadata_type_metadata,
+      :metadata_type_modal => @metadata_type_modal,
+      :metadatum_modal => @metadatum_modal
+    } 
+  %>
 </div>

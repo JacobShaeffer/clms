@@ -4,6 +4,18 @@ class MetadataTypesController < ApplicationController
   # GET /metadata_types or /metadata_types.json
   def index
     @metadata_types = MetadataType.all
+
+    @open_accordions = if params.key?(:oa)
+      Array(params[:oa]).reject(&:blank?).map(&:to_i)
+    else
+      []
+    end
+    @metadata_type_searches = {}
+    @metadata_type_review_filters = {}
+    @metadata_type_metadata_counts = {}
+    @metadata_type_metadata = {}
+    @metadata_type_modal = ""
+    @metadatum_modal = ""
   end
 
   # GET /metadata_types/1 or /metadata_types/1.json
