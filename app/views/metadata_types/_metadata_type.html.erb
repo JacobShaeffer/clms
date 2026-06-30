@@ -20,7 +20,7 @@
           class="accordion-button <%= is_open ? "" : "collapsed" %>" 
           type="button" 
           data-metadata-state-id-param="<%= metadata_type.id %>"
-          data-action="metadata-state#accordion"
+          data-action="metadata-state#on_accordion_toggle"
           aria-expanded="<%= is_open ? "true" : "false" %>" 
           aria-controls="<%= collapse_id %>"
         >
@@ -34,16 +34,54 @@
         data-bs-parent="<%= accordion_id %>"
       >
         <div class="accordion-body">
-          <div class="row">
-            <div class="col-3">
-              <p>Metadata Value</p>
-              <input class="form-control">
-            </div>
+          <div class="row pb-3">
+            <form class="col-10">
+              <div class="row">
+                <div class="col col-lg-4">
+                  <% metadata_value_id = dom_id(metadata_type, :metadata_value) %>
+                  <label for="<%= metadata_value_id %>">Metadata Value</label>
+                  <input 
+                    class="form-control" 
+                    id="<%= metadata_value_id %>" 
+                    value="<%= @metadata_type_searches[metadata_type.id] %>"
+                    data-action="metadata-state#search" 
+                    data-metadata-state-id-param="<%= metadata_type.id %>"
+                    data-metadata-state-target="query"
+                  >
+                </div>
+                <div class="col col-lg-3">
+                  <% status_id = dom_id(metadata_type, :status) %>
+                  <label for="<%= status_id %>">Status</label>
+                  <select 
+                    class="form-select" 
+                    id="<%= status_id %>"
+                    data-action="metadata-state#filter" 
+                    data-metadata-state-id-param="<%= metadata_type.id %>"
+                    data-metadata-state-target="filter"
+                  >
+                    <%
+                      local_filter = "none"
+                      if @metadata_type_review_filters.key?(metadata_type.id)
+                        local_filter = @metadata_type_review_filters[metadata_type.id]
+                      end
+                    %>
+                    <option 
+                      <%= local_filter == "none" ? "selected" : "" %> 
+                      value="all"
+                    >All</option>
+                    <option 
+                      <%= local_filter == "true" ? "selected" : "" %> 
+                      value="UR"
+                    >Under Review</option>
+                    <option 
+                      <%= local_filter == "false" ? "selected" : "" %> 
+                      value="R"
+                    >Reviewed</option>
+                  </select>
+                </div>
+              </div>
+            </form>
             <div class="col-2">
-              <p>Status</p>
-              <input class="form-control">
-            </div>
-            <div class="col-2 offset-5">
               <button class="btn float-end btn-primary">Add</button>
             </div>
           </div>
@@ -59,7 +97,7 @@
                 <div class="col-1">
                 </div>
               </div>
-              <%= render partial: "metadata/metadatum", collection: metadata_type.metadata %>
+              <%= render partial: "metadata/metadatum", collection: @metadata_types_values[metadata_type.id] %>
             </div>
           </div>
           <div class="row justify-content-center">

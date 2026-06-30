@@ -3,19 +3,53 @@ class MetadataTypesController < ApplicationController
 
   # GET /metadata_types or /metadata_types.json
   def index
-    @metadata_types = MetadataType.all
-
     @open_accordions = if params.key?(:oa)
       Array(params[:oa]).reject(&:blank?).map(&:to_i)
     else
       []
     end
+
     @metadata_type_searches = {}
+    if params[:s].is_a?(ActionController::Parameters)
+      params[:s].each do |metadata_type_id, query|
+        next unless query.is_a?(String)
+
+        @metadata_type_searches[metadata_type_id.to_i] = query
+      end
+    end
+
     @metadata_type_review_filters = {}
+    if params[:f].is_a?(ActionController::Parameters)
+      params[:f].each do |metadata_type_id, filter|
+        next unless filter.is_a?(String)
+
+        @metadata_type_review_filters[metadata_type_id.to_i] = filter
+      end
+    end
+
     @metadata_type_metadata_counts = {}
     @metadata_type_metadata = {}
     @metadata_type_modal = ""
     @metadatum_modal = ""
+
+
+    # Get the metadata_types and the associated metadata_values
+    # but only get metadata_values for only the open metadata_types
+    # and only the metadata_values that match the search criteria
+    @metadata_types = MetadataType.all
+    @metadata_types_values = {}
+    @open_accordions.each do |metadata_type_id|
+      metadata_type_values = MetadataType.find(metadata_type_id).metadata
+      if @metadata_type_searches.key?(metadata_type_id)
+        query = ActiveRecord::Base.sanitize_sql_like(@metadata_type_searches[metadata_type_id])
+        metadata_type_values = metadata_type_values.where("name LIKE ?", "%#{query}%")
+      end
+      if @metadata_type_review_filters.key?(metadata_type_id)
+        query = @metadata_type_review_filters[metadata_type_id] == "true" ? true : false
+        metadata_type_values = metadata_type_values.where(under_review: query)
+      end
+      @metadata_types_values[metadata_type_id] = metadata_type_values
+    end
   end
 
   # GET /metadata_types/1 or /metadata_types/1.json
