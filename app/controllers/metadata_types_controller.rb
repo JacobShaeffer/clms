@@ -37,7 +37,7 @@ class MetadataTypesController < ApplicationController
     # only get metadata_values for only the open metadata_types
     # only the metadata_values that match the search criteria
     # only the first 5 metadata_values unless a metadata_count is specified
-    @metadata_types = MetadataType.all
+    @metadata_types = MetadataType.includes(:metadata).all
     @metadata_types_values = {}
     @open_accordions.each do |metadata_type_id|
       metadata_type_values = MetadataType.find(metadata_type_id).metadata
