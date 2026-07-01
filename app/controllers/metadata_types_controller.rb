@@ -34,12 +34,14 @@ class MetadataTypesController < ApplicationController
 
 
     # Get the metadata_types and the associated metadata_values
-    # but only get metadata_values for only the open metadata_types
-    # and only the metadata_values that match the search criteria
+    # only get metadata_values for only the open metadata_types
+    # only the metadata_values that match the search criteria
+    # only the first 5 metadata_values unless a metadata_count is specified
     @metadata_types = MetadataType.all
     @metadata_types_values = {}
     @open_accordions.each do |metadata_type_id|
       metadata_type_values = MetadataType.find(metadata_type_id).metadata
+      metadata_values_limit = 5
       if @metadata_type_searches.key?(metadata_type_id)
         query = ActiveRecord::Base.sanitize_sql_like(@metadata_type_searches[metadata_type_id])
         metadata_type_values = metadata_type_values.where("name LIKE ?", "%#{query}%")
@@ -48,7 +50,11 @@ class MetadataTypesController < ApplicationController
         query = @metadata_type_review_filters[metadata_type_id] == "true" ? true : false
         metadata_type_values = metadata_type_values.where(under_review: query)
       end
-      @metadata_types_values[metadata_type_id] = metadata_type_values
+      if @metadata_type_metadata_counts.key?(metadata_type_id)
+        metadata_values_limit = @metadata_type_metadata_counts[metadata_type_id]
+        metadata_values_limit = metadata_values_limit.to_i
+      end
+      @metadata_types_values[metadata_type_id] = metadata_type_values.limit(metadata_values_limit)
     end
   end
 
