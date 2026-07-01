@@ -12,15 +12,16 @@
 <div id="<%= dom_id metadata_type %>" class="row">
   <% accordion_id = dom_id(metadata_type, :accordion) %>
   <% collapse_id = dom_id(metadata_type, :collapse) %>
-  <% is_open = @open_accordions.include?(metadata_type.id) %>
+  <% is_open = open_accordions.include?(metadata_type.id) %>
   <div class="accordion pb-2" id="<%= accordion_id %>">
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button 
           class="accordion-button <%= is_open ? "" : "collapsed" %>" 
           type="button" 
-          data-metadata-state-id-param="<%= metadata_type.id %>"
-          data-action="metadata-state#on_accordion_toggle"
+          data-accordion-state-id-param="<%= metadata_type.id %>"
+          data-controller="accordion-state"
+          data-action="click->accordion-state#toggle"
           aria-expanded="<%= is_open ? "true" : "false" %>" 
           aria-controls="<%= collapse_id %>"
         >
@@ -38,6 +39,9 @@
 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
   Launch demo modal
 </button>
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal1">
+  Launch demo modal
+</button>
           <div class="row pb-3">
             <form class="col-10">
               <div class="row">
@@ -47,10 +51,10 @@
                   <input 
                     class="form-control" 
                     id="<%= metadata_value_id %>" 
-                    value="<%= @metadata_type_searches[metadata_type.id] %>"
-                    data-action="metadata-state#search" 
-                    data-metadata-state-id-param="<%= metadata_type.id %>"
-                    data-metadata-state-target="query"
+                    value="<%= metadata_type_searches[metadata_type.id] %>"
+                    data-controller="metadata-search"
+                    data-action="input->metadata-search#search"
+                    data-metadata-search-id-param="<%= metadata_type.id %>"
                   >
                 </div>
                 <div class="col col-lg-3">
@@ -59,14 +63,14 @@
                   <select 
                     class="form-select" 
                     id="<%= status_id %>"
-                    data-action="metadata-state#filter" 
-                    data-metadata-state-id-param="<%= metadata_type.id %>"
-                    data-metadata-state-target="filter"
+                    data-controller="metadata-filter"
+                    data-action="change->metadata-filter#filter"
+                    data-metadata-filter-id-param="<%= metadata_type.id %>"
                   >
                     <%
                       local_filter = "none"
-                      if @metadata_type_review_filters.key?(metadata_type.id)
-                        local_filter = @metadata_type_review_filters[metadata_type.id]
+                      if metadata_type_review_filters.key?(metadata_type.id)
+                        local_filter = metadata_type_review_filters[metadata_type.id]
                       end
                     %>
                     <option 
@@ -101,7 +105,7 @@
                 <div class="col-1">
                 </div>
               </div>
-              <%= render partial: "metadata/metadatum", collection: @metadata_types_values[metadata_type.id] %>
+              <%= render partial: "metadata/metadatum", collection: metadata_types_values[metadata_type.id] %>
             </div>
           </div>
           <div class="row justify-content-center">
