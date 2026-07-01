@@ -9,27 +9,19 @@
   </div>
 </div>
 
-<!-- <div id="metadata-types" data-controller="accordion-state"> -->
-<div 
-  id="metadata-types" 
-  data-controller="metadata-state"
-  data-metadata-state-open-accordions-value="<%= @open_accordions.to_json %>"
-  data-metadata-state-metadata-type-searches-value="<%= @metadata_type_searches.to_json %>"
-  data-metadata-state-metadata-type-review-filters-value="<%= @metadata_type_review_filters.to_json %>"
-  data-metadata-state-metadata-type-metadata-counts-value="<%= @metadata_type_metadata_counts.to_json %>"
-  data-metadata-state-metadata-type-modal-value="<%= @metadata_type_modal %>"
-  data-metadata-state-metadatum-modal-value="<%= @metadatum_modal %>"
->
-  <%= render @metadata_types, 
-    :locals => {
-      :metadata_type_values => @metadata_type_values,
-      :open_accordions => @open_accordions,
-      :metadata_type_searches => @metadata_type_searches,
-      :metadata_type_review_filters => @metadata_type_review_filters,
-      :metadata_type_metadata_counts => @metadata_type_metadata_counts,
-      :metadata_type_metadata => @metadata_type_metadata,
-      :metadata_type_modal => @metadata_type_modal,
-      :metadatum_modal => @metadatum_modal
+<div id="metadata-types">
+  <%= render partial: "metadata_types/metadata_type",
+    collection: @metadata_types,
+    as: :metadata_type,
+    locals: {
+      metadata_types_values: @metadata_types_values,
+      open_accordions: @open_accordions,
+      metadata_type_searches: @metadata_type_searches,
+      metadata_type_review_filters: @metadata_type_review_filters,
+      metadata_type_metadata_counts: @metadata_type_metadata_counts,
+      metadata_type_metadata: @metadata_type_metadata,
+      metadata_type_modal: @metadata_type_modal,
+      metadatum_modal: @metadatum_modal
     } 
   %>
 </div>
@@ -45,6 +37,25 @@
       </div>
       <div class="modal-body">
         ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal1" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModal1Label">Modal title</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Modal 1
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
