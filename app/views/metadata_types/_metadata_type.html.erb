@@ -23,7 +23,7 @@
           aria-controls="<%= collapse_id %>"
         >
           <span class="h2 mb-0"><%= metadata_type.name %></span>
-          <span class="badge text-bg-warning ms-2"><%= metadata_count %></span>
+          <span id="<%= dom_id(metadata_type, :metadata_count) %>" class="badge text-bg-warning ms-2"><%= metadata_count %></span>
         </button>
       </h2>
 

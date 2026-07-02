@@ -1,6 +1,11 @@
 <% frame_id = dom_id(metadata_type, :metadata_values) %>
 <% search_id = dom_id(metadata_type, :metadata_value_search) %>
 <% status_id = dom_id(metadata_type, :metadata_value_status) %>
+<% frame_params = {
+  q: search_query.presence,
+  status: review_filter == "all" ? nil : review_filter,
+  limit: metadata_values_limit
+}.compact %>
 
 <%= turbo_frame_tag frame_id do %>
   <div class="row pb-3">
@@ -50,7 +55,11 @@
     <% end %>
 
     <div class="col-2">
-      <%= button_tag "Add", type: "button", class: "btn float-end btn-primary" %>
+      <%= link_to "Add",
+        new_metadata_type_metadatum_path(metadata_type, frame_params),
+        class: "btn float-end btn-primary",
+        data: { turbo_frame: "modal" }
+      %>
     </div>
   </div>
 
@@ -67,7 +76,13 @@
       </div>
 
       <% if metadata_values.any? %>
-        <%= render partial: "metadata/metadatum", collection: metadata_values %>
+        <%= render partial: "metadata/metadatum",
+          collection: metadata_values,
+          locals: {
+            metadata_type: metadata_type,
+            frame_params: frame_params
+          }
+        %>
       <% else %>
         <p class="text-center my-10">No metadata values found.</p>
       <% end %>
@@ -75,11 +90,7 @@
   </div>
 
   <% if metadata_values_count > metadata_values_limit %>
-    <% show_more_params = {
-      q: search_query.presence,
-      status: review_filter == "all" ? nil : review_filter,
-      limit: metadata_values_next_limit
-    }.compact %>
+    <% show_more_params = frame_params.merge(limit: metadata_values_next_limit) %>
 
     <div class="row justify-content-center">
       <div class="col-auto">

@@ -1,22 +1,55 @@
+<% metadata_type = local_assigns.fetch(:metadata_type, metadatum.metadata_type) %>
+<% frame_params = local_assigns.fetch(:frame_params, {}) %>
+<% review_action_label = metadatum.under_review? ? "Approve" : "Mark for Review" %>
+
 <div id="<%= dom_id metadatum %>" class="row metadata-value-row">
-    <div class="col-6">
-        <p><%= metadatum.name %></p>
+  <div class="col-6">
+    <p><%= metadatum.name %></p>
+  </div>
+  <div class="col-5">
+    <% if metadatum.under_review? %>
+      <span class="badge text-bg-warning">Under Review</span>
+    <% else %>
+      <span class="badge text-bg-success">Reviewed</span>
+    <% end %>
+  </div>
+  <div class="col-1">
+    <div class="dropdown">
+      <button class="btn btn-secondary rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Metadata value actions">
+        ...
+      </button>
+      <ul class="dropdown-menu">
+        <li>
+          <%= link_to "Edit",
+            edit_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+            class: "dropdown-item",
+            data: { turbo_frame: "modal" }
+          %>
+        </li>
+        <li>
+          <%= button_to review_action_label,
+            toggle_review_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+            method: :patch,
+            form_class: "m-0",
+            class: "dropdown-item text-start w-100 border-0 bg-transparent"
+          %>
+        </li>
+        <li>
+          <%= link_to "See all tagged items",
+            tagged_items_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+            class: "dropdown-item",
+            data: { turbo_frame: "modal" }
+          %>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <%= link_to "Delete",
+            delete_confirmation_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+            class: "dropdown-item text-danger-emphasis",
+            data: { turbo_frame: "modal" }
+          %>
+        </li>
+      </ul>
     </div>
-    <div class="col-5">
-        <p><%= metadatum.under_review %></p>
-    </div>
-    <div class="col-1">
-        <div class="dropdown">
-            <button class="btn btn-secondary rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            ...
-            </button>
-            <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#">Edit</a></li>
-            <li><a class="dropdown-item" href="#">Approve</a></li>
-            <li><a class="dropdown-item" href="#">See all Tagged Items</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger-emphasis" href="#">Delete</a></li>
-            </ul>
-        </div>
-    </div>
+  </div>
 </div>

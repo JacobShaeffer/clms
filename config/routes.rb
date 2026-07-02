@@ -6,7 +6,13 @@ Rails.application.routes.draw do
       get :metadata_values
     end
 
-    resources :metadata
+    resources :metadata do
+      member do
+        patch :toggle_review
+        get :tagged_items
+        get :delete_confirmation
+      end
+    end
   end
 
   root "home#index"

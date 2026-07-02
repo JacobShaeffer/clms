@@ -4,7 +4,7 @@ class Content < ApplicationRecord
   has_many :carts_contents, dependent: :destroy
   has_many :carts, through: :carts_contents
 
-  has_many :contents_metadata, dependent: :destroy
+  has_many :contents_metadata, class_name: "ContentMetadatum", dependent: :destroy
   has_many :metadata, through: :contents_metadata
 
   has_one_attached :file

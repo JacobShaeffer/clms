@@ -2,6 +2,7 @@ class MetadataTypesController < ApplicationController
   METADATA_VALUES_PAGE_SIZE = 5
   MAX_METADATA_VALUES_LIMIT = 100
 
+  before_action :authenticate_user!
   before_action :set_metadata_type, only: %i[ show edit update destroy metadata_values ]
 
   # GET /metadata_types or /metadata_types.json
@@ -40,6 +41,8 @@ class MetadataTypesController < ApplicationController
   # GET /metadata_types/new
   def new
     @metadata_type = MetadataType.new
+
+    render partial: "metadata_types/modal_form", locals: { metadata_type: @metadata_type } if turbo_frame_request?
   end
 
   # GET /metadata_types/1/edit
@@ -48,13 +51,33 @@ class MetadataTypesController < ApplicationController
 
   # POST /metadata_types or /metadata_types.json
   def create
-    @metadata_type = MetadataType.new(metadata_type_params)
+    @metadata_type = current_user.metadata_types.build(metadata_type_params)
 
     respond_to do |format|
       if @metadata_type.save
+        format.turbo_stream do
+          render turbo_stream: [
+            turbo_stream.update("modal", ""),
+            turbo_stream.prepend(
+              "metadata-types",
+              partial: "metadata_types/metadata_type",
+              locals: {
+                metadata_type: @metadata_type,
+                metadata_counts: { @metadata_type.id => 0 }
+              }
+            )
+          ]
+        end
         format.html { redirect_to @metadata_type, notice: "Metadata type was successfully created." }
         format.json { render :show, status: :created, location: @metadata_type }
       else
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.update(
+            "modal",
+            partial: "metadata_types/modal_form",
+            locals: { metadata_type: @metadata_type }
+          ), status: :unprocessable_entity
+        end
         format.html { render :new, status: :unprocessable_content }
         format.json { render json: @metadata_type.errors, status: :unprocessable_content }
       end
@@ -92,7 +115,7 @@ class MetadataTypesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def metadata_type_params
-      params.fetch(:metadata_type, {})
+      params.require(:metadata_type).permit(:name, :order, :access_level)
     end
 
     def filtered_metadata_values
