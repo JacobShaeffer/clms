@@ -13,16 +13,7 @@
   <%= render partial: "metadata_types/metadata_type",
     collection: @metadata_types,
     as: :metadata_type,
-    locals: {
-      metadata_types_values: @metadata_types_values,
-      open_accordions: @open_accordions,
-      metadata_type_searches: @metadata_type_searches,
-      metadata_type_review_filters: @metadata_type_review_filters,
-      metadata_type_metadata_counts: @metadata_type_metadata_counts,
-      metadata_type_metadata: @metadata_type_metadata,
-      metadata_type_modal: @metadata_type_modal,
-      metadatum_modal: @metadatum_modal
-    } 
+    locals: { metadata_counts: @metadata_counts }
   %>
 </div>
 

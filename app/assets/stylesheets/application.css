@@ -1,5 +1,3 @@
-@import "tailwind/application.css";
-
 /*
  * This is a manifest file that'll be compiled into application.css.
  *
@@ -10,3 +8,7 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+.accordion-collapse.collapse.show {
+  visibility: visible;
+}
