@@ -3,8 +3,12 @@
 <div class="md:w-2/3 w-full">
   <h1 class="font-bold text-4xl">Editing metadatum</h1>
 
-  <%= render "form", metadatum: @metadatum %>
+  <%= render "form",
+    metadata_type: @metadata_type,
+    metadatum: @metadatum,
+    url: metadata_type_metadatum_path(@metadata_type, @metadatum)
+  %>
 
-  <%= link_to "Show this metadatum", @metadatum, class: "w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2 rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-  <%= link_to "Back to metadata", metadata_path, class: "w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2 rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
+  <%= link_to "Show this metadatum", metadata_type_metadatum_path(@metadata_type, @metadatum), class: "w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2 rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
+  <%= link_to "Back to metadata types", metadata_types_path, class: "w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2 rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
 </div>

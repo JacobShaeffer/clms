@@ -1,0 +1,7 @@
+<%= render layout: "shared/modal", locals: { title: metadatum.persisted? ? "Edit metadata value" : "Add metadata value" } do %>
+  <%= render "metadata/form",
+    metadata_type: metadata_type,
+    metadatum: metadatum,
+    url: url
+  %>
+<% end %>

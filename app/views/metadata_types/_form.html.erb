@@ -1,9 +1,8 @@
-<%= form_with(model: metadata_type, class: "contents") do |form| %>
+<%= form_with(model: metadata_type, data: { turbo_frame: "modal" }) do |form| %>
   <% if metadata_type.errors.any? %>
-    <div id="error_explanation" class="bg-red-50 text-red-500 px-3 py-2 font-medium rounded-md mt-3">
-      <h2><%= pluralize(metadata_type.errors.count, "error") %> prohibited this metadata_type from being saved:</h2>
-
-      <ul class="list-disc ml-6">
+    <div class="alert alert-danger">
+      <p class="mb-2"><%= pluralize(metadata_type.errors.count, "error") %> prevented this metadata type from being saved:</p>
+      <ul class="mb-0">
         <% metadata_type.errors.each do |error| %>
           <li><%= error.full_message %></li>
         <% end %>
@@ -11,7 +10,24 @@
     </div>
   <% end %>
 
-  <div class="inline">
-    <%= form.submit class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
+  <div class="mb-3">
+    <%= form.label :name, "Name", class: "form-label" %>
+    <%= form.text_field :name, class: "form-control", autofocus: true %>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <%= form.label :order, "Order", class: "form-label" %>
+      <%= form.number_field :order, class: "form-control" %>
+    </div>
+    <div class="col">
+      <%= form.label :access_level, "Access level", class: "form-label" %>
+      <%= form.number_field :access_level, class: "form-control" %>
+    </div>
+  </div>
+
+  <div class="modal-footer px-0 pb-0">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <%= form.submit class: "btn btn-primary" %>
   </div>
 <% end %>

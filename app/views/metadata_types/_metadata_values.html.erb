@@ -1,0 +1,104 @@
+<% frame_id = dom_id(metadata_type, :metadata_values) %>
+<% search_id = dom_id(metadata_type, :metadata_value_search) %>
+<% status_id = dom_id(metadata_type, :metadata_value_status) %>
+<% frame_params = {
+  q: search_query.presence,
+  status: review_filter == "all" ? nil : review_filter,
+  limit: metadata_values_limit
+}.compact %>
+
+<%= turbo_frame_tag frame_id do %>
+  <div class="row pb-3">
+    <%= form_with(
+      url: metadata_values_metadata_type_path(metadata_type),
+      method: :get,
+      class: "col-10",
+      data: {
+        controller: "metadata-values-form",
+        turbo_frame: frame_id
+      }
+    ) do |form| %>
+      <div class="row">
+        <div class="col col-lg-4">
+          <%= form.label :q, "Metadata Value", for: search_id %>
+          <%= form.search_field :q,
+            value: search_query,
+            id: search_id,
+            class: "form-control",
+            data: {
+              action: "input->metadata-values-form#submit",
+              turbo_permanent: true
+            }
+          %>
+        </div>
+
+        <div class="col col-lg-3">
+          <%= form.label :status, "Status", for: status_id %>
+          <%= form.select :status,
+            options_for_select(
+              [
+                ["All", "all"],
+                ["Under Review", "under_review"],
+                ["Reviewed", "reviewed"]
+              ],
+              review_filter
+            ),
+            {},
+            id: status_id,
+            class: "form-select",
+            data: { action: "change->metadata-values-form#submit" }
+          %>
+        </div>
+      </div>
+
+      <%= form.hidden_field :limit, value: metadata_values_limit %>
+    <% end %>
+
+    <div class="col-2">
+      <%= link_to "Add",
+        new_metadata_type_metadatum_path(metadata_type, frame_params),
+        class: "btn float-end btn-primary",
+        data: { turbo_frame: "modal" }
+      %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col" style="border: 1px solid black;">
+      <div class="row">
+        <div class="col-6">
+          <h3>Metadata Value</h3>
+        </div>
+        <div class="col-5">
+          <h3>Status</h3>
+        </div>
+        <div class="col-1"></div>
+      </div>
+
+      <% if metadata_values.any? %>
+        <%= render partial: "metadata/metadatum",
+          collection: metadata_values,
+          locals: {
+            metadata_type: metadata_type,
+            frame_params: frame_params
+          }
+        %>
+      <% else %>
+        <p class="text-center my-10">No metadata values found.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <% if metadata_values_count > metadata_values_limit %>
+    <% show_more_params = frame_params.merge(limit: metadata_values_next_limit) %>
+
+    <div class="row justify-content-center">
+      <div class="col-auto">
+        <%= link_to "Show More",
+          metadata_values_metadata_type_path(metadata_type, show_more_params),
+          data: { turbo_frame: frame_id }
+        %>
+      </div>
+    </div>
+  <% end %>
+<% end %>

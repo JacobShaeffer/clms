@@ -1,0 +1,3 @@
+<%= render layout: "shared/modal", locals: { title: metadata_type.persisted? ? "Edit metadata type" : "New metadata type" } do %>
+  <%= render "metadata_types/form", metadata_type: metadata_type %>
+<% end %>

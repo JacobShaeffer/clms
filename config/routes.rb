@@ -2,7 +2,17 @@ Rails.application.routes.draw do
   devise_for :users
 
   resources :metadata_types do
-    resources :metadata
+    member do
+      get :metadata_values
+    end
+
+    resources :metadata do
+      member do
+        patch :toggle_review
+        get :tagged_items
+        get :delete_confirmation
+      end
+    end
   end
 
   root "home#index"
