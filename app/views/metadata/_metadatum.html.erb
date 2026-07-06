@@ -1,5 +1,6 @@
 <% metadata_type = local_assigns.fetch(:metadata_type, metadatum.metadata_type) %>
 <% frame_params = local_assigns.fetch(:frame_params, {}) %>
+<% metadatum_policy = policy(metadatum) %>
 <% review_action_label = metadatum.under_review? ? "Approve" : "Mark for Review" %>
 
 <div id="<%= dom_id metadatum %>" class="row metadata-value-row">
@@ -19,21 +20,25 @@
         ...
       </button>
       <ul class="dropdown-menu">
-        <li>
-          <%= link_to "Edit",
-            edit_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
-            class: "dropdown-item",
-            data: { turbo_frame: "modal" }
-          %>
-        </li>
-        <li>
-          <%= button_to review_action_label,
-            toggle_review_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
-            method: :patch,
-            form_class: "m-0",
-            class: "dropdown-item text-start w-100 border-0 bg-transparent"
-          %>
-        </li>
+        <% if metadatum_policy.edit? %>
+          <li>
+            <%= link_to "Edit",
+              edit_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+              class: "dropdown-item",
+              data: { turbo_frame: "modal" }
+            %>
+          </li>
+        <% end %>
+        <% if metadatum_policy.toggle_review? %>
+          <li>
+            <%= button_to review_action_label,
+              toggle_review_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+              method: :patch,
+              form_class: "m-0",
+              class: "dropdown-item text-start w-100 border-0 bg-transparent"
+            %>
+          </li>
+        <% end %>
         <li>
           <%= link_to "See all tagged items",
             tagged_items_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
@@ -41,14 +46,16 @@
             data: { turbo_frame: "modal" }
           %>
         </li>
-        <li><hr class="dropdown-divider"></li>
-        <li>
-          <%= link_to "Delete",
-            delete_confirmation_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
-            class: "dropdown-item text-danger-emphasis",
-            data: { turbo_frame: "modal" }
-          %>
-        </li>
+        <% if metadatum_policy.destroy? %>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <%= link_to "Delete",
+              delete_confirmation_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+              class: "dropdown-item text-danger-emphasis",
+              data: { turbo_frame: "modal" }
+            %>
+          </li>
+        <% end %>
       </ul>
     </div>
   </div>

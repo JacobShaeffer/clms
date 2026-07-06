@@ -1,6 +1,8 @@
 Rails.application.routes.draw do
   devise_for :users
 
+  resources :contents, only: %i[ index new create ]
+
   resources :metadata_types do
     member do
       get :metadata_values

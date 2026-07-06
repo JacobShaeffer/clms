@@ -1,0 +1,18 @@
+<% metadata_by_type = content.metadata.group_by(&:metadata_type_id) %>
+<% added_by = content.user&.name.presence || content.user&.email %>
+
+<tr id="<%= dom_id content %>">
+  <td><%= content.title %></td>
+  <td><%= content.created_at.strftime("%Y-%m-%d") %></td>
+  <td><%= added_by %></td>
+  <% metadata_types.each do |metadata_type| %>
+    <% metadata_values = metadata_by_type.fetch(metadata_type.id, []) %>
+    <td>
+      <% if metadata_values.any? %>
+        <%= metadata_values.map(&:name).join(", ") %>
+      <% else %>
+        <span class="text-muted">None</span>
+      <% end %>
+    </td>
+  <% end %>
+</tr>

@@ -1,0 +1,54 @@
+<%= turbo_frame_tag "contents_table" do %>
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Date created</th>
+          <th>Added by</th>
+          <% metadata_types.each do |metadata_type| %>
+            <th><%= metadata_type.name %></th>
+          <% end %>
+        </tr>
+      </thead>
+      <tbody>
+        <% if contents.any? %>
+          <%= render partial: "content",
+            collection: contents,
+            locals: { metadata_types: metadata_types }
+          %>
+        <% else %>
+          <tr>
+            <td colspan="<%= 3 + metadata_types.size %>" class="text-center">No content found.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="row align-items-center mt-3">
+    <div class="col">
+      <%== pagy.series_nav if pagy.pages > 1 %>
+    </div>
+    <div class="col-auto">
+      <%= form_with(
+        url: contents_path,
+        method: :get,
+        class: "d-flex align-items-center gap-2",
+        data: {
+          controller: "content-filters-form",
+          turbo_frame: "contents_table"
+        }
+      ) do |form| %>
+        <%= form.hidden_field :q, value: search_query if search_query.present? %>
+        <%= form.label :per_page, "Rows to display", class: "form-label mb-0" %>
+        <%= form.select :per_page,
+          options_for_select(per_page_options, per_page),
+          {},
+          class: "form-select",
+          data: { action: "change->content-filters-form#submit" }
+        %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

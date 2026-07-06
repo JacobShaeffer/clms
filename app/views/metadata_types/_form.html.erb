@@ -15,15 +15,19 @@
     <%= form.text_field :name, class: "form-control", autofocus: true %>
   </div>
 
+  <% permitted_attributes = policy(metadata_type).permitted_attributes %>
+
   <div class="row">
     <div class="col">
       <%= form.label :order, "Order", class: "form-label" %>
       <%= form.number_field :order, class: "form-control" %>
     </div>
-    <div class="col">
-      <%= form.label :access_level, "Access level", class: "form-label" %>
-      <%= form.number_field :access_level, class: "form-control" %>
-    </div>
+    <% if permitted_attributes.include?(:access_level) %>
+      <div class="col">
+        <%= form.label :access_level, "Access level", class: "form-label" %>
+        <%= form.number_field :access_level, class: "form-control" %>
+      </div>
+    <% end %>
   </div>
 
   <div class="modal-footer px-0 pb-0">
