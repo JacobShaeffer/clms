@@ -14,7 +14,7 @@ class Content < ApplicationRecord
   validates :display_title, presence: true, allow_blank: false
   validates :description, presence: true, allow_blank: false
   validates :file, presence: true,
-                   blob: { content_type: [ "application/pdf", "audio/mpeg", "video/mp4" ], size_range: 0..(256.megabytes) }
+                   blob: { content_type: [ "application/pdf", "audio/mpeg", "video/mp4", "image/png" ], size_range: 0..(256.megabytes) }
 
   validate :file_checksum_must_be_unique
   validate :file_filename_must_be_unique

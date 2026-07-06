@@ -1,0 +1,53 @@
+<% content_for :title, "Contents" %>
+
+<div class="row mb-3">
+  <div class="col">
+    <h1 class="title">Contents</h1>
+  </div>
+  <% if policy(Content).new? %>
+    <div class="col align-self-center">
+      <%= link_to "New content", new_content_path, class: "btn btn-primary float-end", data: { turbo_frame: "modal" } %>
+    </div>
+  <% end %>
+</div>
+
+<div class="row mb-3">
+  <div class="col">
+    <%= form_with(
+      url: contents_path,
+      method: :get,
+      class: "row g-2",
+      data: {
+        controller: "content-filters-form",
+        turbo_frame: "contents_table"
+      }
+    ) do |form| %>
+      <div class="col-12 col-md-6">
+        <%= form.label :q, "Search", class: "form-label" %>
+        <%= form.search_field :q,
+          value: @search_query,
+          class: "form-control",
+          placeholder: "Search by title",
+          data: { action: "input->content-filters-form#submit" }
+        %>
+      </div>
+      <%= form.hidden_field :per_page, value: @per_page %>
+      <% if @search_query.present? %>
+        <div class="col-auto align-self-end">
+          <%= link_to "Clear", contents_path(per_page: @per_page), class: "btn btn-secondary" %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<%= turbo_frame_tag "modal" %>
+
+<%= render "table",
+  contents: @contents,
+  metadata_types: @metadata_types,
+  pagy: @pagy,
+  per_page: @per_page,
+  per_page_options: @per_page_options,
+  search_query: @search_query
+%>

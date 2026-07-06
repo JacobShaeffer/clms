@@ -15,10 +15,12 @@
     <%= form.text_field :name, class: "form-control", autofocus: true %>
   </div>
 
-  <div class="form-check">
-    <%= form.check_box :under_review, class: "form-check-input" %>
-    <%= form.label :under_review, "Under review", class: "form-check-label" %>
-  </div>
+  <% if policy(metadatum).permitted_attributes.include?(:under_review) %>
+    <div class="form-check">
+      <%= form.check_box :under_review, class: "form-check-input" %>
+      <%= form.label :under_review, "Under review", class: "form-check-label" %>
+    </div>
+  <% end %>
 
   <div class="modal-footer px-0 pb-0">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

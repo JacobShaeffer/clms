@@ -7,12 +7,16 @@ class MetadataTypesController < ApplicationController
 
   # GET /metadata_types or /metadata_types.json
   def index
-    @metadata_types = MetadataType.all
+    authorize MetadataType
+
+    @metadata_types = policy_scope(MetadataType)
     @metadata_counts = Metadatum.where(metadata_type_id: @metadata_types.map(&:id)).group(:metadata_type_id).count
   end
 
   # GET /metadata_types/1/metadata_values
   def metadata_values
+    authorize @metadata_type
+
     @metadata_search_query = params[:q].to_s
     @metadata_review_filter = normalized_metadata_review_filter
     @metadata_values_limit = metadata_values_limit
@@ -36,22 +40,27 @@ class MetadataTypesController < ApplicationController
 
   # GET /metadata_types/1 or /metadata_types/1.json
   def show
+    authorize @metadata_type
   end
 
   # GET /metadata_types/new
   def new
     @metadata_type = MetadataType.new
+    authorize @metadata_type
 
     render partial: "metadata_types/modal_form", locals: { metadata_type: @metadata_type } if turbo_frame_request?
   end
 
   # GET /metadata_types/1/edit
   def edit
+    authorize @metadata_type
   end
 
   # POST /metadata_types or /metadata_types.json
   def create
-    @metadata_type = current_user.metadata_types.build(metadata_type_params)
+    @metadata_type = current_user.metadata_types.build
+    authorize @metadata_type
+    @metadata_type.assign_attributes(metadata_type_params)
 
     respond_to do |format|
       if @metadata_type.save
@@ -86,6 +95,8 @@ class MetadataTypesController < ApplicationController
 
   # PATCH/PUT /metadata_types/1 or /metadata_types/1.json
   def update
+    authorize @metadata_type
+
     respond_to do |format|
       if @metadata_type.update(metadata_type_params)
         format.html { redirect_to @metadata_type, notice: "Metadata type was successfully updated.", status: :see_other }
@@ -99,6 +110,8 @@ class MetadataTypesController < ApplicationController
 
   # DELETE /metadata_types/1 or /metadata_types/1.json
   def destroy
+    authorize @metadata_type
+
     @metadata_type.destroy!
 
     respond_to do |format|
@@ -115,7 +128,7 @@ class MetadataTypesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def metadata_type_params
-      params.require(:metadata_type).permit(:name, :order, :access_level)
+      params.require(:metadata_type).permit(policy(@metadata_type).permitted_attributes)
     end
 
     def filtered_metadata_values

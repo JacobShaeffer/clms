@@ -8,28 +8,36 @@ class MetadataController < ApplicationController
 
   # GET /metadata_types/1/metadata
   def index
-    @metadata = @metadata_type.metadata
+    authorize @metadata_type, :metadata_values?
+
+    @metadata = policy_scope(@metadata_type.metadata)
   end
 
   # GET /metadata_types/1/metadata/1
   def show
+    authorize @metadatum
   end
 
   # GET /metadata_types/1/metadata/new
   def new
     @metadatum = @metadata_type.metadata.build(under_review: true)
+    authorize @metadatum
 
     render partial: "metadata/modal_form", locals: metadatum_form_locals if turbo_frame_request?
   end
 
   # GET /metadata_types/1/metadata/1/edit
   def edit
+    authorize @metadatum
+
     render partial: "metadata/modal_form", locals: metadatum_form_locals if turbo_frame_request?
   end
 
   # POST /metadata_types/1/metadata
   def create
-    @metadatum = current_user.metadata.build(metadatum_params.merge(metadata_type: @metadata_type))
+    @metadatum = current_user.metadata.build(metadata_type: @metadata_type, under_review: true)
+    authorize @metadatum
+    @metadatum.assign_attributes(metadatum_params)
 
     respond_to do |format|
       if @metadatum.save
@@ -46,6 +54,8 @@ class MetadataController < ApplicationController
 
   # PATCH/PUT /metadata_types/1/metadata/1
   def update
+    authorize @metadatum
+
     respond_to do |format|
       if @metadatum.update(metadatum_params)
         format.turbo_stream { render_metadata_values_update }
@@ -61,6 +71,8 @@ class MetadataController < ApplicationController
 
   # DELETE /metadata_types/1/metadata/1
   def destroy
+    authorize @metadatum
+
     @metadatum.destroy!
 
     respond_to do |format|
@@ -72,6 +84,8 @@ class MetadataController < ApplicationController
 
   # PATCH /metadata_types/1/metadata/1/toggle_review
   def toggle_review
+    authorize @metadatum
+
     @metadatum.update!(under_review: !@metadatum.under_review?)
 
     respond_to do |format|
@@ -83,11 +97,15 @@ class MetadataController < ApplicationController
 
   # GET /metadata_types/1/metadata/1/tagged_items
   def tagged_items
+    authorize @metadatum
+
     render partial: "metadata/tagged_items_modal", locals: { metadatum: @metadatum }
   end
 
   # GET /metadata_types/1/metadata/1/delete_confirmation
   def delete_confirmation
+    authorize @metadatum
+
     render partial: "metadata/delete_confirmation_modal", locals: {
       metadata_type: @metadata_type,
       metadatum: @metadatum,
@@ -105,7 +123,7 @@ class MetadataController < ApplicationController
     end
 
     def metadatum_params
-      params.require(:metadatum).permit(:name, :under_review)
+      params.require(:metadatum).permit(policy(@metadatum).permitted_attributes)
     end
 
     def metadatum_form_locals

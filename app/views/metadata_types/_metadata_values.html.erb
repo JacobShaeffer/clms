@@ -6,6 +6,7 @@
   status: review_filter == "all" ? nil : review_filter,
   limit: metadata_values_limit
 }.compact %>
+<% can_create_metadatum = policy(Metadatum.new(metadata_type: metadata_type)).new? %>
 
 <%= turbo_frame_tag frame_id do %>
   <div class="row pb-3">
@@ -54,13 +55,15 @@
       <%= form.hidden_field :limit, value: metadata_values_limit %>
     <% end %>
 
-    <div class="col-2">
-      <%= link_to "Add",
-        new_metadata_type_metadatum_path(metadata_type, frame_params),
-        class: "btn float-end btn-primary",
-        data: { turbo_frame: "modal" }
-      %>
-    </div>
+    <% if can_create_metadatum %>
+      <div class="col-2">
+        <%= link_to "Add",
+          new_metadata_type_metadatum_path(metadata_type, frame_params),
+          class: "btn float-end btn-primary",
+          data: { turbo_frame: "modal" }
+        %>
+      </div>
+    <% end %>
   </div>
 
   <div class="row">
