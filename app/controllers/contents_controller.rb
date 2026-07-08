@@ -1,6 +1,19 @@
 class ContentsController < ApplicationController
   PER_PAGE_OPTIONS = [ 10, 20, 50, 100 ].freeze
   DEFAULT_PER_PAGE = 10
+  METADATA_COLUMN_PREFIX = "metadata_type:"
+  CONTENT_COLUMNS = [
+    { key: "id", label: "ID", type: :content },
+    { key: "title", label: "Title", type: :content },
+    { key: "display_title", label: "Display title", type: :content },
+    { key: "description", label: "Description", type: :content },
+    { key: "year_of_publication", label: "Year of publication", type: :content },
+    { key: "additional_notes", label: "Additional notes", type: :content },
+    { key: "created_at", label: "Date created", type: :content },
+    { key: "updated_at", label: "Date updated", type: :content },
+    { key: "added_by", label: "Added by", type: :content }
+  ].freeze
+  DEFAULT_CONTENT_COLUMN_KEYS = %w[title created_at added_by].freeze
 
   before_action :authenticate_user!
 
@@ -10,7 +23,14 @@ class ContentsController < ApplicationController
     @search_query = params[:q].to_s
     @per_page_options = PER_PAGE_OPTIONS
     @per_page = normalized_per_page
-    @metadata_types = policy_scope(MetadataType).order(:order, :name).limit(2)
+    @metadata_types = policy_scope(MetadataType).order(:order, :name)
+    @content_columns = CONTENT_COLUMNS
+    @metadata_columns = metadata_columns
+    @available_columns = @content_columns + @metadata_columns
+    @columns_present = columns_present?
+    @selected_column_keys = selected_column_keys
+    @selected_columns = @available_columns.select { |column| @selected_column_keys.include?(column[:key]) }
+    @column_selection_params = column_selection_params
 
     contents = filtered_contents
     @pagy, @contents = pagy(:offset, contents, limit: @per_page)
@@ -56,5 +76,50 @@ class ContentsController < ApplicationController
 
   def content_params
     params.require(:content).permit(policy(@content).permitted_attributes)
+  end
+
+  def metadata_columns
+    @metadata_types.map do |metadata_type|
+      {
+        key: metadata_column_key(metadata_type),
+        label: metadata_type.name,
+        type: :metadata,
+        metadata_type_id: metadata_type.id
+      }
+    end
+  end
+
+  def selected_column_keys
+    return default_column_keys unless @columns_present
+
+    requested_column_keys & available_column_keys
+  end
+
+  def columns_present?
+    params[:columns_present].present? || params.key?(:columns)
+  end
+
+  def requested_column_keys
+    Array(params[:columns]).filter_map { |column_key| column_key.to_s.presence }
+  end
+
+  def available_column_keys
+    @available_columns.map { |column| column[:key] }
+  end
+
+  def default_column_keys
+    DEFAULT_CONTENT_COLUMN_KEYS + @metadata_types.first(2).map { |metadata_type| metadata_column_key(metadata_type) }
+  end
+
+  def metadata_column_key(metadata_type)
+    "#{METADATA_COLUMN_PREFIX}#{metadata_type.id}"
+  end
+
+  def column_selection_params
+    return {} unless @columns_present
+
+    column_params = { columns_present: "1" }
+    column_params[:columns] = @selected_column_keys if @selected_column_keys.any?
+    column_params
   end
 end

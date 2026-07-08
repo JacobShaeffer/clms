@@ -1,17 +1,17 @@
 <% metadata_by_type = content.metadata.group_by(&:metadata_type_id) %>
-<% added_by = content.user&.name.presence || content.user&.email %>
 
 <tr id="<%= dom_id content %>">
-  <td><%= content.title %></td>
-  <td><%= content.created_at.strftime("%Y-%m-%d") %></td>
-  <td><%= added_by %></td>
-  <% metadata_types.each do |metadata_type| %>
-    <% metadata_values = metadata_by_type.fetch(metadata_type.id, []) %>
+  <% selected_columns.each do |column| %>
     <td>
-      <% if metadata_values.any? %>
-        <%= metadata_values.map(&:name).join(", ") %>
+      <% if column[:type] == :metadata %>
+        <% metadata_values = metadata_by_type.fetch(column[:metadata_type_id], []) %>
+        <% if metadata_values.any? %>
+          <%= metadata_values.map(&:name).join(", ") %>
+        <% else %>
+          <span class="text-muted">None</span>
+        <% end %>
       <% else %>
-        <span class="text-muted">None</span>
+        <%= content_table_value(content_column_value(content, column[:key])) %>
       <% end %>
     </td>
   <% end %>

@@ -3,23 +3,28 @@
     <table class="table table-striped align-middle">
       <thead>
         <tr>
-          <th>Title</th>
-          <th>Date created</th>
-          <th>Added by</th>
-          <% metadata_types.each do |metadata_type| %>
-            <th><%= metadata_type.name %></th>
+          <% if selected_columns.any? %>
+            <% selected_columns.each do |column| %>
+              <th><%= column[:label] %></th>
+            <% end %>
+          <% else %>
+            <th>Columns</th>
           <% end %>
         </tr>
       </thead>
       <tbody>
-        <% if contents.any? %>
+        <% if selected_columns.empty? %>
+          <tr>
+            <td class="text-center">No columns selected.</td>
+          </tr>
+        <% elsif contents.any? %>
           <%= render partial: "content",
             collection: contents,
-            locals: { metadata_types: metadata_types }
+            locals: { selected_columns: selected_columns }
           %>
         <% else %>
           <tr>
-            <td colspan="<%= 3 + metadata_types.size %>" class="text-center">No content found.</td>
+            <td colspan="<%= selected_columns.size %>" class="text-center">No content found.</td>
           </tr>
         <% end %>
       </tbody>
@@ -37,16 +42,24 @@
         class: "d-flex align-items-center gap-2",
         data: {
           controller: "content-filters-form",
-          turbo_frame: "contents_table"
+          turbo_frame: "contents_table",
+          column_selection_sync: true
         }
       ) do |form| %>
         <%= form.hidden_field :q, value: search_query if search_query.present? %>
+        <%= render "contents/column_selection_fields",
+          columns_present: columns_present,
+          selected_column_keys: selected_column_keys
+        %>
         <%= form.label :per_page, "Rows to display", class: "form-label mb-0" %>
         <%= form.select :per_page,
           options_for_select(per_page_options, per_page),
           {},
           class: "form-select",
-          data: { action: "change->content-filters-form#submit" }
+          data: {
+            action: "change->content-filters-form#submit",
+            content_column_select_source: "per-page"
+          }
         %>
       <% end %>
     </div>

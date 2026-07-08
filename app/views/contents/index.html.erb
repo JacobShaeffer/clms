@@ -19,7 +19,8 @@
       class: "row g-2",
       data: {
         controller: "content-filters-form",
-        turbo_frame: "contents_table"
+        turbo_frame: "contents_table",
+        column_selection_sync: true
       }
     ) do |form| %>
       <div class="col-12 col-md-6">
@@ -28,13 +29,23 @@
           value: @search_query,
           class: "form-control",
           placeholder: "Search by title",
-          data: { action: "input->content-filters-form#submit" }
+          data: {
+            action: "input->content-filters-form#submit",
+            content_column_select_source: "q"
+          }
         %>
       </div>
       <%= form.hidden_field :per_page, value: @per_page %>
+      <%= render "contents/column_selection_fields",
+        columns_present: @columns_present,
+        selected_column_keys: @selected_column_keys
+      %>
       <% if @search_query.present? %>
         <div class="col-auto align-self-end">
-          <%= link_to "Clear", contents_path(per_page: @per_page), class: "btn btn-secondary" %>
+          <%= link_to "Clear",
+            contents_path({ per_page: @per_page }.merge(@column_selection_params)),
+            class: "btn btn-secondary"
+          %>
         </div>
       <% end %>
     <% end %>
@@ -43,9 +54,23 @@
 
 <%= turbo_frame_tag "modal" %>
 
+<div class="row mb-3">
+  <div class="col">
+    <%= render "contents/column_select_dropdown",
+      content_columns: @content_columns,
+      metadata_columns: @metadata_columns,
+      selected_column_keys: @selected_column_keys,
+      search_query: @search_query,
+      per_page: @per_page
+    %>
+  </div>
+</div>
+
 <%= render "table",
   contents: @contents,
-  metadata_types: @metadata_types,
+  selected_columns: @selected_columns,
+  selected_column_keys: @selected_column_keys,
+  columns_present: @columns_present,
   pagy: @pagy,
   per_page: @per_page,
   per_page_options: @per_page_options,

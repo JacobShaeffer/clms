@@ -1,0 +1,13 @@
+<% if columns_present %>
+  <%= hidden_field_tag :columns_present,
+    "1",
+    data: { column_selection_field: true }
+  %>
+  <% selected_column_keys.each do |column_key| %>
+    <%= hidden_field_tag "columns[]",
+      column_key,
+      id: nil,
+      data: { column_selection_field: true }
+    %>
+  <% end %>
+<% end %>
