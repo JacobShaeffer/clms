@@ -11,7 +11,7 @@
 
   <div class="dropdown-menu p-3 shadow" aria-labelledby="contents-column-select-dropdown" style="min-width: 18rem; max-height: 70vh; overflow-y: auto;">
     <%= form_with(
-      url: contents_path,
+      url: table_contents_path,
       method: :get,
       data: {
         controller: "content-column-select",
@@ -20,14 +20,6 @@
       }
     ) do %>
       <%= hidden_field_tag :columns_present, "1" %>
-      <%= hidden_field_tag :q,
-        search_query,
-        data: { content_column_select_target: "qField" }
-      %>
-      <%= hidden_field_tag :per_page,
-        per_page,
-        data: { content_column_select_target: "perPageField" }
-      %>
 
       <h2 class="h6">Content columns</h2>
       <% content_columns.each do |column| %>

@@ -3,6 +3,10 @@ class ContentPolicy < ApplicationPolicy
     non_guest?
   end
 
+  def table?
+    index?
+  end
+
   def show?
     non_guest?
   end

@@ -1,0 +1,7 @@
+<%= turbo_frame_tag "contents_table" do %>
+  <%= render "contents/table",
+    contents: contents,
+    selected_columns: selected_columns,
+    pagy: pagy
+  %>
+<% end %>

@@ -11,16 +11,17 @@
   <% end %>
 </div>
 
+<%= turbo_frame_tag "modal" %>
+
 <div class="row mb-3">
   <div class="col">
     <%= form_with(
-      url: contents_path,
+      url: table_contents_path,
       method: :get,
       class: "row g-2",
       data: {
         controller: "content-filters-form",
-        turbo_frame: "contents_table",
-        column_selection_sync: true
+        turbo_frame: "contents_table"
       }
     ) do |form| %>
       <div class="col-12 col-md-6">
@@ -30,49 +31,66 @@
           class: "form-control",
           placeholder: "Search by title",
           data: {
-            action: "input->content-filters-form#submit",
-            content_column_select_source: "q"
+            action: "input->content-filters-form#submit"
           }
         %>
       </div>
-      <%= form.hidden_field :per_page, value: @per_page %>
-      <%= render "contents/column_selection_fields",
-        columns_present: @columns_present,
-        selected_column_keys: @selected_column_keys
-      %>
-      <% if @search_query.present? %>
-        <div class="col-auto align-self-end">
-          <%= link_to "Clear",
-            contents_path({ per_page: @per_page }.merge(@column_selection_params)),
-            class: "btn btn-secondary"
-          %>
-        </div>
-      <% end %>
+      <div class="col-auto align-self-end">
+        <button
+          class="btn btn-secondary"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#contents-advanced-filters"
+          aria-controls="contents-advanced-filters">
+          Advanced Filters
+        </button>
+      </div>
     <% end %>
   </div>
 </div>
 
-<%= turbo_frame_tag "modal" %>
+<%= render "contents/advanced_filters_offcanvas",
+  content_columns: @content_columns,
+  metadata_columns: @metadata_columns,
+  filters: @filters
+%>
 
 <div class="row mb-3">
   <div class="col">
     <%= render "contents/column_select_dropdown",
       content_columns: @content_columns,
       metadata_columns: @metadata_columns,
-      selected_column_keys: @selected_column_keys,
-      search_query: @search_query,
-      per_page: @per_page
+      selected_column_keys: @selected_column_keys
     %>
   </div>
 </div>
 
-<%= render "table",
+<%= render "contents/table_frame",
   contents: @contents,
   selected_columns: @selected_columns,
-  selected_column_keys: @selected_column_keys,
-  columns_present: @columns_present,
-  pagy: @pagy,
-  per_page: @per_page,
-  per_page_options: @per_page_options,
-  search_query: @search_query
+  pagy: @pagy
 %>
+
+<div class="row align-items-center mt-3">
+  <div class="col-auto ms-auto">
+    <%= form_with(
+      url: table_contents_path,
+      method: :get,
+      class: "d-flex align-items-center gap-2",
+      data: {
+        controller: "content-filters-form",
+        turbo_frame: "contents_table"
+      }
+    ) do |form| %>
+      <%= form.label :per_page, "Rows to display", class: "form-label mb-0" %>
+      <%= form.select :per_page,
+        options_for_select(@per_page_options, @per_page),
+        {},
+        class: "form-select",
+        data: {
+          action: "change->content-filters-form#submit"
+        }
+      %>
+    <% end %>
+  </div>
+</div>

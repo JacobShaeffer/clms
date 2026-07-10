@@ -3,15 +3,15 @@ class ContentsController < ApplicationController
   DEFAULT_PER_PAGE = 10
   METADATA_COLUMN_PREFIX = "metadata_type:"
   CONTENT_COLUMNS = [
-    { key: "id", label: "ID", type: :content },
-    { key: "title", label: "Title", type: :content },
-    { key: "display_title", label: "Display title", type: :content },
-    { key: "description", label: "Description", type: :content },
-    { key: "year_of_publication", label: "Year of publication", type: :content },
-    { key: "additional_notes", label: "Additional notes", type: :content },
-    { key: "created_at", label: "Date created", type: :content },
-    { key: "updated_at", label: "Date updated", type: :content },
-    { key: "added_by", label: "Added by", type: :content }
+    { key: "id", label: "ID", type: :content, filter: :number },
+    { key: "title", label: "Title", type: :content, filter: :text },
+    { key: "display_title", label: "Display title", type: :content, filter: :text },
+    { key: "description", label: "Description", type: :content, filter: :text },
+    { key: "year_of_publication", label: "Year of publication", type: :content, filter: :number },
+    { key: "additional_notes", label: "Additional notes", type: :content, filter: :number },
+    { key: "created_at", label: "Date created", type: :content, filter: :date },
+    { key: "updated_at", label: "Date updated", type: :content, filter: :date },
+    { key: "added_by", label: "Added by", type: :content, filter: :text }
   ].freeze
   DEFAULT_CONTENT_COLUMN_KEYS = %w[title created_at added_by].freeze
 
@@ -19,21 +19,14 @@ class ContentsController < ApplicationController
 
   def index
     authorize Content
+    load_contents_index(reset: true)
+  end
 
-    @search_query = params[:q].to_s
-    @per_page_options = PER_PAGE_OPTIONS
-    @per_page = normalized_per_page
-    @metadata_types = policy_scope(MetadataType).order(:order, :name)
-    @content_columns = CONTENT_COLUMNS
-    @metadata_columns = metadata_columns
-    @available_columns = @content_columns + @metadata_columns
-    @columns_present = columns_present?
-    @selected_column_keys = selected_column_keys
-    @selected_columns = @available_columns.select { |column| @selected_column_keys.include?(column[:key]) }
-    @column_selection_params = column_selection_params
+  def table
+    authorize Content
+    load_contents_index
 
-    contents = filtered_contents
-    @pagy, @contents = pagy(:offset, contents, limit: @per_page)
+    render partial: "contents/table_frame", locals: table_locals
   end
 
   def new
@@ -57,21 +50,108 @@ class ContentsController < ApplicationController
 
   private
 
+  def load_contents_index(reset: false)
+    @metadata_types = policy_scope(MetadataType).order(:order, :name)
+    @content_columns = CONTENT_COLUMNS
+    @metadata_columns = metadata_columns
+    @available_columns = @content_columns + @metadata_columns
+    @per_page_options = PER_PAGE_OPTIONS
+    @index_state = contents_index_state
+    reset ? @index_state.reset! : @index_state.update!
+    @search_query = @index_state.q
+    @filters = @index_state.filters
+    @per_page = @index_state.per_page
+    @columns_present = @index_state.columns_present?
+    @selected_column_keys = @index_state.selected_column_keys
+    @selected_columns = @available_columns.select { |column| @selected_column_keys.include?(column[:key]) }
+
+    contents = filtered_contents
+    @pagy, @contents = pagy(:offset, contents, limit: @per_page)
+  end
+
   def filtered_contents
     contents = policy_scope(Content)
       .includes(:user, metadata: :metadata_type)
       .order(created_at: :desc)
 
+    contents = apply_quick_search(contents)
+    apply_advanced_filters(contents)
+  end
+
+  def apply_quick_search(contents)
     return contents if @search_query.blank?
 
     query = ActiveRecord::Base.sanitize_sql_like(@search_query)
     contents.where("contents.title LIKE ?", "%#{query}%")
   end
 
-  def normalized_per_page
-    per_page = params[:per_page].to_i
+  def apply_advanced_filters(contents)
+    @filters.each do |column_key, filter|
+      column = @available_columns.find { |available_column| available_column[:key] == column_key }
+      next if column.blank?
 
-    PER_PAGE_OPTIONS.include?(per_page) ? per_page : DEFAULT_PER_PAGE
+      contents = if column[:type] == :metadata
+        apply_metadata_filter(contents, column, filter)
+      else
+        apply_content_filter(contents, column, filter)
+      end
+    end
+
+    contents
+  end
+
+  def apply_content_filter(contents, column, filter)
+    case column[:filter]
+    when :date
+      apply_date_filter(contents, column[:key], filter)
+    when :number
+      apply_number_filter(contents, column[:key], filter)
+    else
+      apply_text_filter(contents, column[:key], filter)
+    end
+  end
+
+  def apply_metadata_filter(contents, column, filter)
+    value = filter["value"].to_s
+    return contents if value.blank?
+
+    query = ActiveRecord::Base.sanitize_sql_like(value)
+    matching_content_ids = Content.joins(:metadata)
+      .where("metadata.metadata_type_id = ?", column[:metadata_type_id])
+      .where("metadata.name LIKE ?", "%#{query}%")
+      .select(:id)
+
+    contents.where(id: matching_content_ids)
+  end
+
+  def apply_text_filter(contents, column_key, filter)
+    value = filter["value"].to_s
+    return contents if value.blank?
+
+    query = ActiveRecord::Base.sanitize_sql_like(value)
+
+    if column_key == "added_by"
+      contents.joins(:user).where("users.name LIKE ? OR users.email LIKE ?", "%#{query}%", "%#{query}%")
+    else
+      contents.where("contents.#{column_key} LIKE ?", "%#{query}%")
+    end
+  end
+
+  def apply_number_filter(contents, column_key, filter)
+    value = Integer(filter["value"], exception: false)
+    return contents if value.blank?
+
+    contents.where(contents: { column_key => value })
+  end
+
+  def apply_date_filter(contents, column_key, filter)
+    from_date = parse_filter_date(filter["from"])
+    to_date = parse_filter_date(filter["to"])
+
+    contents = contents.where("contents.#{column_key} >= ?", from_date.beginning_of_day) if from_date
+    contents = contents.where("contents.#{column_key} <= ?", to_date.end_of_day) if to_date
+
+    contents
   end
 
   def content_params
@@ -84,27 +164,10 @@ class ContentsController < ApplicationController
         key: metadata_column_key(metadata_type),
         label: metadata_type.name,
         type: :metadata,
-        metadata_type_id: metadata_type.id
+        metadata_type_id: metadata_type.id,
+        filter: :text
       }
     end
-  end
-
-  def selected_column_keys
-    return default_column_keys unless @columns_present
-
-    requested_column_keys & available_column_keys
-  end
-
-  def columns_present?
-    params[:columns_present].present? || params.key?(:columns)
-  end
-
-  def requested_column_keys
-    Array(params[:columns]).filter_map { |column_key| column_key.to_s.presence }
-  end
-
-  def available_column_keys
-    @available_columns.map { |column| column[:key] }
   end
 
   def default_column_keys
@@ -115,11 +178,28 @@ class ContentsController < ApplicationController
     "#{METADATA_COLUMN_PREFIX}#{metadata_type.id}"
   end
 
-  def column_selection_params
-    return {} unless @columns_present
+  def contents_index_state
+    Contents::IndexState.new(
+      session: session,
+      params: params,
+      available_columns: @available_columns,
+      default_column_keys: default_column_keys,
+      per_page_options: PER_PAGE_OPTIONS,
+      default_per_page: DEFAULT_PER_PAGE
+    )
+  end
 
-    column_params = { columns_present: "1" }
-    column_params[:columns] = @selected_column_keys if @selected_column_keys.any?
-    column_params
+  def table_locals
+    {
+      contents: @contents,
+      selected_columns: @selected_columns,
+      pagy: @pagy
+    }
+  end
+
+  def parse_filter_date(value)
+    Date.iso8601(value.to_s)
+  rescue ArgumentError
+    nil
   end
 end

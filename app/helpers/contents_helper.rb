@@ -26,6 +26,14 @@ module ContentsHelper
     value.present? ? value : tag.span("None", class: "text-muted")
   end
 
+  def content_filter_value(filters, column_key, field = "value")
+    filters.dig(column_key, field).to_s
+  end
+
+  def content_filter_input_id(column_key, field = "value")
+    "content_filter_#{column_key.to_s.parameterize(separator: "_")}_#{field}"
+  end
+
   private
 
   def formatted_content_date(value)

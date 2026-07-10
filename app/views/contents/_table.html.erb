@@ -1,67 +1,37 @@
-<%= turbo_frame_tag "contents_table" do %>
-  <div class="table-responsive">
-    <table class="table table-striped align-middle">
-      <thead>
-        <tr>
-          <% if selected_columns.any? %>
-            <% selected_columns.each do |column| %>
-              <th><%= column[:label] %></th>
-            <% end %>
-          <% else %>
-            <th>Columns</th>
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <% if selected_columns.any? %>
+          <% selected_columns.each do |column| %>
+            <th><%= column[:label] %></th>
           <% end %>
-        </tr>
-      </thead>
-      <tbody>
-        <% if selected_columns.empty? %>
-          <tr>
-            <td class="text-center">No columns selected.</td>
-          </tr>
-        <% elsif contents.any? %>
-          <%= render partial: "content",
-            collection: contents,
-            locals: { selected_columns: selected_columns }
-          %>
         <% else %>
-          <tr>
-            <td colspan="<%= selected_columns.size %>" class="text-center">No content found.</td>
-          </tr>
+          <th>Columns</th>
         <% end %>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="row align-items-center mt-3">
-    <div class="col">
-      <%== pagy.series_nav if pagy.pages > 1 %>
-    </div>
-    <div class="col-auto">
-      <%= form_with(
-        url: contents_path,
-        method: :get,
-        class: "d-flex align-items-center gap-2",
-        data: {
-          controller: "content-filters-form",
-          turbo_frame: "contents_table",
-          column_selection_sync: true
-        }
-      ) do |form| %>
-        <%= form.hidden_field :q, value: search_query if search_query.present? %>
-        <%= render "contents/column_selection_fields",
-          columns_present: columns_present,
-          selected_column_keys: selected_column_keys
+      </tr>
+    </thead>
+    <tbody>
+      <% if selected_columns.empty? %>
+        <tr>
+          <td class="text-center">No columns selected.</td>
+        </tr>
+      <% elsif contents.any? %>
+        <%= render partial: "content",
+          collection: contents,
+          locals: { selected_columns: selected_columns }
         %>
-        <%= form.label :per_page, "Rows to display", class: "form-label mb-0" %>
-        <%= form.select :per_page,
-          options_for_select(per_page_options, per_page),
-          {},
-          class: "form-select",
-          data: {
-            action: "change->content-filters-form#submit",
-            content_column_select_source: "per-page"
-          }
-        %>
+      <% else %>
+        <tr>
+          <td colspan="<%= selected_columns.size %>" class="text-center">No content found.</td>
+        </tr>
       <% end %>
-    </div>
+    </tbody>
+  </table>
+</div>
+
+<div class="row align-items-center mt-3">
+  <div class="col">
+    <%== pagy.series_nav(path: table_contents_path) if pagy.pages > 1 %>
   </div>
-<% end %>
+</div>

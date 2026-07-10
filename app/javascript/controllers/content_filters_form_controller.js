@@ -20,6 +20,16 @@ export default class extends Controller {
     this.submitForm()
   }
 
+  clearFilters(event) {
+    event.preventDefault()
+
+    this.element.querySelectorAll("[name^='filters[']").forEach((input) => {
+      input.value = ""
+    })
+
+    this.element.requestSubmit(event.currentTarget)
+  }
+
   debounceSubmit() {
     if (this.debounceTimer) {
       window.clearTimeout(this.debounceTimer)
