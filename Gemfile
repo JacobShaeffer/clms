@@ -73,4 +73,4 @@ gem "devise", "~> 5.0"
 
 gem "pundit", "~> 2.5"
 
-gem "pagy", "~> 43.5"
+gem "pagy", "~> 43.6"
