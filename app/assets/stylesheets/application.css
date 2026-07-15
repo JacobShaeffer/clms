@@ -16,3 +16,18 @@
 .navbar-collapse.collapse {
   visibility: visible;
 }
+
+.modal-dialog.modal-nearly-fullscreen {
+  width: calc(100% - 2rem);
+  max-width: none;
+  height: calc(100% - 2rem);
+  margin: 1rem auto;
+}
+
+.modal-nearly-fullscreen .modal-content {
+  height: 100%;
+}
+
+.modal-nearly-fullscreen .modal-body {
+  overflow-y: auto;
+}
