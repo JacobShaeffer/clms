@@ -52,14 +52,36 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get contents_url
 
     assert_response :success
+    assert_select "h1", text: "Contents"
+    assert_select "h1.title", count: 0
+    assert_select "a.btn.btn-primary[data-turbo-frame='modal']", text: "New content"
     assert_select "turbo-frame#contents_table"
     assert_select "turbo-frame#contents_table input[name='q']", count: 0
-    assert_select "button", text: "Advanced Filters"
+    assert_select "form[action='#{table_contents_path}'][data-turbo-frame='contents_table'] input.form-control[name='q']"
+    assert_select "button.btn.btn-secondary[data-bs-toggle='offcanvas'][data-bs-target='#contents-advanced-filters']", text: "Advanced Filters"
     assert_select ".offcanvas.offcanvas-end#contents-advanced-filters"
-    assert_select "#contents-advanced-filters-title", text: "Advanced Filters"
-    assert_select "input[name='filters[title][value]']"
-    assert_select "input[name='filters[metadata_type:#{@metadata_type.id}][value]']"
-    assert_select "form[action='#{table_contents_path}'] select[name='per_page']"
+    assert_select "#contents-advanced-filters-title.offcanvas-title", text: "Advanced Filters"
+    assert_select ".offcanvas-body input.form-control[name='filters[title][value]']"
+    assert_select ".offcanvas-body input.form-control[name='filters[metadata_type:#{@metadata_type.id}][value]']"
+    assert_select ".offcanvas-body input.btn.btn-primary[type='submit'][value='Apply Filters']"
+    assert_select ".offcanvas-body button.btn.btn-secondary[name='clear_filters']", text: "Clear Filters"
+    assert_select "turbo-frame#contents_table .table-responsive > table.table.table-striped.align-middle"
+    assert_select "form[action='#{table_contents_path}'] select.form-select[name='per_page']"
+  end
+
+  test "new renders a Bootstrap content form" do
+    get new_content_url
+
+    assert_response :success
+    assert_select "h1", text: "New content"
+    assert_select "h1.title", count: 0
+    assert_select "form[action='#{contents_path}'][method='post'][data-turbo-frame='_top']" do
+      assert_select "label.form-label[for='content_title']", text: "Title"
+      assert_select "input.form-control#content_title[name='content[title]']"
+      assert_select "textarea.form-control#content_description[name='content[description]']"
+      assert_select "input.btn.btn-primary[type='submit']"
+      assert_select "a.btn.btn-secondary[href='#{contents_path}']", text: "Cancel"
+    end
   end
 
   test "table action renders only the contents table frame" do
@@ -233,7 +255,9 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get contents_url
 
     assert_response :success
-    assert_select "turbo-frame#contents_table a[href='#{table_contents_path}?page=2']"
+    assert_select "turbo-frame#contents_table nav.pagy-bootstrap.series-nav ul.pagination" do
+      assert_select "li.page-item a.page-link[href='#{table_contents_path}?page=2']"
+    end
   end
 
   test "every visible content and metadata header is a direct Turbo sort link" do

@@ -9,19 +9,19 @@
 <% can_create_metadatum = policy(Metadatum.new(metadata_type: metadata_type)).new? %>
 
 <%= turbo_frame_tag frame_id do %>
-  <div class="row pb-3">
+  <div class="row g-3 pb-3">
     <%= form_with(
       url: metadata_values_metadata_type_path(metadata_type),
       method: :get,
-      class: "col-10",
+      class: "col-12 col-sm-10",
       data: {
         controller: "metadata-values-form",
         turbo_frame: frame_id
       }
     ) do |form| %>
-      <div class="row">
-        <div class="col col-lg-4">
-          <%= form.label :q, "Metadata Value", for: search_id %>
+      <div class="row g-3">
+        <div class="col-12 col-md-6 col-lg-4">
+          <%= form.label :q, "Metadata Value", for: search_id, class: "form-label" %>
           <%= form.search_field :q,
             value: search_query,
             id: search_id,
@@ -33,8 +33,8 @@
           %>
         </div>
 
-        <div class="col col-lg-3">
-          <%= form.label :status, "Status", for: status_id %>
+        <div class="col-12 col-md-6 col-lg-4">
+          <%= form.label :status, "Status", for: status_id, class: "form-label" %>
           <%= form.select :status,
             options_for_select(
               [
@@ -56,10 +56,10 @@
     <% end %>
 
     <% if can_create_metadatum %>
-      <div class="col-2">
+      <div class="col-12 col-sm-2 d-grid align-items-end">
         <%= link_to "Add",
           new_metadata_type_metadatum_path(metadata_type, frame_params),
-          class: "btn float-end btn-primary",
+          class: "btn btn-primary",
           data: { turbo_frame: "modal" }
         %>
       </div>
@@ -67,13 +67,13 @@
   </div>
 
   <div class="row">
-    <div class="col" style="border: 1px solid black;">
-      <div class="row">
+    <div class="col border rounded">
+      <div class="row py-2 border-bottom">
         <div class="col-6">
-          <h3>Metadata Value</h3>
+          <h3 class="fs-6 mb-0">Metadata Value</h3>
         </div>
         <div class="col-5">
-          <h3>Status</h3>
+          <h3 class="fs-6 mb-0">Status</h3>
         </div>
         <div class="col-1"></div>
       </div>
@@ -87,7 +87,7 @@
           }
         %>
       <% else %>
-        <p class="text-center my-10">No metadata values found.</p>
+        <p class="text-center my-5">No metadata values found.</p>
       <% end %>
     </div>
   </div>
@@ -95,10 +95,11 @@
   <% if metadata_values_count > metadata_values_limit %>
     <% show_more_params = frame_params.merge(limit: metadata_values_next_limit) %>
 
-    <div class="row justify-content-center">
+    <div class="row justify-content-center mt-3">
       <div class="col-auto">
         <%= link_to "Show More",
           metadata_values_metadata_type_path(metadata_type, show_more_params),
+          class: "btn btn-outline-secondary",
           data: { turbo_frame: frame_id }
         %>
       </div>

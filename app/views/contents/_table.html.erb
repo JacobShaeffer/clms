@@ -53,6 +53,6 @@
 
 <div class="row align-items-center mt-3">
   <div class="col">
-    <%== pagy.series_nav(path: table_contents_path) if pagy.pages > 1 %>
+    <%== pagy.series_nav(:bootstrap, path: table_contents_path) if pagy.pages > 1 %>
   </div>
 </div>
