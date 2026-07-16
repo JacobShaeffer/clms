@@ -9,14 +9,6 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
-.accordion-collapse.collapse.show {
-  visibility: visible;
-}
-
-.navbar-collapse.collapse {
-  visibility: visible;
-}
-
 .modal-dialog.modal-nearly-fullscreen {
   width: calc(100% - 2rem);
   max-width: none;

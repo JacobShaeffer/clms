@@ -64,6 +64,9 @@ class ContentsController < ApplicationController
     @columns_present = @index_state.columns_present?
     @selected_column_keys = @index_state.selected_column_keys
     @selected_columns = @available_columns.select { |column| @selected_column_keys.include?(column[:key]) }
+    @sort_column = @index_state.sort_column
+    @sort_direction = @index_state.sort_direction
+    @sorted_column = @selected_columns.find { |column| column[:key] == @sort_column }
 
     contents = filtered_contents
     @pagy, @contents = pagy(:offset, contents, limit: @per_page)
@@ -72,10 +75,15 @@ class ContentsController < ApplicationController
   def filtered_contents
     contents = policy_scope(Content)
       .includes(:user, metadata: :metadata_type)
-      .order(created_at: :desc)
 
     contents = apply_quick_search(contents)
-    apply_advanced_filters(contents)
+    contents = apply_advanced_filters(contents)
+
+    Contents::Sorter.call(
+      relation: contents,
+      column: @sorted_column,
+      direction: @sort_direction
+    )
   end
 
   def apply_quick_search(contents)
@@ -193,7 +201,9 @@ class ContentsController < ApplicationController
     {
       contents: @contents,
       selected_columns: @selected_columns,
-      pagy: @pagy
+      pagy: @pagy,
+      sort_column: @sort_column,
+      sort_direction: @sort_direction
     }
   end
 

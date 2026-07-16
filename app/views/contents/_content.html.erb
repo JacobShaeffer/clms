@@ -4,7 +4,7 @@
   <% selected_columns.each do |column| %>
     <td>
       <% if column[:type] == :metadata %>
-        <% metadata_values = metadata_by_type.fetch(column[:metadata_type_id], []) %>
+        <% metadata_values = metadata_by_type.fetch(column[:metadata_type_id], []).sort_by { |metadata| [metadata.name.downcase, metadata.name] } %>
         <% if metadata_values.any? %>
           <%= metadata_values.map(&:name).join(", ") %>
         <% else %>

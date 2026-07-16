@@ -1,12 +1,12 @@
 <% content_for :title, "Metadata types" %>
 
-<div class="row">
-  <div class="col">
-    <h1 class="title">Metadata types</h1>
+<div class="row align-items-center g-3 mb-4">
+  <div class="col-12 col-sm">
+    <h1 class="mb-0">Metadata types</h1>
   </div>
   <% if policy(MetadataType).new? %>
-    <div class="col align-self-center">
-      <%= link_to "New metadata type", new_metadata_type_path, class: "btn btn-primary float-end", data: { turbo_frame: "modal" } %>
+    <div class="col-12 col-sm-auto d-grid">
+      <%= link_to "New metadata type", new_metadata_type_path, class: "btn btn-primary", data: { turbo_frame: "modal" } %>
     </div>
   <% end %>
 </div>

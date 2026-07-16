@@ -1,4 +1,4 @@
-<div id="<%= dom_id metadata_type %>" class="row">
+<div id="<%= dom_id metadata_type %>" class="mb-3">
   <% accordion_id = dom_id(metadata_type, :accordion) %>
   <% collapse_id = dom_id(metadata_type, :collapse) %>
   <% frame_id = dom_id(metadata_type, :metadata_values) %>
@@ -6,7 +6,7 @@
   <% metadata_count = metadata_counts ? metadata_counts.fetch(metadata_type.id, 0) : metadata_type.metadata.count %>
 
   <div
-    class="accordion pb-2"
+    class="accordion"
     id="<%= accordion_id %>"
     data-controller="metadata-values-frame"
     data-metadata-values-frame-url-value="<%= metadata_values_metadata_type_path(metadata_type) %>"
@@ -22,7 +22,7 @@
           aria-expanded="false"
           aria-controls="<%= collapse_id %>"
         >
-          <span class="h2 mb-0"><%= metadata_type.name %></span>
+          <span class="fs-4 fw-semibold"><%= metadata_type.name %></span>
           <span id="<%= dom_id(metadata_type, :metadata_count) %>" class="badge text-bg-warning ms-2"><%= metadata_count %></span>
         </button>
       </h2>

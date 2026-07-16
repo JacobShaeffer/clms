@@ -10,6 +10,10 @@ how that works though.
 TODO:
 1. devise action_mailer needs to be set for production
 
+## Styling
+
+Bootstrap 5.3.8, loaded from jsDelivr, is the application's primary UI toolkit. Use Bootstrap components and utilities first, and add only narrowly scoped custom rules to `app/assets/stylesheets/application.css` when Bootstrap is insufficient. Tailwind is intentionally not installed; do not add Tailwind utility classes to views.
+
 Things you may want to cover:
 
 * Ruby version

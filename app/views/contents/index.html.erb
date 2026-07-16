@@ -2,7 +2,7 @@
 
 <div class="row mb-3">
   <div class="col">
-    <h1 class="title">Contents</h1>
+    <h1>Contents</h1>
   </div>
   <% if policy(Content).new? %>
     <div class="col align-self-center">
@@ -68,7 +68,9 @@
 <%= render "contents/table_frame",
   contents: @contents,
   selected_columns: @selected_columns,
-  pagy: @pagy
+  pagy: @pagy,
+  sort_column: @sort_column,
+  sort_direction: @sort_direction
 %>
 
 <div class="row align-items-center mt-3">

@@ -3,23 +3,23 @@
 <% metadatum_policy = policy(metadatum) %>
 <% review_action_label = metadatum.under_review? ? "Approve" : "Mark for Review" %>
 
-<div id="<%= dom_id metadatum %>" class="row metadata-value-row">
-  <div class="col-6">
-    <p><%= metadatum.name %></p>
+<div id="<%= dom_id metadatum %>" class="row align-items-center g-2 metadata-value-row">
+  <div class="col-12 col-sm-6">
+    <p class="mb-0"><%= metadatum.name %></p>
   </div>
-  <div class="col-5">
+  <div class="col-9 col-sm-5">
     <% if metadatum.under_review? %>
       <span class="badge text-bg-warning">Under Review</span>
     <% else %>
       <span class="badge text-bg-success">Reviewed</span>
     <% end %>
   </div>
-  <div class="col-1">
+  <div class="col-3 col-sm-1 d-flex justify-content-end">
     <div class="dropdown">
       <button class="btn btn-secondary rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Metadata value actions">
         ...
       </button>
-      <ul class="dropdown-menu">
+      <ul class="dropdown-menu dropdown-menu-end">
         <% if metadatum_policy.edit? %>
           <li>
             <%= link_to "Edit",

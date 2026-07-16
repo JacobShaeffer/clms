@@ -1,6 +1,13 @@
 module Contents
   class IndexState
     SESSION_KEY = "contents_index_state"
+    SORT_DIRECTIONS = %w[asc desc].freeze
+    SORT_STATES = %w[default asc desc].freeze
+    SORT_CYCLE = {
+      "default" => "asc",
+      "asc" => "desc",
+      "desc" => "default"
+    }.freeze
 
     attr_reader :available_columns, :default_column_keys, :per_page_options
 
@@ -36,6 +43,9 @@ module Contents
 
       next_state["filters"] = sanitized_filter_params if params.key?(:filters) && !clear_filters_requested?
 
+      sanitize_sort!(next_state)
+      apply_sort_request!(next_state) unless reset_requested?
+
       @state = next_state
       session[SESSION_KEY] = @state
     end
@@ -57,9 +67,15 @@ module Contents
     end
 
     def selected_column_keys
-      return default_column_keys unless columns_present?
+      selected_column_keys_for(state)
+    end
 
-      Array(state["columns"]) & available_column_keys
+    def sort_column
+      state["sort_column"]
+    end
+
+    def sort_direction
+      state["sort_direction"]
     end
 
     private
@@ -76,7 +92,9 @@ module Contents
         "filters" => {},
         "columns_present" => false,
         "columns" => [],
-        "per_page" => @default_per_page
+        "per_page" => @default_per_page,
+        "sort_column" => nil,
+        "sort_direction" => nil
       }
     end
 
@@ -89,6 +107,7 @@ module Contents
       next_state["columns_present"] = next_state["columns_present"] == true
       next_state["columns"] = Array(next_state["columns"]).map(&:to_s) & available_column_keys
       next_state["per_page"] = normalized_per_page(next_state["per_page"])
+      sanitize_sort!(next_state)
       next_state
     end
 
@@ -116,6 +135,57 @@ module Contents
 
     def available_column_keys
       available_columns.map { |column| column[:key] }
+    end
+
+    def selected_column_keys_for(candidate_state)
+      if candidate_state["columns_present"] == true
+        Array(candidate_state["columns"]) & available_column_keys
+      else
+        Array(default_column_keys).map(&:to_s) & available_column_keys
+      end
+    end
+
+    def sanitize_sort!(candidate_state)
+      sort_column = candidate_state["sort_column"].to_s
+      sort_direction = candidate_state["sort_direction"].to_s
+      valid = selected_column_keys_for(candidate_state).include?(sort_column) &&
+        SORT_DIRECTIONS.include?(sort_direction)
+
+      candidate_state["sort_column"] = valid ? sort_column : nil
+      candidate_state["sort_direction"] = valid ? sort_direction : nil
+    end
+
+    def apply_sort_request!(candidate_state)
+      return unless params.key?(:sort_column) && params.key?(:sort_state)
+
+      requested_column = scalar_sort_param(:sort_column)
+      requested_state = scalar_sort_param(:sort_state)
+      return unless selected_column_keys_for(candidate_state).include?(requested_column)
+      return unless SORT_STATES.include?(requested_state)
+      return unless requested_state == current_sort_state(candidate_state, requested_column)
+
+      next_state = SORT_CYCLE.fetch(requested_state)
+
+      if next_state == "default"
+        candidate_state["sort_column"] = nil
+        candidate_state["sort_direction"] = nil
+      else
+        candidate_state["sort_column"] = requested_column
+        candidate_state["sort_direction"] = next_state
+      end
+    end
+
+    def scalar_sort_param(key)
+      value = params[key]
+      value if value.is_a?(String)
+    end
+
+    def current_sort_state(candidate_state, requested_column)
+      if candidate_state["sort_column"] == requested_column
+        candidate_state["sort_direction"]
+      else
+        "default"
+      end
     end
 
     def sanitized_filter_params
