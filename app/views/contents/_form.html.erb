@@ -35,6 +35,64 @@
     <%= form.file_field :file, class: "form-control" %>
   </div>
 
+  <div class="mb-3">
+		<label class="form-label">Metadata</label>
+		<div class="form-control">
+			<% @metadata_types.each do |metadata_type| %>
+
+				<div class="mb-3" 
+					data-controller='content_multiSelect' 
+					id="multiSelectFor=<%= metadata_type.id %>" 
+					data-action="focusin->multiSelect#onSearchFocusIn focusout->multiSelect#onSearchFocusOut" 
+					data-multiSelect-type-value="<%= metadata_type.id%>"
+					data-multiSelect-count-value="10"
+					class="field"
+				>
+					<label class="form-label-sm"><%= metadata_type.name %></label>
+					<div class="form-control" 
+						data-action="click->multiSelect#onSearchInputClick"
+						id="metadataInput_<%= metadata_type.id %>_container"
+					>
+						<div id="metadataBadge_<%= metadata_type.id %>_container">
+							<% if @metadata[metadata_type] %>
+								<% @metadata[metadata_type].each do |metadatum| %>
+								<div class="auto-complete-selected" 
+									id="metadatum_badge_<%= metadatum.id%>" 
+									data-action="mousedown->multiSelect#onBadgeClicked"
+								>
+									<span class="badge text-bg-primary" id="metadatum_badge_span_<%= metadatum.id%>">
+										<%= metadatum.name %>
+									</span>
+								</div>
+								<input class="hidden" 
+										type="checkbox" 
+										name="content[metadatum_ids][]" 
+										id="content_metadatum_ids_<%= metadatum.id %>" 
+										value="<%= metadatum.id %>"
+										data-multiSelect-target="checkbox"
+										checked	
+								>
+								<% end %>
+							<% end %>
+						</div>
+						<input class="auto-complete" 
+								placeholder="Search" 
+								id="metadataInput_<%= metadata_type.id %>" 
+								data-multiSelect-target="searchInput"
+								data-action="input->multiSelect#onSearchInput mouseover->multiSect#onSearchInputClick" 
+								autoComplete="off"
+								size="35"
+						>
+					</div>
+					
+					<div class="list-group hidden" id="metadataInput_<%= metadata_type.id %>_list">
+					</div>
+
+				</div>
+			<% end %>
+		</div>
+	</div>
+
   <div class="d-flex gap-2">
     <%= form.submit class: "btn btn-primary" %>
     <%= link_to "Cancel", contents_path, class: "btn btn-secondary" %>

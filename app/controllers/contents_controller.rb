@@ -29,6 +29,34 @@ class ContentsController < ApplicationController
     render partial: "contents/table_frame", locals: table_locals
   end
 
+  def add_new_metadatum
+    authorize Content
+    # Add a new metadatum to the database while createing a content record
+    @metadata_type = MetadataType.find(params[:metadata_type_id])
+    @target = params[:target]
+    @metadatum = @metadata_type.metadata.create(name: params[:name], user: current_user)
+    @metadatum.needs_review = false if current_user.admin? || current_user.intern_plus?
+    respond_to do |format|
+      if @metadatum.save
+        format.turbo_stream { render "add_metadatum" }
+      else
+        @target += "_container"
+        format.turbo_stream { render "add_new_metadatum_error" }
+      end
+    end
+  end
+
+  def add_existing_metadatum
+    authorize Content
+    # Add a new metadatum to the database while createing a content record
+    @target = params[:target]
+    @metadata_type = MetadataType.find(params[:metadata_type_id])
+    @metadatum = @metadata_type.metadata.find(params[:metadatum_id])
+    respond_to do |format|
+      format.turbo_stream { render "add_metadatum" }
+    end
+  end
+
   def new
     @content = current_user.contents.build
     authorize @content
