@@ -1,0 +1,9 @@
+<button
+  type="button"
+  class="list-group-item list-group-item-action<%= " active" if selected %>"
+  id="selector_for=<%= metadatum.id %>"
+  data-metadatum-id="<%= metadatum.id %>"
+  data-action="mousedown->content-multi-select#onItemSelected"
+>
+  <%= metadatum.name %>
+</button>

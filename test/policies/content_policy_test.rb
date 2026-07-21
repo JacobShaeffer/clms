@@ -28,9 +28,20 @@ class ContentPolicyTest < Minitest::Test
     assert ContentPolicy.new(user(:volunteer), Content).create?
   end
 
+  def test_metadata_input_actions
+    organization_policy = ContentPolicy.new(user(:organization), Content)
+    volunteer_policy = ContentPolicy.new(user(:volunteer), Content)
+
+    assert organization_policy.search?
+    refute organization_policy.add_new_metadatum?
+    refute organization_policy.add_existing_metadatum?
+    assert volunteer_policy.add_new_metadatum?
+    assert volunteer_policy.add_existing_metadatum?
+  end
+
   def test_permitted_attributes
     assert_equal(
-      [ :title, :display_title, :description, :year_of_publication, :additional_notes, :file ],
+      [ :title, :display_title, :description, :year_of_publication, :additional_notes, :file, { metadatum_ids: [] } ],
       ContentPolicy.new(user(:volunteer), Content).permitted_attributes
     )
   end

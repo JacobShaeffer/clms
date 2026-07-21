@@ -84,6 +84,67 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "new renders metadata search groups without selecting every available value" do
+    get new_content_url
+
+    assert_response :success
+    assert_select "[data-controller='content-multi-select'][data-content-multi-select-type-value='#{@metadata_type.id}']"
+    assert_select "input[name='content[metadatum_ids][]']", count: 0
+  end
+
+  test "failed create restores the selected metadata badges" do
+    post contents_url, params: {
+      content: {
+        title: "",
+        display_title: "",
+        description: "",
+        metadatum_ids: [ @history.id ]
+      }
+    }
+
+    assert_response :unprocessable_content
+    assert_select "#metadatum_badge_#{@history.id}", text: @history.name
+    assert_select "input#content_metadatum_ids_#{@history.id}[checked='checked'][value='#{@history.id}']"
+    assert_select "#metadatum_badge_#{@science.id}", count: 0
+  end
+
+  test "metadata search returns matching values and marks selected values active" do
+    get search_contents_url,
+      params: {
+        target: "metadataInput_#{@metadata_type.id}_list",
+        metadata_type_id: @metadata_type.id,
+        search: "Hist",
+        selected_ids: @history.id.to_s,
+        metadatum_count: 10
+      },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    assert_response :success
+    assert_equal "text/vnd.turbo-stream.html", response.media_type
+    assert_select "turbo-stream[action='update'][target='metadataInput_#{@metadata_type.id}_list']"
+    assert_select "button#selector_for\\=#{@history.id}.active", text: @history.name
+    assert_select "button", text: @science.name, count: 0
+    assert_select "button.list-group-item-success", text: /Add.*Hist/
+  end
+
+  test "authorized users can add and select a new metadatum" do
+    assert_difference "Metadatum.count", 1 do
+      post add_new_metadatum_contents_url,
+        params: {
+          target: "metadataBadge_#{@metadata_type.id}_container",
+          metadata_type_id: @metadata_type.id,
+          name: "  Geography  "
+        },
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    end
+
+    assert_response :success
+    metadatum = Metadatum.find_by!(name: "Geography")
+    assert metadatum.under_review?
+    assert_select "turbo-stream[action='append'][target='metadataBadge_#{@metadata_type.id}_container']"
+    assert_select "#metadatum_badge_#{metadatum.id}", text: metadatum.name
+  end
+
   test "table action renders only the contents table frame" do
     get table_contents_url, params: { q: "River" }
 

@@ -4,7 +4,8 @@ Rails.application.routes.draw do
   resources :contents, only: %i[ index new create ] do
     collection do
       get :table
-      get :add_new_metadatum
+      get :search
+      post :add_new_metadatum
       get :add_existing_metadatum
     end
   end

@@ -7,6 +7,10 @@ class ContentPolicy < ApplicationPolicy
     index?
   end
 
+  def search?
+    index?
+  end
+
   def show?
     non_guest?
   end
@@ -15,8 +19,16 @@ class ContentPolicy < ApplicationPolicy
     at_least?(:volunteer)
   end
 
+  def add_new_metadatum?
+    create?
+  end
+
+  def add_existing_metadatum?
+    create?
+  end
+
   def permitted_attributes
-    [ :title, :display_title, :description, :year_of_publication, :additional_notes, :file ]
+    [ :title, :display_title, :description, :year_of_publication, :additional_notes, :file, { metadatum_ids: [] } ]
   end
 
   class Scope < ApplicationPolicy::Scope

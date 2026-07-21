@@ -1,0 +1,27 @@
+<%= turbo_stream.update @target do %>
+  <% @metadata.each do |metadatum| %>
+    <%= render "contents/list_group_item",
+      metadatum: metadatum,
+      selected: @selected_ids.include?(metadatum.id.to_s) %>
+  <% end %>
+
+  <% if @can_add_metadatum %>
+    <button
+      type="button"
+      class="list-group-item list-group-item-success list-group-item-action"
+      data-action="mousedown->content-multi-select#onAddSelected"
+    >
+      Add “<%= @search_query %>”
+    </button>
+  <% end %>
+
+  <% if @show_more %>
+    <button
+      type="button"
+      class="list-group-item list-group-item-primary list-group-item-action"
+      data-action="mousedown->content-multi-select#onShowMore"
+    >
+      Show more
+    </button>
+  <% end %>
+<% end %>

@@ -1,6 +1,7 @@
 class ContentsController < ApplicationController
   PER_PAGE_OPTIONS = [ 10, 20, 50, 100 ].freeze
   DEFAULT_PER_PAGE = 10
+  MAX_METADATA_SEARCH_RESULTS = 100
   METADATA_COLUMN_PREFIX = "metadata_type:"
   CONTENT_COLUMNS = [
     { key: "id", label: "ID", type: :content, filter: :number },
@@ -16,6 +17,7 @@ class ContentsController < ApplicationController
   DEFAULT_CONTENT_COLUMN_KEYS = %w[title created_at added_by].freeze
 
   before_action :authenticate_user!
+  before_action :load_metadata_types, only: %i[new create]
 
   def index
     authorize Content
@@ -29,18 +31,50 @@ class ContentsController < ApplicationController
     render partial: "contents/table_frame", locals: table_locals
   end
 
+  def search
+    authorize Content
+
+    @target = params[:target]
+    @selected_ids = params[:selected_ids].to_s.split(",")
+    @metadata_type = policy_scope(MetadataType).find(params[:metadata_type_id])
+    @metadatum_count = params[:metadatum_count].to_i.clamp(1, MAX_METADATA_SEARCH_RESULTS)
+    @search_query = params[:search].to_s.strip
+
+    escaped_query = ActiveRecord::Base.sanitize_sql_like(@search_query)
+    metadata_scope = policy_scope(@metadata_type.metadata)
+      .where("LOWER(metadata.name) LIKE LOWER(?)", "%#{escaped_query}%")
+      .order(Arel.sql("LENGTH(metadata.name), metadata.name"))
+
+    metadata_results = metadata_scope.limit(@metadatum_count + 1).to_a
+    @show_more = metadata_results.length > @metadatum_count
+    @metadata = metadata_results.first(@metadatum_count)
+
+    new_metadatum = @metadata_type.metadata.build(user: current_user)
+    exact_match_exists = policy_scope(@metadata_type.metadata)
+      .where("LOWER(metadata.name) = LOWER(?)", @search_query)
+      .exists?
+    @can_add_metadatum = @search_query.present? && policy(new_metadatum).create? && !exact_match_exists
+
+    respond_to do |format|
+      format.turbo_stream
+    end
+  end
+
   def add_new_metadatum
     authorize Content
-    # Add a new metadatum to the database while createing a content record
-    @metadata_type = MetadataType.find(params[:metadata_type_id])
+    @metadata_type = policy_scope(MetadataType).find(params[:metadata_type_id])
     @target = params[:target]
-    @metadatum = @metadata_type.metadata.create(name: params[:name], user: current_user)
-    @metadatum.needs_review = false if current_user.admin? || current_user.intern_plus?
+    @metadatum = @metadata_type.metadata.build(
+      name: params[:name].to_s.strip,
+      user: current_user,
+      under_review: !(current_user.admin? || current_user.intern_plus?)
+    )
+    authorize @metadatum
+
     respond_to do |format|
       if @metadatum.save
         format.turbo_stream { render "add_metadatum" }
       else
-        @target += "_container"
         format.turbo_stream { render "add_new_metadatum_error" }
       end
     end
@@ -48,10 +82,11 @@ class ContentsController < ApplicationController
 
   def add_existing_metadatum
     authorize Content
-    # Add a new metadatum to the database while createing a content record
     @target = params[:target]
-    @metadata_type = MetadataType.find(params[:metadata_type_id])
-    @metadatum = @metadata_type.metadata.find(params[:metadatum_id])
+    @metadata_type = policy_scope(MetadataType).find(params[:metadata_type_id])
+    @metadatum = policy_scope(@metadata_type.metadata).find(params[:metadatum_id])
+    authorize @metadatum, :show?
+
     respond_to do |format|
       format.turbo_stream { render "add_metadatum" }
     end
@@ -98,6 +133,11 @@ class ContentsController < ApplicationController
 
     contents = filtered_contents
     @pagy, @contents = pagy(:offset, contents, limit: @per_page)
+  end
+
+  def load_metadata_types
+    @metadata_types = policy_scope(MetadataType)
+      .order(:order, :name)
   end
 
   def filtered_contents
