@@ -23,3 +23,16 @@
 .modal-nearly-fullscreen .modal-body {
   overflow-y: auto;
 }
+
+.auto-complete {
+	border:0; outline:0;
+}
+.auto-complete:focus {
+	border:0; outline:0;
+}
+
+.auto-complete-selected {
+	display: contents;
+	font-size: large;
+	cursor: pointer;
+}

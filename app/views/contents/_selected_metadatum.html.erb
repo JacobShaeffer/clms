@@ -1,0 +1,19 @@
+<div
+  class="auto-complete-selected d-inline-block me-1"
+  id="metadatum_badge_<%= metadatum.id %>"
+  data-metadatum-id="<%= metadatum.id %>"
+  data-action="mousedown->content-multi-select#onBadgeClicked"
+>
+  <span class="badge text-bg-primary" id="metadatum_badge_span_<%= metadatum.id %>">
+    <%= metadatum.name %>
+  </span>
+</div>
+<input
+  class="d-none"
+  type="checkbox"
+  name="content[metadatum_ids][]"
+  id="content_metadatum_ids_<%= metadatum.id %>"
+  value="<%= metadatum.id %>"
+  data-content-multi-select-target="checkbox"
+  checked
+>
