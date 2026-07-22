@@ -1,0 +1,12 @@
+<p style="color: green"><%= notice %></p>
+
+<%= render @library_asset %>
+
+<div>
+  <%= link_to "Edit this library asset", edit_library_asset_path(@library_asset), data: { turbo_frame: "modal" } %> |
+  <%= link_to "Back to library assets", library_assets_path %>
+
+  <%= button_to "Destroy this library asset", @library_asset, method: :delete %>
+</div>
+
+<%= turbo_frame_tag "modal" %>

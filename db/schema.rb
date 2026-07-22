@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_11_165559) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_212533) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -80,6 +80,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_11_165559) do
     t.index ["metadata_id"], name: "index_contents_metadata_on_metadata_id"
   end
 
+  create_table "library_assets", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "language"
+    t.string "name"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_library_assets_on_user_id"
+  end
+
   create_table "metadata", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "metadata_type_id", null: false
@@ -128,6 +137,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_11_165559) do
   add_foreign_key "contents", "users"
   add_foreign_key "contents_metadata", "contents"
   add_foreign_key "contents_metadata", "metadata", column: "metadata_id"
+  add_foreign_key "library_assets", "users"
   add_foreign_key "metadata", "metadata_types"
   add_foreign_key "metadata", "users"
   add_foreign_key "metadata_types", "users"

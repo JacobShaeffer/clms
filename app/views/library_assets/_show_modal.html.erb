@@ -1,0 +1,12 @@
+<%= render layout: "shared/modal", locals: { title: "Library asset" } do %>
+  <%= render library_asset %>
+
+  <div class="modal-footer px-0 pb-0">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <%= link_to "Edit",
+      edit_library_asset_path(library_asset),
+      class: "btn btn-primary",
+      data: { turbo_frame: "modal" }
+    %>
+  </div>
+<% end %>

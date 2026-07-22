@@ -44,6 +44,11 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
       @response.body.index('<script type="importmap"')
     assert_select "nav.navbar button.navbar-toggler[data-bs-toggle='collapse'][data-bs-target='#navbarSupportedContent']"
     assert_select "#navbarSupportedContent.navbar-collapse.collapse"
+    assert_select "nav.navbar .nav-item.dropdown" do
+      assert_select "a.nav-link[href='#']", text: "Library", count: 1
+      assert_select "button.nav-link.dropdown-toggle.dropdown-toggle-split[data-bs-toggle='dropdown'][aria-expanded='false']", count: 1
+      assert_select "ul.dropdown-menu a.dropdown-item[href='#{library_assets_path}']", text: "Library Assets", count: 1
+    end
     assert_select "h1.mb-3", text: "Home Page"
   end
 

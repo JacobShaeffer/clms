@@ -1,0 +1,3 @@
+<%= render layout: "shared/modal", locals: { title: library_asset.persisted? ? "Edit library asset" : "New library asset" } do %>
+  <%= render "library_assets/form", library_asset: library_asset, modal: true %>
+<% end %>

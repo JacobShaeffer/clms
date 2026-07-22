@@ -1,4 +1,9 @@
 Rails.application.routes.draw do
+  resources :library_assets do
+    member do
+      get :delete_confirmation
+    end
+  end
   devise_for :users
 
   resources :contents, only: %i[ index new create ] do
