@@ -1,10 +1,11 @@
 class LibraryAssetsController < ApplicationController
   before_action :authenticate_user!
+  before_action :authorize_library_asset_access
   before_action :set_library_asset, only: %i[ show edit update destroy delete_confirmation ]
 
   # GET /library_assets or /library_assets.json
   def index
-    @library_assets = LibraryAsset.all
+    @library_assets = policy_scope(LibraryAsset)
   end
 
   # GET /library_assets/1 or /library_assets/1.json
@@ -108,6 +109,10 @@ class LibraryAssetsController < ApplicationController
   end
 
   private
+    def authorize_library_asset_access
+      authorize LibraryAsset
+    end
+
     # Use callbacks to share common setup or constraints between actions.
     def set_library_asset
       @library_asset = LibraryAsset.find(params.expect(:id))
@@ -115,6 +120,6 @@ class LibraryAssetsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def library_asset_params
-      params.expect(library_asset: [ :name, :language ])
+      params.expect(library_asset: [ :name, :language, :image, :design_files ])
     end
 end

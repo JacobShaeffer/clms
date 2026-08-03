@@ -1,9 +1,16 @@
 <div id="<%= dom_id library_asset, :listing %>" class="col">
   <article class="card h-100 shadow-sm">
     <div class="card-img-top ratio ratio-4x3 bg-body-secondary border-bottom">
-      <div class="d-flex align-items-center justify-content-center text-body-secondary">
-        <span>Image placeholder</span>
-      </div>
+      <% if library_asset.image.attached? %>
+        <%= image_tag library_asset.image,
+          class: "h-100 w-100 object-fit-cover",
+          alt: "#{library_asset.name} image"
+        %>
+      <% else %>
+        <div class="d-flex align-items-center justify-content-center text-body-secondary">
+          <span>Image placeholder</span>
+        </div>
+      <% end %>
     </div>
 
     <div class="card-body d-flex flex-column">

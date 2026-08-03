@@ -23,6 +23,22 @@
     <%= form.text_field :language, class: "form-control" %>
   </div>
 
+  <div class="mb-3">
+    <%= form.label :image, "Image (PNG)", class: "form-label" %>
+    <%= form.file_field :image, class: "form-control", accept: "image/png,.png" %>
+    <% if library_asset.image.attached? %>
+      <div class="form-text">Current file: <%= library_asset.image.filename %></div>
+    <% end %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :design_files, "Design files (ZIP)", class: "form-label" %>
+    <%= form.file_field :design_files, class: "form-control", accept: "application/zip,.zip" %>
+    <% if library_asset.design_files.attached? %>
+      <div class="form-text">Current file: <%= library_asset.design_files.filename %></div>
+    <% end %>
+  </div>
+
   <div class="modal-footer px-0 pb-0">
     <% if local_assigns[:modal] %>
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

@@ -14,12 +14,14 @@
         </li>
         <li class="nav-item dropdown d-flex">
           <a class="nav-link pe-1" href="#">Library</a>
-          <button class="nav-link dropdown-toggle dropdown-toggle-split ps-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <span class="visually-hidden">Toggle Library menu</span>
-          </button>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="<%= library_assets_path %>">Library Assets</a></li>
-          </ul>
+          <% if policy(LibraryAsset).index? %>
+            <button class="nav-link dropdown-toggle dropdown-toggle-split ps-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="visually-hidden">Toggle Library menu</span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="<%= library_assets_path %>">Library Assets</a></li>
+            </ul>
+          <% end %>
         </li>
       </ul>
     </div>

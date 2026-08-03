@@ -5,4 +5,12 @@
     <strong>Language:</strong>
     <%= library_asset.language.presence || "Not specified" %>
   </p>
+
+  <% if library_asset.design_files.attached? %>
+    <p class="card-text mt-2 mb-0">
+      <%= link_to "Download design files",
+        rails_blob_path(library_asset.design_files, disposition: "attachment")
+      %>
+    </p>
+  <% end %>
 </div>
