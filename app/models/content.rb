@@ -1,8 +1,8 @@
 class Content < ApplicationRecord
   belongs_to :user
 
-  has_many :carts_contents, dependent: :destroy
-  has_many :carts, through: :carts_contents
+  has_many :cart_contents, dependent: :destroy
+  has_many :carts, through: :cart_contents
 
   has_many :contents_metadata, class_name: "ContentMetadatum", dependent: :destroy
   has_many :metadata, through: :contents_metadata

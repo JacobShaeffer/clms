@@ -1,0 +1,7 @@
+<% if libraries.any? %>
+  <%= render partial: "libraries/library", collection: libraries %>
+<% else %>
+  <tr>
+    <td colspan="2" class="text-center">No libraries found.</td>
+  </tr>
+<% end %>

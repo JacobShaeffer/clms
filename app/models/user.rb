@@ -10,6 +10,9 @@ class User < ApplicationRecord
   has_many :metadata
   has_many :carts
   has_many :library_assets
+  has_many :libraries
+  has_many :library_versions
+  has_many :library_folders
 
   # define user roles
   ROLES = { guest: 0, organization: 1, volunteer: 2, intern: 3, intern_plus: 4, admin: 99 }

@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  resources :libraries, only: %i[ index show new create ]
+
   resources :library_assets do
     member do
       get :delete_confirmation

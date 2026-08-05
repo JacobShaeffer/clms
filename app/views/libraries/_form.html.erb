@@ -1,0 +1,27 @@
+<% form_data = local_assigns[:modal] ? { turbo_frame: "modal" } : { turbo: false } %>
+
+<%= form_with(model: library, data: form_data) do |form| %>
+  <% if library.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <p class="mb-2"><%= pluralize(library.errors.count, "error") %> prevented this library from being saved:</p>
+
+      <ul class="mb-0">
+        <% library.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= form.label :name, class: "form-label" %>
+    <%= form.text_field :name, class: "form-control", autofocus: true %>
+  </div>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if local_assigns[:modal] %>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <% end %>
+    <%= form.submit class: "btn btn-primary" %>
+  </div>
+<% end %>

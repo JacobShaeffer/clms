@@ -1,0 +1,14 @@
+<tr
+  id="<%= dom_id library %>"
+  class="clickable-row"
+  tabindex="0"
+  role="link"
+  aria-label="View <%= library.name %>"
+  data-controller="clickable-row"
+  data-clickable-row-url-value="<%= library_path(library) %>"
+  data-action="click->clickable-row#navigate keydown.enter->clickable-row#navigate keydown.space->clickable-row#navigate">
+  <td>
+    <%= link_to library.name, library_path(library), class: "link-body-emphasis" %>
+  </td>
+  <td><%= library.current_version.version_number %></td>
+</tr>
