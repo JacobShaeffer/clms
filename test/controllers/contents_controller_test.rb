@@ -8,6 +8,8 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
 
   setup do
+    Content.destroy_all
+
     @user = User.create!(
       name: "Filter User",
       email: "filter-user@example.com",
@@ -104,7 +106,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     assert_select "#metadatum_badge_#{@history.id}", text: @history.name
-    assert_select "input#content_metadatum_ids_#{@history.id}[checked='checked'][value='#{@history.id}']"
+    assert_select "input#content_metadatum_ids_#{@history.id}[checked][value='#{@history.id}']"
     assert_select "#metadatum_badge_#{@science.id}", count: 0
   end
 

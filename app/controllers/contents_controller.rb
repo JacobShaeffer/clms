@@ -69,7 +69,7 @@ class ContentsController < ApplicationController
       user: current_user,
       under_review: !(current_user.admin? || current_user.intern_plus?)
     )
-    authorize @metadatum
+    authorize @metadatum, :create?
 
     respond_to do |format|
       if @metadatum.save
