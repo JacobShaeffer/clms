@@ -8,7 +8,7 @@ class User < ApplicationRecord
   has_many :contents
   has_many :metadata_types
   has_many :metadata
-  has_many :carts
+  has_many :shelves
   has_many :library_assets
   has_many :libraries
   has_many :library_versions

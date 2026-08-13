@@ -9,10 +9,18 @@
         <li class="nav-item">
           <a class="nav-link active" aria-current="page" href="<%= metadata_types_path %>">Metadata</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="<%= contents_path %>">Content</a>
+        <li id="content-navigation" class="nav-item dropdown d-flex">
+          <a class="nav-link pe-1" href="<%= contents_path %>">Content</a>
+          <% if policy(Shelf).index? %>
+            <button class="nav-link dropdown-toggle dropdown-toggle-split ps-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="visually-hidden">Toggle Content menu</span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="<%= shelves_path %>">Shelves</a></li>
+            </ul>
+          <% end %>
         </li>
-        <li class="nav-item dropdown d-flex">
+        <li id="library-navigation" class="nav-item dropdown d-flex">
           <a class="nav-link pe-1" href="<%= libraries_path %>">Library</a>
           <% if policy(LibraryAsset).index? %>
             <button class="nav-link dropdown-toggle dropdown-toggle-split ps-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
