@@ -32,6 +32,8 @@ class ContentPolicyTest < Minitest::Test
     organization_policy = ContentPolicy.new(user(:organization), Content)
     volunteer_policy = ContentPolicy.new(user(:volunteer), Content)
 
+    assert organization_policy.table?
+    assert organization_policy.reset_table?
     assert organization_policy.search?
     refute organization_policy.add_new_metadatum?
     refute organization_policy.add_existing_metadatum?

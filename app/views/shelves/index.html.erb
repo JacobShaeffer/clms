@@ -1,28 +1,106 @@
 <% content_for :title, "Shelves" %>
 
-<div class="my-4">
-  <h1 class="mb-3">Shelves</h1>
-
-  <div class="table-responsive">
-    <table class="table table-striped table-hover align-middle">
-      <thead>
-        <tr>
-          <th scope="col">Shelf name</th>
-        </tr>
-      </thead>
-      <tbody id="shelves">
-        <% if @shelves.any? %>
-          <% @shelves.each do |shelf| %>
-            <tr id="<%= dom_id(shelf) %>">
-              <td><%= shelf.name %></td>
-            </tr>
-          <% end %>
-        <% else %>
-          <tr>
-            <td class="text-center">No shelves found.</td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+<div class="row mb-3">
+  <div class="col">
+    <h1>Shelves</h1>
   </div>
 </div>
+
+<div class="row g-4 mb-4">
+  <div class="col-12 col-lg-6">
+    <section class="border rounded p-3 h-100" aria-labelledby="active-shelves-heading">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 id="active-shelves-heading" class="h4 mb-0">Active Shelves</h2>
+        <span class="text-body-secondary"><%= @active_shelves.size %> / <%= ActiveShelf::MAXIMUM_PER_USER %></span>
+      </div>
+
+      <ol id="active-shelves" class="list-group list-group-numbered">
+        <% @active_shelf_records.each_with_index do |active_shelf, index| %>
+          <% shelf = active_shelf.shelf %>
+          <% selected = shelf == @selected_shelf %>
+          <li id="<%= dom_id(shelf, :active) %>" class="list-group-item d-flex align-items-center gap-2 <%= "list-group-item-primary" if selected %>" <%= "aria-current=true" if selected %>>
+            <%= link_to shelf.name,
+              shelves_path(selected_shelf_id: shelf.id),
+              class: "flex-grow-1 link-body-emphasis text-decoration-none"
+            %>
+            <div class="d-flex gap-1">
+              <%= button_to "Up",
+                move_shelf_path(shelf, direction: :up),
+                method: :patch,
+                class: "btn btn-sm btn-outline-secondary",
+                disabled: index.zero?,
+                form: { class: "d-inline" },
+                aria: { label: "Move #{shelf.name} up" }
+              %>
+              <%= button_to "Down",
+                move_shelf_path(shelf, direction: :down),
+                method: :patch,
+                class: "btn btn-sm btn-outline-secondary",
+                disabled: index == @active_shelf_records.length - 1,
+                form: { class: "d-inline" },
+                aria: { label: "Move #{shelf.name} down" }
+              %>
+              <%= button_to "Archive",
+                archive_shelf_path(shelf),
+                method: :patch,
+                class: "btn btn-sm btn-outline-secondary",
+                form: { class: "d-inline" }
+              %>
+            </div>
+          </li>
+        <% end %>
+
+        <% (ActiveShelf::MAXIMUM_PER_USER - @active_shelf_records.length).times do %>
+          <li class="list-group-item text-body-secondary" data-active-shelf-empty-slot>
+            Empty active shelf slot
+          </li>
+        <% end %>
+      </ol>
+    </section>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <section class="border rounded p-3 h-100" aria-labelledby="archived-shelves-heading">
+      <h2 id="archived-shelves-heading" class="h4 mb-3">Archives</h2>
+
+      <ul id="archived-shelves" class="list-group">
+        <% if @archived_shelves.any? %>
+          <% @archived_shelves.each do |shelf| %>
+            <% selected = shelf == @selected_shelf %>
+            <li id="<%= dom_id(shelf, :archived) %>" class="list-group-item d-flex align-items-center gap-2 <%= "list-group-item-primary" if selected %>" <%= "aria-current=true" if selected %>>
+              <%= link_to shelf.name,
+                shelves_path(selected_shelf_id: shelf.id),
+                class: "flex-grow-1 link-body-emphasis text-decoration-none"
+              %>
+              <%= button_to "Make active",
+                activate_shelf_path(shelf),
+                method: :patch,
+                class: "btn btn-sm btn-primary",
+                disabled: @active_shelf_records.length >= ActiveShelf::MAXIMUM_PER_USER,
+                form: { class: "d-inline" }
+              %>
+            </li>
+          <% end %>
+        <% else %>
+          <li class="list-group-item text-center text-body-secondary">No archived shelves.</li>
+        <% end %>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<section aria-labelledby="selected-shelf-heading">
+  <h2 id="selected-shelf-heading" class="h3">Selected Shelf</h2>
+
+  <% if @selected_shelf %>
+    <p class="lead"><%= @selected_shelf.name %></p>
+    <%= render "content_tables/content_table",
+      definition: @table_definition,
+      state: @table_state,
+      records: @contents,
+      pagy: @pagy
+    %>
+  <% else %>
+    <p class="text-body-secondary">Select a shelf to view its content.</p>
+  <% end %>
+</section>

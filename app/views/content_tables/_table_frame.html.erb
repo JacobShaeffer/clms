@@ -1,0 +1,3 @@
+<%= turbo_frame_tag definition.frame_id, data: { turbo_prefetch: false } do %>
+  <%= render "content_tables/table", definition:, state:, records:, pagy: %>
+<% end %>

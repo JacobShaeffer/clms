@@ -1,0 +1,84 @@
+<% search_input_id = definition.dom_id("search") %>
+<% per_page_input_id = definition.dom_id("per-page") %>
+
+<div class="row mb-3">
+  <div class="col">
+    <%= form_with(
+      url: definition.update_path,
+      method: :get,
+      class: "row g-2",
+      data: {
+        controller: "content-table-form",
+        turbo_frame: definition.frame_id
+      }
+    ) do |form| %>
+      <div class="col-12 col-md-6">
+        <%= form.label :q, "Search", for: search_input_id, class: "form-label" %>
+        <%= form.search_field :q,
+          value: state.q,
+          id: search_input_id,
+          class: "form-control",
+          placeholder: definition.search_placeholder,
+          data: {
+            action: "input->content-table-form#submit"
+          }
+        %>
+      </div>
+      <div class="col-auto align-self-end">
+        <button
+          class="btn btn-secondary"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#<%= definition.dom_id("advanced-filters") %>"
+          aria-controls="<%= definition.dom_id("advanced-filters") %>">
+          Advanced Filters
+        </button>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<%= render "content_tables/advanced_filters_offcanvas", definition:, state: %>
+
+<div class="row mb-3">
+  <div class="col d-flex gap-2">
+    <%= render "content_tables/column_select_dropdown", definition:, state: %>
+    <%= button_to "Reset table",
+      definition.reset_path,
+      method: :delete,
+      class: "btn btn-outline-secondary",
+      form: { data: { turbo_frame: "_top" } }
+    %>
+  </div>
+</div>
+
+<%= render "content_tables/table_frame", definition:, state:, records:, pagy: %>
+
+<div class="row align-items-center mt-3">
+  <div class="col-auto ms-auto">
+    <%= form_with(
+      url: definition.update_path,
+      method: :get,
+      class: "d-flex align-items-center gap-2",
+      data: {
+        controller: "content-table-form",
+        turbo_frame: definition.frame_id
+      }
+    ) do |form| %>
+      <%= form.label :per_page,
+        "Rows to display",
+        for: per_page_input_id,
+        class: "form-label mb-0"
+      %>
+      <%= form.select :per_page,
+        options_for_select(definition.page_size_options, state.per_page),
+        {},
+        id: per_page_input_id,
+        class: "form-select",
+        data: {
+          action: "change->content-table-form#submit"
+        }
+      %>
+    <% end %>
+  </div>
+</div>

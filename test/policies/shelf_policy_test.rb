@@ -23,4 +23,19 @@ class ShelfPolicyTest < ActiveSupport::TestCase
     assert_empty ShelfPolicy::Scope.new(users(:one), Shelf.all).resolve
     assert_empty ShelfPolicy::Scope.new(nil, Shelf.all).resolve
   end
+
+  test "member actions require ownership and a non-guest role" do
+    users(:one).update!(role: :organization)
+    policy = ShelfPolicy.new(users(:one), shelves(:one))
+
+    assert policy.table?
+    assert policy.activate?
+    assert policy.archive?
+    assert policy.move?
+    assert policy.reset_table?
+    refute ShelfPolicy.new(users(:one), shelves(:two)).activate?
+
+    users(:one).update!(role: :guest)
+    refute ShelfPolicy.new(users(:one), shelves(:one)).table?
+  end
 end

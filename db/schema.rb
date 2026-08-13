@@ -10,9 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_13_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_13_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "active_shelves", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "position", null: false
+    t.bigint "shelf_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["shelf_id"], name: "index_active_shelves_on_shelf_id"
+    t.index ["user_id", "position"], name: "index_active_shelves_on_user_id_and_position", unique: true
+    t.index ["user_id", "shelf_id"], name: "index_active_shelves_on_user_id_and_shelf_id", unique: true
+    t.index ["user_id"], name: "index_active_shelves_on_user_id"
+  end
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
@@ -40,6 +52,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_13_120000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "content_table_preferences", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "state", default: {}, null: false
+    t.string "table_key", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "table_key"], name: "index_content_table_preferences_on_user_id_and_table_key", unique: true
+    t.index ["user_id"], name: "index_content_table_preferences_on_user_id"
   end
 
   create_table "contents", force: :cascade do |t|
@@ -167,8 +189,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_13_120000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "active_shelves", "shelves"
+  add_foreign_key "active_shelves", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "content_table_preferences", "users"
   add_foreign_key "contents", "users"
   add_foreign_key "contents_metadata", "contents"
   add_foreign_key "contents_metadata", "metadata", column: "metadata_id"

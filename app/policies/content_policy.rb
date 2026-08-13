@@ -7,6 +7,10 @@ class ContentPolicy < ApplicationPolicy
     index?
   end
 
+  def reset_table?
+    index?
+  end
+
   def search?
     index?
   end

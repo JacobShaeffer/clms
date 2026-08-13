@@ -1,0 +1,24 @@
+<% from_id = definition.dom_id("filter-#{column.key.parameterize(separator: "-")}-from") %>
+<% to_id = definition.dom_id("filter-#{column.key.parameterize(separator: "-")}-to") %>
+
+<div class="col-12">
+  <div class="row g-2">
+    <div class="col-6">
+      <%= label_tag from_id, "#{column.label} from", class: "form-label" %>
+      <%= date_field_tag "filters[#{column.key}][from]",
+        values.fetch("from", ""),
+        id: from_id,
+        class: "form-control"
+      %>
+    </div>
+
+    <div class="col-6">
+      <%= label_tag to_id, "#{column.label} to", class: "form-label" %>
+      <%= date_field_tag "filters[#{column.key}][to]",
+        values.fetch("to", ""),
+        id: to_id,
+        class: "form-control"
+      %>
+    </div>
+  </div>
+</div>

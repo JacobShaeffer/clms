@@ -1,0 +1,10 @@
+<% input_id = definition.dom_id("filter-#{column.key}-prefix") %>
+
+<div class="col-12 custom-filter">
+  <%= label_tag input_id, "#{column.label} prefix", class: "form-label" %>
+  <%= text_field_tag "filters[#{column.key}][prefix]",
+    values.fetch("prefix", ""),
+    id: input_id,
+    class: "form-control"
+  %>
+</div>

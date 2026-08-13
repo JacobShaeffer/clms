@@ -1,0 +1,51 @@
+<div class="dropdown">
+  <button
+    class="btn btn-secondary dropdown-toggle"
+    type="button"
+    id="<%= definition.dom_id("column-select-dropdown") %>"
+    data-bs-toggle="dropdown"
+    data-bs-auto-close="outside"
+    aria-expanded="false">
+    Column select
+  </button>
+
+  <div
+    class="dropdown-menu p-3 shadow"
+    aria-labelledby="<%= definition.dom_id("column-select-dropdown") %>"
+    style="min-width: 18rem; max-height: 70vh; overflow-y: auto;">
+    <%= form_with(
+      url: definition.update_path,
+      method: :get,
+      data: {
+        controller: "content-table-form",
+        turbo_frame: definition.frame_id,
+        action: "change->content-table-form#submit"
+      }
+    ) do %>
+      <%= hidden_field_tag :columns_present, "1" %>
+
+      <% definition.groups.each_with_index do |group, index| %>
+        <% columns = definition.columns_for_group(group.fetch(:key)) %>
+        <h2 class="h6 <%= "mt-4" if index.positive? %>"><%= group.fetch(:columns_label) %></h2>
+
+        <% if columns.any? %>
+          <% columns.each do |column| %>
+            <% checkbox_id = definition.dom_id("column-#{column.key.parameterize(separator: "-")}") %>
+            <div class="form-check form-switch">
+              <%= check_box_tag "columns[]",
+                column.key,
+                state.selected_column_keys.include?(column.key),
+                id: checkbox_id,
+                class: "form-check-input",
+                role: "switch"
+              %>
+              <%= label_tag checkbox_id, column.label, class: "form-check-label" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0"><%= group[:empty_message] || "No columns available." %></p>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

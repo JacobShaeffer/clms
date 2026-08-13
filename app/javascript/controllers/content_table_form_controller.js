@@ -23,8 +23,14 @@ export default class extends Controller {
   clearFilters(event) {
     event.preventDefault()
 
-    this.element.querySelectorAll("[name^='filters[']").forEach((input) => {
-      input.value = ""
+    this.element.querySelectorAll("[name^='filters[']").forEach((control) => {
+      if (control.matches("input[type='checkbox'], input[type='radio']")) {
+        control.checked = false
+      } else if (control.matches("select")) {
+        control.selectedIndex = -1
+      } else {
+        control.value = ""
+      }
     })
 
     this.element.requestSubmit(event.currentTarget)

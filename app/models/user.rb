@@ -9,6 +9,8 @@ class User < ApplicationRecord
   has_many :metadata_types
   has_many :metadata
   has_many :shelves
+  has_many :active_shelves, dependent: :destroy
+  has_many :content_table_preferences, dependent: :destroy
   has_many :library_assets
   has_many :libraries
   has_many :library_versions

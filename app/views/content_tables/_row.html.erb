@@ -1,0 +1,16 @@
+<tr id="<%= definition.dom_id(dom_id(record)) %>">
+  <% selected_columns.each do |column| %>
+    <td>
+      <% if column.cell_partial.present? %>
+        <%= render column.cell_partial, definition:, column:, record: %>
+      <% else %>
+        <% value = column.value(record) %>
+        <% if value.present? %>
+          <%= value %>
+        <% else %>
+          <span class="text-muted">None</span>
+        <% end %>
+      <% end %>
+    </td>
+  <% end %>
+</tr>
