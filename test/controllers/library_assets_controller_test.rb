@@ -25,8 +25,8 @@ class LibraryAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{library_asset_path(@library_asset)}'][data-turbo-frame='modal']", text: "Show"
     assert_select "a[href='#{edit_library_asset_path(@library_asset)}'][data-turbo-frame='modal']", text: "Edit"
     assert_select "a[href='#{delete_confirmation_library_asset_path(@library_asset)}'][data-turbo-frame='modal']", text: "Destroy"
-    assert_select "button.dropdown-toggle[data-bs-toggle='dropdown']", count: 1
-    assert_select "a.dropdown-item[href='#{library_assets_path}']", text: "Library Assets", count: 1
+    assert_select "#library-navigation button.dropdown-toggle[data-bs-toggle='dropdown']", count: 1
+    assert_select "#library-navigation a.dropdown-item[href='#{library_assets_path}']", text: "Library Assets", count: 1
   end
 
   test "user below intern plus cannot access library assets or see the library dropdown" do
@@ -39,8 +39,8 @@ class LibraryAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_url
 
     follow_redirect!
-    assert_select "button.dropdown-toggle[data-bs-toggle='dropdown']", count: 0
-    assert_select "a.dropdown-item[href='#{library_assets_path}']", count: 0
+    assert_select "#library-navigation button.dropdown-toggle[data-bs-toggle='dropdown']", count: 0
+    assert_select "#library-navigation a.dropdown-item[href='#{library_assets_path}']", count: 0
   end
 
   test "should get new" do

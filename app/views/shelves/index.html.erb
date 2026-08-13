@@ -1,0 +1,28 @@
+<% content_for :title, "Shelves" %>
+
+<div class="my-4">
+  <h1 class="mb-3">Shelves</h1>
+
+  <div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">Shelf name</th>
+        </tr>
+      </thead>
+      <tbody id="shelves">
+        <% if @shelves.any? %>
+          <% @shelves.each do |shelf| %>
+            <tr id="<%= dom_id(shelf) %>">
+              <td><%= shelf.name %></td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td class="text-center">No shelves found.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

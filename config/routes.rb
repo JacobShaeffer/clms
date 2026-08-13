@@ -17,6 +17,8 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :shelves, only: :index
+
   resources :metadata_types do
     member do
       get :metadata_values
