@@ -37,4 +37,52 @@ class LibrariesTest < ApplicationSystemTestCase
     assert_no_selector "turbo-frame#modal .modal"
     assert_selector "tbody#libraries tr", text: /Agriculture Library.*1\.0/
   end
+
+  test "browses folders tabs shelves and library placement tooltips" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+    root_folder = create_folder!(library, "Guides")
+    child_folder = create_folder!(library, "First Aid", parent_folder: root_folder)
+    LibraryFolderContent.create!(library_folder: child_folder, content: contents(:one))
+    shelf = users(:one).shelves.create!(name: "Reading List")
+    shelf.contents << contents(:one)
+    ActiveShelf.activate!(user: users(:one), shelf:)
+
+    visit library_path(library)
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      click_on root_folder.name
+      assert_link child_folder.name
+      click_on child_folder.name
+      assert_text contents(:one).title
+      assert_selector ".breadcrumb-item.active", text: child_folder.name
+      assert_link root_folder.name
+    end
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      click_on "Library Content"
+      assert_selector ".nav-link.active", text: "Library Content"
+      assert_text contents(:one).title
+      find("[data-controller='tooltip']", text: child_folder.name).hover
+    end
+    assert_selector ".tooltip .tooltip-inner", text: "Health Library / Guides / First Aid"
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      click_on "Shelves"
+      click_on shelf.name
+      assert_text contents(:one).title
+      assert_no_selector "input[name='q']"
+      assert_no_button "Advanced Filters"
+    end
+  end
+
+  private
+
+  def create_folder!(library, name, parent_folder: nil)
+    library.library_folders.create!(
+      name:,
+      parent_folder:,
+      user: users(:one),
+      logo: library_assets(:one)
+    )
+  end
 end

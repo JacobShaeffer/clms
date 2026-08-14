@@ -74,11 +74,20 @@ class ContentTables::DefinitionTest < ActiveSupport::TestCase
     assert_equal "Content filters", group.fetch(:filters_label)
   end
 
+  test "can disable search and filtering capabilities" do
+    definition = build_definition(search_enabled: false, filters_enabled: false)
+
+    refute definition.search_enabled?
+    refute definition.filters_enabled?
+    assert_empty definition.filterable_columns
+  end
+
   private
 
   def build_definition(
     update_path: "/archive/table",
-    groups: [ { key: :content, columns_label: "Fields", custom: "kept" } ]
+    groups: [ { key: :content, columns_label: "Fields", custom: "kept" } ],
+    **options
   )
     ContentTables::Definition.new(
       state_key: "archive.index",
@@ -97,7 +106,8 @@ class ContentTables::DefinitionTest < ActiveSupport::TestCase
       end,
       default_order: ->(relation:) { relation.reorder(created_at: :desc, id: :desc) },
       row_partial: "custom/row",
-      dom_prefix: "archive"
+      dom_prefix: "archive",
+      **options
     )
   end
 end

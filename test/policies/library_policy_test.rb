@@ -36,6 +36,20 @@ class LibraryPolicyTest < Minitest::Test
     assert LibraryPolicy.new(user(:admin), Library).create?
   end
 
+  def test_table_actions_use_library_read_access
+    organization_policy = LibraryPolicy.new(user(:organization), Library)
+    guest_policy = LibraryPolicy.new(user(:guest), Library)
+
+    %i[
+      all_contents_table reset_all_contents_table
+      library_contents_table reset_library_contents_table
+      shelf_contents_table reset_shelf_contents_table
+    ].each do |action|
+      assert organization_policy.public_send("#{action}?")
+      refute guest_policy.public_send("#{action}?")
+    end
+  end
+
   private
 
   def user(role)

@@ -1,5 +1,14 @@
 Rails.application.routes.draw do
-  resources :libraries, only: %i[ index show new create ]
+  resources :libraries, only: %i[ index show new create ] do
+    member do
+      get :all_contents_table
+      delete :reset_all_contents_table
+      get :library_contents_table
+      delete :reset_library_contents_table
+      get :shelf_contents_table
+      delete :reset_shelf_contents_table
+    end
+  end
 
   resources :library_assets do
     member do

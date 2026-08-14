@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_13_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_13_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -103,6 +103,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_13_140000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_library_assets_on_user_id"
+  end
+
+  create_table "library_folder_contents", force: :cascade do |t|
+    t.bigint "content_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "library_folder_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["content_id"], name: "index_library_folder_contents_on_content_id"
+    t.index ["library_folder_id", "content_id"], name: "idx_on_library_folder_id_content_id_f0777ce9d7", unique: true
+    t.index ["library_folder_id"], name: "index_library_folder_contents_on_library_folder_id"
   end
 
   create_table "library_folders", force: :cascade do |t|
@@ -200,6 +210,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_13_140000) do
   add_foreign_key "libraries", "library_versions", column: "current_version_id"
   add_foreign_key "libraries", "users"
   add_foreign_key "library_assets", "users"
+  add_foreign_key "library_folder_contents", "contents"
+  add_foreign_key "library_folder_contents", "library_folders"
   add_foreign_key "library_folders", "libraries"
   add_foreign_key "library_folders", "library_assets", column: "logo_id"
   add_foreign_key "library_folders", "library_folders", column: "parent_folder_id"

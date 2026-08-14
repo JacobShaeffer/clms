@@ -14,6 +14,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
       role: :organization
     )
     sign_in users(:one)
+    users(:one).content_table_preferences.delete_all
+    users(:one).active_shelves.delete_all
 
     @library = Library.create!(name: "Health Library", user: users(:one))
     @library.library_versions.create!(version_number: "2.0", user: users(:one))
@@ -120,10 +122,10 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", text: @library.name
     assert_select "p", text: /Version 2\.0/
-    assert_select "#library-folders" do
-      assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder)}", text: @root_folder.name
-      assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder)}", count: 0
-      assert_select "##{ActionView::RecordIdentifier.dom_id(@other_root_folder)}", count: 0
+    assert_select "#library-folder-browser-items" do
+      assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :browser)}", text: /#{@root_folder.name}/
+      assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}", count: 0
+      assert_select "##{ActionView::RecordIdentifier.dom_id(@other_root_folder, :browser)}", count: 0
     end
   end
 
@@ -134,6 +136,144 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "p", text: "No root folders found."
+  end
+
+  test "folder browser opens a folder and shows direct children content and breadcrumbs" do
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    LibraryFolderContent.create!(library_folder: @child_folder, content: contents(:two))
+
+    get library_url(@library, folder_id: @root_folder.id)
+
+    assert_response :success
+    assert_select "turbo-frame##{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}"
+    assert_select "nav[aria-label='Library folder breadcrumb'] .breadcrumb-item", count: 2
+    assert_select ".breadcrumb-item.active", text: @root_folder.name
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}", text: /#{@child_folder.name}/
+    assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}", text: /#{contents(:one).title}/
+    assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:two), :browser)}", count: 0
+
+    get library_url(@library, folder_id: @child_folder.id)
+
+    assert_response :success
+    assert_select ".breadcrumb-item", count: 3
+    assert_select ".breadcrumb-item a", text: @root_folder.name
+    assert_select ".breadcrumb-item.active", text: @child_folder.name
+    assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:two), :browser)}", text: /#{contents(:two).title}/
+  end
+
+  test "folder browser rejects a folder from another library" do
+    get library_url(@library, folder_id: @other_root_folder.id)
+
+    assert_response :not_found
+  end
+
+  test "folder and shelf navigation reject malformed identifiers" do
+    get library_url(@library), params: { folder_id: [ @root_folder.id ] }
+    assert_response :not_found
+
+    sign_in users(:one)
+    get shelf_contents_table_library_url(@library), params: { shelf_id: [ shelves(:one).id ] }
+    assert_response :not_found
+  end
+
+  test "all content is the default tab and renders library folder placements with independent tooltips" do
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    LibraryFolderContent.create!(library_folder: @child_folder, content: contents(:one))
+
+    get library_url(@library)
+
+    assert_response :success
+    assert_select ".nav-tabs .nav-link.active", text: "All Content"
+    assert_select "turbo-frame#library_#{@library.id}_all_contents_table"
+    assert_select "th", text: "Library folders"
+    row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"
+    assert_select "tr##{row_id}" do
+      assert_select "[data-controller='tooltip']", count: 2
+      assert_select "[title='Health Library / Health']", text: "Health"
+      assert_select "[title='Health Library / Health / First Aid']", text: "First Aid"
+    end
+    other_row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:two)).dasherize}"
+    assert_select "tr##{other_row_id} [data-controller='tooltip']", count: 0
+  end
+
+  test "library content tab lists each placed content once and excludes other content" do
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    LibraryFolderContent.create!(library_folder: @child_folder, content: contents(:one))
+
+    get library_url(@library, tab: "library")
+
+    assert_response :success
+    assert_select ".nav-tabs .nav-link.active", text: "Library Content"
+    assert_select "turbo-frame#library_#{@library.id}_library_contents_table tbody tr", count: 1
+    assert_select "tbody", text: /#{contents(:one).title}/
+  end
+
+  test "shelves tab lists active shelves in saved order and opens a table without search or filters" do
+    first_shelf = users(:one).shelves.create!(name: "First Active")
+    second_shelf = users(:one).shelves.create!(name: "Second Active")
+    first_shelf.contents << contents(:one)
+    second_shelf.contents << contents(:two)
+    ActiveShelf.activate!(user: users(:one), shelf: second_shelf)
+    ActiveShelf.activate!(user: users(:one), shelf: first_shelf)
+
+    get library_url(@library, tab: "shelves", shelf_id: first_shelf.id)
+
+    assert_response :success
+    assert_select ".nav-tabs .nav-link.active", text: "Shelves"
+    assert_select "#library-active-shelves a:nth-child(1)", text: second_shelf.name
+    assert_select "#library-active-shelves a:nth-child(2).active", text: first_shelf.name
+    assert_select "turbo-frame#library_#{@library.id}_shelf_#{first_shelf.id}_contents_table"
+    assert_select "input[name='q']", count: 0
+    assert_select "button", text: "Advanced Filters", count: 0
+    assert_select ".offcanvas", count: 0
+    assert_select "th", text: "Library folders"
+    assert_select "tbody", text: /#{contents(:one).title}/
+  end
+
+  test "shelf table ignores submitted search and filters and requires an active shelf" do
+    shelf = users(:one).shelves.create!(name: "Active")
+    shelf.contents << contents(:one)
+    ActiveShelf.activate!(user: users(:one), shelf:)
+
+    get shelf_contents_table_library_url(
+      @library,
+      shelf_id: shelf.id,
+      q: "does not match",
+      per_page: 20,
+      filters: { title: { value: "does not match" } }
+    )
+
+    assert_response :success
+    assert_select "tbody", text: /#{contents(:one).title}/
+    preference = users(:one).content_table_preferences.find_by!(
+      table_key: "libraries.#{@library.id}.shelves.#{shelf.id}.contents"
+    )
+    assert_equal "", preference.state.fetch("q")
+    assert_empty preference.state.fetch("filters")
+
+    inactive_shelf = users(:one).shelves.create!(name: "Inactive")
+    get shelf_contents_table_library_url(@library, shelf_id: inactive_shelf.id)
+    assert_response :not_found
+  end
+
+  test "library table preferences are isolated and reset per tab" do
+    get all_contents_table_library_url(@library, q: "First")
+    get library_contents_table_library_url(@library, q: "Second")
+
+    all_preference = users(:one).content_table_preferences.find_by!(
+      table_key: "libraries.#{@library.id}.all_contents"
+    )
+    library_preference = users(:one).content_table_preferences.find_by!(
+      table_key: "libraries.#{@library.id}.library_contents"
+    )
+    assert_equal "First", all_preference.state.fetch("q")
+    assert_equal "Second", library_preference.state.fetch("q")
+
+    delete reset_all_contents_table_library_url(@library)
+
+    assert_redirected_to library_url(@library, tab: "all")
+    refute ContentTablePreference.exists?(all_preference.id)
+    assert ContentTablePreference.exists?(library_preference.id)
   end
 
   test "unauthenticated users are redirected to sign in" do

@@ -21,7 +21,9 @@ module ContentTables
       default_order:,
       row_partial: nil,
       dom_prefix: nil,
-      search_placeholder: "Search"
+      search_placeholder: "Search",
+      search_enabled: true,
+      filters_enabled: true
     )
       @state_key = state_key.to_s
       @frame_id = frame_id.to_s
@@ -38,6 +40,8 @@ module ContentTables
       @row_partial = row_partial&.to_s
       @dom_prefix = (dom_prefix.presence || derived_dom_prefix).to_s
       @search_placeholder = search_placeholder.to_s
+      @search_enabled = search_enabled == true
+      @filters_enabled = filters_enabled == true
       @columns_by_key = @columns.index_by(&:key).freeze
       @default_column_keys = Array(default_column_keys).map(&:to_s).uniq.intersection(available_column_keys).freeze
 
@@ -53,7 +57,17 @@ module ContentTables
     end
 
     def filterable_columns
+      return [] unless filters_enabled?
+
       columns.select(&:filterable?)
+    end
+
+    def search_enabled?
+      @search_enabled
+    end
+
+    def filters_enabled?
+      @filters_enabled
     end
 
     def columns_for_group(group)

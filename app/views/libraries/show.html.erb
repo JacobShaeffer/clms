@@ -12,17 +12,13 @@
     <%= link_to "Back to libraries", libraries_path, class: "btn btn-outline-secondary" %>
   </div>
 
-  <h2 class="h4 mb-3">Folders</h2>
-
-  <% if @root_folders.any? %>
-    <div id="library-folders" class="list-group">
-      <% @root_folders.each do |folder| %>
-        <div id="<%= dom_id folder %>" class="list-group-item">
-          <%= folder.name %>
-        </div>
-      <% end %>
+  <div class="row g-4">
+    <div class="col-12 col-lg-4">
+      <%= render "libraries/folder_browser" %>
     </div>
-  <% else %>
-    <p class="text-body-secondary">No root folders found.</p>
-  <% end %>
+
+    <div class="col-12 col-lg-8">
+      <%= render "libraries/content_panel" %>
+    </div>
+  </div>
 </div>

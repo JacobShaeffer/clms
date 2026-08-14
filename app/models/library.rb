@@ -6,6 +6,8 @@ class Library < ApplicationRecord
 
   has_many :library_versions, inverse_of: :library, dependent: :restrict_with_error
   has_many :library_folders, inverse_of: :library, dependent: :restrict_with_error
+  has_many :library_folder_contents, through: :library_folders
+  has_many :contents, through: :library_folder_contents
 
   validates :name, presence: true
   validates :current_version, presence: true, on: :update

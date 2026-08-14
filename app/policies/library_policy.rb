@@ -7,6 +7,30 @@ class LibraryPolicy < ApplicationPolicy
     non_guest?
   end
 
+  def all_contents_table?
+    show?
+  end
+
+  def reset_all_contents_table?
+    show?
+  end
+
+  def library_contents_table?
+    show?
+  end
+
+  def reset_library_contents_table?
+    show?
+  end
+
+  def shelf_contents_table?
+    show?
+  end
+
+  def reset_shelf_contents_table?
+    show?
+  end
+
   def create?
     at_least?(:intern_plus)
   end

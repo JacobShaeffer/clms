@@ -27,7 +27,9 @@ module ContentTables
       excluded_column_keys: [],
       additional_groups: [],
       default_column_keys: nil,
-      dom_prefix: nil
+      dom_prefix: nil,
+      search_enabled: true,
+      filters_enabled: true
     )
       metadata_types = Array(metadata_types)
       replacement_keys = Array(additional_columns).map(&:key)
@@ -52,7 +54,9 @@ module ContentTables
         quick_search: method(:apply_quick_search),
         default_order: method(:apply_default_order),
         row_partial:,
-        dom_prefix:
+        dom_prefix:,
+        search_enabled:,
+        filters_enabled:
       )
     end
 

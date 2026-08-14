@@ -155,6 +155,29 @@ class ContentTables::TableTest < ActionView::TestCase
     assert_select "tbody .custom-cell", text: "RIVER ALPHA"
   end
 
+  test "the full component omits disabled search and filter controls" do
+    column = ContentTables::Column.new(
+      key: "custom",
+      label: "Custom",
+      group: :custom,
+      cell: ->(record) { record.title }
+    )
+    definition = definition_for(column:, search_enabled: false, filters_enabled: false)
+
+    render partial: "content_tables/content_table", locals: {
+      definition:,
+      state: @state,
+      records: [ @record ],
+      pagy: @pagy
+    }
+
+    assert_select "input[name='q']", count: 0
+    assert_select "button", text: "Advanced Filters", count: 0
+    assert_select ".offcanvas", count: 0
+    assert_select "button", text: "Column select"
+    assert_select "select[name='per_page']"
+  end
+
   private
 
   def render_table(definition)
@@ -166,7 +189,7 @@ class ContentTables::TableTest < ActionView::TestCase
     }
   end
 
-  def definition_for(column:, row_partial: nil)
+  def definition_for(column:, row_partial: nil, **options)
     ContentTables::Definition.new(
       state_key: "test.custom-table",
       frame_id: "custom_table",
@@ -181,7 +204,8 @@ class ContentTables::TableTest < ActionView::TestCase
       empty_message: "Nothing found.",
       quick_search: ->(relation:, **) { relation },
       default_order: ->(relation:) { relation },
-      row_partial:
+      row_partial:,
+      **options
     )
   end
 end

@@ -1,44 +1,52 @@
 <% search_input_id = definition.dom_id("search") %>
 <% per_page_input_id = definition.dom_id("per-page") %>
 
-<div class="row mb-3">
-  <div class="col">
-    <%= form_with(
-      url: definition.update_path,
-      method: :get,
-      class: "row g-2",
-      data: {
-        controller: "content-table-form",
-        turbo_frame: definition.frame_id
-      }
-    ) do |form| %>
-      <div class="col-12 col-md-6">
-        <%= form.label :q, "Search", for: search_input_id, class: "form-label" %>
-        <%= form.search_field :q,
-          value: state.q,
-          id: search_input_id,
-          class: "form-control",
-          placeholder: definition.search_placeholder,
-          data: {
-            action: "input->content-table-form#submit"
-          }
-        %>
-      </div>
-      <div class="col-auto align-self-end">
-        <button
-          class="btn btn-secondary"
-          type="button"
-          data-bs-toggle="offcanvas"
-          data-bs-target="#<%= definition.dom_id("advanced-filters") %>"
-          aria-controls="<%= definition.dom_id("advanced-filters") %>">
-          Advanced Filters
-        </button>
-      </div>
-    <% end %>
+<% if definition.search_enabled? || definition.filters_enabled? %>
+  <div class="row mb-3">
+    <div class="col">
+      <%= form_with(
+        url: definition.update_path,
+        method: :get,
+        class: "row g-2",
+        data: {
+          controller: "content-table-form",
+          turbo_frame: definition.frame_id
+        }
+      ) do |form| %>
+        <% if definition.search_enabled? %>
+          <div class="col-12 col-md-6">
+            <%= form.label :q, "Search", for: search_input_id, class: "form-label" %>
+            <%= form.search_field :q,
+              value: state.q,
+              id: search_input_id,
+              class: "form-control",
+              placeholder: definition.search_placeholder,
+              data: {
+                action: "input->content-table-form#submit"
+              }
+            %>
+          </div>
+        <% end %>
+        <% if definition.filters_enabled? %>
+          <div class="col-auto align-self-end">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#<%= definition.dom_id("advanced-filters") %>"
+              aria-controls="<%= definition.dom_id("advanced-filters") %>">
+              Advanced Filters
+            </button>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
   </div>
-</div>
+<% end %>
 
-<%= render "content_tables/advanced_filters_offcanvas", definition:, state: %>
+<% if definition.filters_enabled? %>
+  <%= render "content_tables/advanced_filters_offcanvas", definition:, state: %>
+<% end %>
 
 <div class="row mb-3">
   <div class="col d-flex gap-2">

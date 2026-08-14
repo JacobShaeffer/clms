@@ -1,0 +1,83 @@
+<%= turbo_frame_tag dom_id(@library, :folder_browser), data: { turbo_action: "advance" } do %>
+  <section class="border rounded p-3" aria-labelledby="library-folder-browser-heading">
+    <h2 id="library-folder-browser-heading" class="h4 mb-3">Library folder browser</h2>
+
+    <nav aria-label="Library folder breadcrumb">
+      <ol class="breadcrumb flex-nowrap overflow-x-auto">
+        <% root_is_current = @current_folder.nil? %>
+        <li class="breadcrumb-item <%= "active" if root_is_current %>" <%= "aria-current=page" if root_is_current %>>
+          <% if root_is_current %>
+            <%= @library.name %>
+          <% else %>
+            <%= link_to @library.name,
+              library_path(
+                @library,
+                tab: @active_tab,
+                shelf_id: @selected_shelf&.id
+              ),
+              data: {
+                turbo_frame: dom_id(@library, :folder_browser),
+                turbo_action: "advance"
+              }
+            %>
+          <% end %>
+        </li>
+
+        <% @breadcrumb_folders.each_with_index do |folder, index| %>
+          <% current = index == @breadcrumb_folders.length - 1 %>
+          <li class="breadcrumb-item <%= "active" if current %>" <%= "aria-current=page" if current %>>
+            <% if current %>
+              <%= folder.name %>
+            <% else %>
+              <%= link_to folder.name,
+                library_path(
+                  @library,
+                  folder_id: folder.id,
+                  tab: @active_tab,
+                  shelf_id: @selected_shelf&.id
+                ),
+                data: {
+                  turbo_frame: dom_id(@library, :folder_browser),
+                  turbo_action: "advance"
+                }
+              %>
+            <% end %>
+          </li>
+        <% end %>
+      </ol>
+    </nav>
+
+    <div class="list-group" id="library-folder-browser-items">
+      <% @browser_folders.each do |folder| %>
+        <%= link_to library_path(
+          @library,
+          folder_id: folder.id,
+          tab: @active_tab,
+          shelf_id: @selected_shelf&.id
+        ),
+          id: dom_id(folder, :browser),
+          class: "list-group-item list-group-item-action d-flex justify-content-between align-items-center",
+          data: {
+            turbo_frame: dom_id(@library, :folder_browser),
+            turbo_action: "advance"
+          } do %>
+          <span><%= folder.name %></span>
+          <span class="badge text-bg-secondary">Folder</span>
+        <% end %>
+      <% end %>
+
+      <% @browser_contents.each do |content| %>
+        <div id="<%= dom_id(content, :browser) %>" class="list-group-item d-flex justify-content-between align-items-center">
+          <span><%= content.title %></span>
+          <span class="badge text-bg-light">Content</span>
+        </div>
+      <% end %>
+
+      <% if @browser_folders.empty? && @browser_contents.empty? %>
+        <p class="list-group-item text-center text-body-secondary mb-0">
+          <%= @current_folder ? "This folder is empty." : "No root folders found." %>
+        </p>
+      <% end %>
+    </div>
+  </section>
+<% end %>

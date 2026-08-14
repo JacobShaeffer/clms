@@ -195,6 +195,28 @@ class ContentTables::StateTest < ActiveSupport::TestCase
     assert_equal 3, ContentTablePreference.find_by!(user: @user, table_key: "test.table").state.fetch("page")
   end
 
+  test "disabled search and filters remove saved values and ignore request values" do
+    @definition = build_definition(search_enabled: false, filters_enabled: false)
+    create_preference(
+      default_state.merge(
+        "q" => "Saved search",
+        "filters" => { "title" => { "value" => "Saved filter" } }
+      )
+    )
+
+    state = build_state(
+      q: "Requested search",
+      filters: { title: { value: "Requested filter" } }
+    )
+
+    assert_equal "", state.q
+    assert_empty state.filters
+    assert state.dirty?
+    state.persist!
+    assert_equal "", ContentTablePreference.find_by!(user: @user, table_key: "test.table").state.fetch("q")
+    assert_empty ContentTablePreference.find_by!(user: @user, table_key: "test.table").state.fetch("filters")
+  end
+
   private
 
   def build_state(params = {})
@@ -218,7 +240,7 @@ class ContentTables::StateTest < ActiveSupport::TestCase
     }
   end
 
-  def build_definition
+  def build_definition(**options)
     title = ContentTables::Column.new(
       key: "title",
       label: "Title",
@@ -254,7 +276,8 @@ class ContentTables::StateTest < ActiveSupport::TestCase
       default_page_size: 10,
       empty_message: "None",
       quick_search: ->(relation:, **) { relation },
-      default_order: ->(relation:) { relation }
+      default_order: ->(relation:) { relation },
+      **options
     )
   end
 end

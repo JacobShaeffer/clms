@@ -39,6 +39,15 @@ class LibraryFolderTest < ActiveSupport::TestCase
     assert_includes folder.errors[:parent_folder], "cannot be itself"
   end
 
+  test "folder cannot use one of its descendants as its parent" do
+    root = create_folder!(name: "Health")
+    child = create_folder!(name: "First Aid", parent_folder: root)
+    root.parent_folder = child
+
+    assert_not root.valid?
+    assert_includes root.errors[:parent_folder], "cannot be a descendant"
+  end
+
   private
 
   def create_folder!(name:, parent_folder: nil)

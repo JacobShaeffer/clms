@@ -1,6 +1,13 @@
 class LibrariesController < ApplicationController
+  CONTENT_TABS = %w[all shelves library].freeze
+
   before_action :authenticate_user!
-  before_action :set_library, only: :show
+  before_action :set_library, only: %i[
+    show
+    all_contents_table reset_all_contents_table
+    library_contents_table reset_library_contents_table
+    shelf_contents_table reset_shelf_contents_table
+  ]
 
   def index
     authorize Library
@@ -11,7 +18,61 @@ class LibrariesController < ApplicationController
   def show
     authorize @library
 
-    @root_folders = @library.library_folders.roots.order(:name, :id).load
+    @active_tab = normalized_tab
+    load_folder_browser
+    load_content_panel
+  end
+
+  def all_contents_table
+    authorize @library
+    load_all_contents_table
+
+    render partial: "content_tables/table_frame", locals: table_locals
+  end
+
+  def reset_all_contents_table
+    authorize @library
+    delete_table_preference(ContentTables::LibraryContentsDefinition.all_content_state_key(@library))
+
+    redirect_to library_path(@library, tab: "all"), status: :see_other
+  end
+
+  def library_contents_table
+    authorize @library
+    load_library_contents_table
+
+    render partial: "content_tables/table_frame", locals: table_locals
+  end
+
+  def reset_library_contents_table
+    authorize @library
+    delete_table_preference(ContentTables::LibraryContentsDefinition.library_content_state_key(@library))
+
+    redirect_to library_path(@library, tab: "library"), status: :see_other
+  end
+
+  def shelf_contents_table
+    authorize @library
+    load_active_shelves
+    load_selected_active_shelf!
+    load_shelf_contents_table
+
+    render partial: "content_tables/table_frame", locals: table_locals
+  end
+
+  def reset_shelf_contents_table
+    authorize @library
+    load_active_shelves
+    load_selected_active_shelf!
+    delete_table_preference(
+      ContentTables::LibraryContentsDefinition.shelf_content_state_key(@library, @selected_shelf)
+    )
+
+    redirect_to library_path(
+      @library,
+      tab: "shelves",
+      shelf_id: @selected_shelf.id
+    ), status: :see_other
   end
 
   def new
@@ -52,6 +113,152 @@ class LibrariesController < ApplicationController
   end
 
   private
+
+  def normalized_tab
+    requested_tab = params[:tab]
+    requested_tab.is_a?(String) && CONTENT_TABS.include?(requested_tab) ? requested_tab : "all"
+  end
+
+  def load_content_panel
+    case @active_tab
+    when "all"
+      load_all_contents_table
+    when "library"
+      load_library_contents_table
+    when "shelves"
+      load_active_shelves
+      load_selected_active_shelf! if params[:shelf_id].present?
+      load_shelf_contents_table if @selected_shelf
+    end
+  end
+
+  def load_folder_browser
+    folders = @library.library_folders.order(:name, :id).to_a
+    @folder_path_index = LibraryFolderPathIndex.new(library: @library, folders:)
+    @current_folder = @library.library_folders.find(scalar_id!(:folder_id)) if params[:folder_id].present?
+    @breadcrumb_folders = @current_folder ? @folder_path_index.path(@current_folder) : []
+    @browser_folders = if @current_folder
+      folders.select { |folder| folder.parent_folder_id == @current_folder.id }
+    else
+      folders.select { |folder| folder.parent_folder_id.nil? }
+    end
+    @browser_contents = if @current_folder
+      @current_folder.contents.order(Content.arel_table[:title].lower, :id).to_a
+    else
+      []
+    end
+  end
+
+  def load_active_shelves
+    @active_shelf_records = current_user.active_shelves.includes(:shelf).ordered.to_a
+  end
+
+  def load_selected_active_shelf!
+    requested_shelf_id = Integer(scalar_id!(:shelf_id), exception: false)
+    active_shelf = @active_shelf_records.find { |record| record.shelf_id == requested_shelf_id }
+    raise ActiveRecord::RecordNotFound, "Active shelf not found" unless active_shelf
+
+    @selected_shelf = active_shelf.shelf
+  end
+
+  def load_all_contents_table
+    load_contents_table(
+      source: base_content_source,
+      state_key: ContentTables::LibraryContentsDefinition.all_content_state_key(@library),
+      frame_id: "library_#{@library.id}_all_contents_table",
+      update_path: all_contents_table_library_path(@library),
+      reset_path: reset_all_contents_table_library_path(@library)
+    )
+  end
+
+  def load_library_contents_table
+    content_ids = LibraryFolderContent.joins(:library_folder)
+      .where(library_folders: { library_id: @library.id })
+      .select(:content_id)
+    load_contents_table(
+      source: base_content_source.where(id: content_ids),
+      state_key: ContentTables::LibraryContentsDefinition.library_content_state_key(@library),
+      frame_id: "library_#{@library.id}_library_contents_table",
+      update_path: library_contents_table_library_path(@library),
+      reset_path: reset_library_contents_table_library_path(@library)
+    )
+  end
+
+  def load_shelf_contents_table
+    load_contents_table(
+      source: base_content_source.where(id: @selected_shelf.contents.select(:id)),
+      state_key: ContentTables::LibraryContentsDefinition.shelf_content_state_key(@library, @selected_shelf),
+      frame_id: "library_#{@library.id}_shelf_#{@selected_shelf.id}_contents_table",
+      update_path: shelf_contents_table_library_path(@library, shelf_id: @selected_shelf.id),
+      reset_path: reset_shelf_contents_table_library_path(@library, shelf_id: @selected_shelf.id),
+      search_enabled: false,
+      filters_enabled: false
+    )
+  end
+
+  def load_contents_table(
+    source:,
+    state_key:,
+    frame_id:,
+    update_path:,
+    reset_path:,
+    search_enabled: true,
+    filters_enabled: true
+  )
+    @table_definition = ContentTables::LibraryContentsDefinition.new(
+      library: @library,
+      source:,
+      metadata_types: policy_scope(MetadataType).order(:order, :name),
+      update_path:,
+      reset_path:,
+      state_key:,
+      frame_id:,
+      search_enabled:,
+      filters_enabled:,
+      path_index: @folder_path_index
+    )
+    table = ContentTables::Coordinator.call(
+      user: current_user,
+      definition: @table_definition,
+      params:,
+      paginator: method(:paginate_contents)
+    )
+    @table_state = table.state
+    @pagy = table.pagy
+    @contents = table.records
+  end
+
+  def base_content_source
+    policy_scope(Content).includes(
+      :user,
+      :library_folders,
+      metadata: :metadata_type
+    )
+  end
+
+  def paginate_contents(relation:, page:, per_page:)
+    pagy(:offset, relation, limit: per_page, page:)
+  end
+
+  def delete_table_preference(table_key)
+    current_user.content_table_preferences.find_by(table_key:)&.destroy!
+  end
+
+  def table_locals
+    {
+      definition: @table_definition,
+      state: @table_state,
+      records: @contents,
+      pagy: @pagy
+    }
+  end
+
+  def scalar_id!(key)
+    value = params[key]
+    return value if value.is_a?(String) || value.is_a?(Integer)
+
+    raise ActiveRecord::RecordNotFound, "Invalid #{key}"
+  end
 
   def set_library
     @library = policy_scope(Library).find(params.expect(:id))

@@ -124,8 +124,10 @@ module ContentTables
     def sanitize_state(raw_state)
       stored_state = raw_state.is_a?(Hash) ? raw_state.deep_stringify_keys : {}
       sanitized = default_state
-      sanitized["q"] = stored_state["q"] if stored_state["q"].is_a?(String)
-      sanitized["filters"] = sanitize_filter_hash(stored_state["filters"])
+      if definition.search_enabled? && stored_state["q"].is_a?(String)
+        sanitized["q"] = stored_state["q"]
+      end
+      sanitized["filters"] = sanitize_filter_hash(stored_state["filters"]) if definition.filters_enabled?
       sanitized["columns_present"] = stored_state["columns_present"] == true
       sanitized["columns"] = sanitize_column_keys(stored_state["columns"]) if sanitized["columns_present"]
       sanitized["per_page"] = normalize_per_page(stored_state["per_page"])
@@ -139,7 +141,7 @@ module ContentTables
     def apply_query_request!
       changed = false
 
-      if parameter_present?(:q) && parameter(:q).is_a?(String)
+      if definition.search_enabled? && parameter_present?(:q) && parameter(:q).is_a?(String)
         changed |= assign_if_changed("q", parameter(:q))
       end
 
@@ -147,7 +149,9 @@ module ContentTables
         changed |= assign_if_changed("per_page", normalize_per_page(parameter(:per_page)))
       end
 
-      requested_filters = if parameter(:clear_filters).present?
+      requested_filters = if !definition.filters_enabled?
+        nil
+      elsif parameter(:clear_filters).present?
         {}
       elsif parameter_present?(:filters)
         sanitize_filter_hash(parameter(:filters))
