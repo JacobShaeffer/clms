@@ -1,0 +1,74 @@
+<% selected_columns = definition.selected_columns(state.selected_column_keys) %>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <% if selected_columns.any? %>
+          <% selected_columns.each do |column| %>
+            <% sorted = state.sort_column == column.key && state.sort_direction.in?(%w[asc desc]) %>
+            <% current_sort_state = sorted ? state.sort_direction : "default" %>
+            <% aria_sort = sorted ? (state.sort_direction == "asc" ? "ascending" : "descending") : "none" %>
+
+            <% if column.sortable? %>
+              <% sort_action = if state.sort_direction == "asc" && sorted
+                "Sort #{column.label} descending"
+              elsif state.sort_direction == "desc" && sorted
+                "Clear sorting for #{column.label}"
+              else
+                "Sort #{column.label} ascending"
+              end %>
+
+              <th scope="col" aria-sort="<%= aria_sort %>">
+                <%= link_to definition.update_url(sort_column: column.key, sort_state: current_sort_state),
+                  class: "link-body-emphasis text-decoration-none",
+                  data: { turbo_frame: definition.frame_id, turbo_prefetch: false },
+                  aria: { label: sort_action } do %>
+                  <%= column.label %>
+                  <% if sorted %>
+                    <span aria-hidden="true"><%= state.sort_direction == "asc" ? "↑" : "↓" %></span>
+                  <% end %>
+                <% end %>
+              </th>
+            <% else %>
+              <th scope="col" aria-sort="none"><%= column.label %></th>
+            <% end %>
+          <% end %>
+        <% else %>
+          <th>Columns</th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% if selected_columns.empty? %>
+        <tr>
+          <td class="text-center">No columns selected.</td>
+        </tr>
+      <% elsif records.any? %>
+        <% records.each do |record| %>
+          <% if definition.row_partial.present? %>
+            <%= render definition.row_partial, definition:, record:, selected_columns: %>
+          <% else %>
+            <%= render "content_tables/row", definition:, record:, selected_columns: %>
+          <% end %>
+        <% end %>
+      <% else %>
+        <tr>
+          <td colspan="<%= selected_columns.size %>" class="text-center"><%= definition.empty_message %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<div class="row align-items-center mt-3" data-turbo-prefetch="false">
+  <div class="col">
+    <% if pagy.pages > 1 %>
+      <%== pagy.series_nav(
+        :bootstrap,
+        path: definition.update_path,
+        querify: ->(query) { query.select! { |key, _value| key.to_s == "page" } }
+      ) %>
+    <% end %>
+  </div>
+</div>

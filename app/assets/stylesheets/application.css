@@ -36,3 +36,12 @@
 	font-size: large;
 	cursor: pointer;
 }
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
+}

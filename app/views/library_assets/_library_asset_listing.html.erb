@@ -1,0 +1,30 @@
+<div id="<%= dom_id library_asset, :listing %>" class="col">
+  <article class="card h-100 shadow-sm">
+    <div class="card-img-top ratio ratio-4x3 bg-body-secondary border-bottom">
+      <% if library_asset.image.attached? %>
+        <%= image_tag library_asset.image,
+          class: "h-100 w-100 object-fit-cover",
+          alt: "#{library_asset.name} image"
+        %>
+      <% else %>
+        <div class="d-flex align-items-center justify-content-center text-body-secondary">
+          <span>Image placeholder</span>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="card-body d-flex flex-column">
+      <%= render library_asset %>
+
+      <div class="d-flex flex-wrap gap-2 mt-auto pt-3">
+        <%= link_to "Show", library_asset, class: "btn btn-sm btn-outline-primary", data: { turbo_frame: "modal" } %>
+        <%= link_to "Edit", edit_library_asset_path(library_asset), class: "btn btn-sm btn-outline-secondary", data: { turbo_frame: "modal" } %>
+        <%= link_to "Destroy",
+          delete_confirmation_library_asset_path(library_asset),
+          class: "btn btn-sm btn-outline-danger",
+          data: { turbo_frame: "modal" }
+        %>
+      </div>
+    </div>
+  </article>
+</div>

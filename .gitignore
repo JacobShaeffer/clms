@@ -34,3 +34,7 @@
 /config/*.key
 
 /node_modules
+
+# Ignore ad hoc test output captures.
+/test/test_output.txt
+/test/test:system_output.txt

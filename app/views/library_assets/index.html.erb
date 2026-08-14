@@ -1,0 +1,14 @@
+<% content_for :title, "Library assets" %>
+
+<div class="d-flex justify-content-between align-items-center my-4">
+  <h1 class="mb-0">Library assets</h1>
+  <%= link_to "New library asset", new_library_asset_path, class: "btn btn-primary", data: { turbo_frame: "modal" } %>
+</div>
+
+<div id="library_assets" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
+  <% @library_assets.each do |library_asset| %>
+    <%= render "library_assets/library_asset_listing", library_asset: library_asset %>
+  <% end %>
+</div>
+
+<%= turbo_frame_tag "modal" %>

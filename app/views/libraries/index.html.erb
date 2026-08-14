@@ -1,0 +1,26 @@
+<% content_for :title, "Libraries" %>
+
+<div class="my-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Libraries</h1>
+    <% if policy(Library).new? %>
+      <%= link_to "New library", new_library_path, class: "btn btn-primary", data: { turbo_frame: "modal" } %>
+    <% end %>
+  </div>
+
+  <%= turbo_frame_tag "modal" %>
+
+  <div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+      <thead>
+        <tr>
+          <th scope="col">Library name</th>
+          <th scope="col">Version</th>
+        </tr>
+      </thead>
+      <tbody id="libraries">
+        <%= render "libraries/table_rows", libraries: @libraries %>
+      </tbody>
+    </table>
+  </div>
+</div>

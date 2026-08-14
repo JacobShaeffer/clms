@@ -1,0 +1,11 @@
+<% input_id = definition.dom_id("filter-#{column.key.parameterize(separator: "-")}-value") %>
+
+<div class="col-12 col-md-6">
+  <%= label_tag input_id, column.label, class: "form-label" %>
+  <%= text_field_tag "filters[#{column.key}][value]",
+    values.fetch("value", ""),
+    id: input_id,
+    class: "form-control",
+    inputmode: "numeric"
+  %>
+</div>

@@ -1,0 +1,54 @@
+<div
+  class="offcanvas offcanvas-end"
+  style="--bs-offcanvas-width: min(48rem, 100vw);"
+  tabindex="-1"
+  id="<%= definition.dom_id("advanced-filters") %>"
+  aria-labelledby="<%= definition.dom_id("advanced-filters-title") %>">
+  <div class="offcanvas-header">
+    <h2 class="offcanvas-title h5" id="<%= definition.dom_id("advanced-filters-title") %>">Advanced Filters</h2>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    <%= form_with(
+      url: definition.update_path,
+      method: :get,
+      data: {
+        controller: "content-table-form",
+        turbo_frame: definition.frame_id
+      }
+    ) do %>
+      <% definition.groups.each_with_index do |group, index| %>
+        <% columns = definition.columns_for_group(group.fetch(:key)).select(&:filterable?) %>
+        <section class="<%= "mt-4" if index.positive? %>">
+          <h3 class="h6"><%= group.fetch(:filters_label) %></h3>
+
+          <% if columns.any? %>
+            <div class="row g-3">
+              <% columns.each do |column| %>
+                <%= render column.filter.input_partial,
+                  definition:,
+                  column:,
+                  values: state.filters.fetch(column.key, {})
+                %>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-muted mb-0"><%= group[:empty_message] || "No filters available." %></p>
+          <% end %>
+        </section>
+      <% end %>
+
+      <div class="d-flex gap-2 mt-4">
+        <%= submit_tag "Apply Filters", class: "btn btn-primary" %>
+        <%= button_tag "Clear Filters",
+          type: "submit",
+          name: "clear_filters",
+          value: "1",
+          class: "btn btn-secondary",
+          data: { action: "click->content-table-form#clearFilters" }
+        %>
+      </div>
+    <% end %>
+  </div>
+</div>

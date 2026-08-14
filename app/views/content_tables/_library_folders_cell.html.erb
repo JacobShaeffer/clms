@@ -1,0 +1,10 @@
+<% definition.library_folders_for(record).each do |folder| %>
+  <span
+    class="badge text-bg-secondary me-1"
+    title="<%= definition.breadcrumb_for(folder) %>"
+    data-controller="tooltip"
+    data-bs-toggle="tooltip"
+    data-bs-placement="top">
+    <%= folder.name %>
+  </span>
+<% end %>

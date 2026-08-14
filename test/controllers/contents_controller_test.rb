@@ -5,9 +5,13 @@ require "uri"
 class ContentsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
+  CONTENTS_TABLE_KEY = "contents.index"
+
   self.fixture_table_names = []
 
   setup do
+    Content.destroy_all
+
     @user = User.create!(
       name: "Filter User",
       email: "filter-user@example.com",
@@ -104,7 +108,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     assert_select "#metadatum_badge_#{@history.id}", text: @history.name
-    assert_select "input#content_metadatum_ids_#{@history.id}[checked='checked'][value='#{@history.id}']"
+    assert_select "input#content_metadatum_ids_#{@history.id}[checked][value='#{@history.id}']"
     assert_select "#metadatum_badge_#{@science.id}", count: 0
   end
 
@@ -146,7 +150,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "table action renders only the contents table frame" do
-    get table_contents_url, params: { q: "River" }
+    get table_contents_url, params: { q: "river" }
 
     assert_response :success
     assert_select "turbo-frame#contents_table"
@@ -186,7 +190,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
   test "advanced filters persist after per page update" do
     get table_contents_url, params: {
       filters: {
-        "description" => { "value" => "Hydrology" }
+        "description" => { "value" => "hydrology" }
       }
     }
     get table_contents_url, params: { per_page: 20 }
@@ -196,10 +200,10 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     refute_includes @response.body, @other_content.title
   end
 
-  test "metadata filters persist in session" do
+  test "metadata filters persist in the table preference" do
     get table_contents_url, params: {
       filters: {
-        "metadata_type:#{@metadata_type.id}" => { "value" => "History" }
+        "metadata_type:#{@metadata_type.id}" => { "value" => "history" }
       }
     }
     get table_contents_url, params: { per_page: 20 }
@@ -243,7 +247,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     refute_includes @response.body, @other_content.display_title
   end
 
-  test "index clears table session state" do
+  test "index restores the saved table preference" do
     get table_contents_url, params: { per_page: 50 }
     get table_contents_url, params: {
       columns_present: "1",
@@ -262,14 +266,201 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get contents_url
 
     assert_response :success
-    assert_select "select[name='per_page'] option[value='10'][selected]"
-    assert_select "th", text: "Display title", count: 0
-    assert_select "input[name='q'][value='']"
-    assert_select "input[name='filters[description][value]'][value='']"
-    assert_sort_header "Title", sort_key: "title", aria_sort: "none", current_direction: "default"
-    assert_select "th[aria-sort='ascending'], th[aria-sort='descending']", count: 0
+    assert_select "select[name='per_page'] option[value='50'][selected]"
+    assert_select "input[name='q'][value='River']"
+    assert_select "input[name='filters[description][value]'][value='Hydrology']"
+    assert_sort_header "Display title", sort_key: "display_title", aria_sort: "ascending", current_direction: "asc"
+    assert_includes @response.body, @matching_content.display_title
+    refute_includes @response.body, @other_content.display_title
+
+    assert_equal({
+      "q" => "River",
+      "filters" => { "description" => { "value" => "Hydrology" } },
+      "columns" => [ "display_title" ],
+      "per_page" => 50,
+      "sort_column" => "display_title",
+      "sort_direction" => "asc",
+      "page" => 1
+    }, content_table_state.slice("q", "filters", "columns", "per_page", "sort_column", "sort_direction", "page"))
+  end
+
+  test "table preferences survive authentication and remain isolated across browser sessions" do
+    get table_contents_url, params: { q: "River", per_page: 50 }
+
+    delete destroy_user_session_url
+    post user_session_url, params: { user: { email: @user.email, password: "password" } }
+    get contents_url
+
+    assert_response :success
+    assert_select "input[name='q'][value='River']"
+    assert_select "select[name='per_page'] option[value='50'][selected]"
+
+    same_user_browser = signed_in_browser(@user)
+    same_user_browser.get contents_url
+    same_user_page = Rails::Dom::Testing.html_document.parse(same_user_browser.response.body)
+
+    assert_equal "River", same_user_page.at_css("input[name='q']")["value"]
+    assert same_user_page.at_css("select[name='per_page'] option[value='50'][selected]")
+    refute_includes same_user_browser.response.body, @other_content.title
+
+    other_user = User.create!(
+      name: "Other Table User",
+      email: "other-table-user@example.com",
+      password: "password",
+      role: :volunteer
+    )
+    other_user_browser = signed_in_browser(other_user)
+    other_user_browser.get contents_url
+    other_user_page = Rails::Dom::Testing.html_document.parse(other_user_browser.response.body)
+
+    assert_equal "", other_user_page.at_css("input[name='q']")["value"]
+    assert other_user_page.at_css("select[name='per_page'] option[value='10'][selected]")
+    assert_includes other_user_browser.response.body, @other_content.title
+    assert_nil ContentTablePreference.find_by(user: other_user, table_key: CONTENTS_TABLE_KEY)
+  end
+
+  test "submitted table key cannot select another preference" do
+    other_preference = ContentTablePreference.create!(
+      user: @user,
+      table_key: "shelves.123.contents",
+      state: { "q" => "Mountain" }
+    )
+
+    get table_contents_url, params: {
+      table_key: other_preference.table_key,
+      q: "River"
+    }
+
+    assert_response :success
     assert_includes @response.body, @matching_content.title
-    assert_includes @response.body, @other_content.title
+    refute_includes @response.body, @other_content.title
+    assert_equal "River", content_table_state.fetch("q")
+    assert_equal({ "q" => "Mountain" }, other_preference.reload.state)
+  end
+
+  test "saved page is restored and clamped when records disappear" do
+    create_paginated_contents!(18)
+
+    get table_contents_url, params: { page: 2 }
+    assert_equal 2, content_table_state.fetch("page")
+
+    get contents_url
+
+    assert_response :success
+    assert_includes @response.body, @matching_content.title
+    assert_equal 2, content_table_state.fetch("page")
+
+    Content.where.not(id: @matching_content.id).destroy_all
+    get contents_url
+
+    assert_response :success
+    assert_includes @response.body, @matching_content.title
+    assert_equal 1, content_table_state.fetch("page")
+  end
+
+  test "query changes reset the saved page" do
+    create_paginated_contents!(28, title_prefix: "River Extra", description: "Hydrology field notes")
+
+    get table_contents_url, params: { page: 2 }
+    assert_saved_page 2
+
+    get table_contents_url, params: { q: "River" }
+    assert_saved_page 1
+
+    get table_contents_url, params: { page: 2 }
+    get table_contents_url, params: { filters: { "description" => { "value" => "Hydrology" } } }
+    assert_saved_page 1
+
+    get table_contents_url, params: { page: 2 }
+    get table_contents_url, params: { per_page: 20 }
+    assert_saved_page 1
+
+    get table_contents_url, params: { page: 2 }
+    get table_contents_url, params: { sort_column: "title", sort_state: "default" }
+    assert_saved_page 1
+  end
+
+  test "column changes retain page and clear sorting for a hidden column" do
+    create_paginated_contents!(18)
+    get table_contents_url, params: {
+      columns_present: "1",
+      columns: %w[title display_title]
+    }
+    get table_contents_url, params: { sort_column: "title", sort_state: "default" }
+    get table_contents_url, params: { page: 2 }
+
+    get table_contents_url, params: {
+      columns_present: "1",
+      columns: [ "display_title" ]
+    }
+
+    assert_response :success
+    assert_saved_page 2
+    assert_nil content_table_state["sort_column"]
+    assert_nil content_table_state["sort_direction"]
+    assert_nil content_header("Title")
+    assert_sort_header "Display title", sort_key: "display_title", aria_sort: "none", current_direction: "default"
+  end
+
+  test "reset deletes only the contents table preference" do
+    ContentTablePreference.create!(
+      user: @user,
+      table_key: CONTENTS_TABLE_KEY,
+      state: { "q" => "River" }
+    )
+    other_preference = ContentTablePreference.create!(
+      user: @user,
+      table_key: "shelves.123.contents",
+      state: { "q" => "Mountain" }
+    )
+
+    delete reset_table_contents_url, params: { table_key: other_preference.table_key }
+
+    assert_response :see_other
+    assert_redirected_to contents_url
+    assert_nil ContentTablePreference.find_by(user: @user, table_key: CONTENTS_TABLE_KEY)
+    assert_equal({ "q" => "Mountain" }, other_preference.reload.state)
+
+    follow_redirect!
+    assert_select "input[name='q'][value='']"
+  end
+
+  test "index deletes legacy session state without migrating it" do
+    legacy_session = {
+      "contents_index_state" => {
+        "q" => "Mountain",
+        "per_page" => 50
+      }
+    }
+
+    get contents_url, env: {
+      "action_dispatch.request.unsigned_session_cookie" => legacy_session
+    }
+
+    assert_response :success
+    assert_nil request.session["contents_index_state"]
+    assert_nil ContentTablePreference.find_by(user: @user, table_key: CONTENTS_TABLE_KEY)
+    assert_select "input[name='q'][value='']"
+  end
+
+  test "pagination URLs contain only the page after table mutations" do
+    create_paginated_contents!(18, title_prefix: "River Extra", description: "Hydrology field notes")
+
+    get table_contents_url, params: {
+      q: "River",
+      filters: { "description" => { "value" => "Hydrology" } },
+      sort_column: "title",
+      sort_state: "default"
+    }
+
+    assert_response :success
+    assert_select "turbo-frame#contents_table[data-turbo-prefetch='false']"
+    pagination_links = css_select("nav.pagy-bootstrap a.page-link[href]")
+    assert_predicate pagination_links, :any?
+    pagination_links.each do |link|
+      query = Rack::Utils.parse_nested_query(URI.parse(link["href"]).query.to_s)
+      assert_equal [ "page" ], query.keys
+    end
   end
 
   test "invalid state params are ignored" do
@@ -630,12 +821,22 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "tbody tr", count: 3
     assert_select "th[aria-sort='ascending'], th[aria-sort='descending']", count: 1
 
+    get table_contents_url, params: {
+      filters: { language_key => { "value" => "English" } }
+    }
+
+    assert_equal [ @matching_content.title ], content_column_values("Title")
+
     language_type.destroy!
     get table_contents_url
 
     assert_response :success
     assert_nil content_header("Language")
     assert_select "th[aria-sort='ascending'], th[aria-sort='descending']", count: 0
+    refute_includes content_table_state.fetch("columns"), language_key
+    refute content_table_state.fetch("filters").key?(language_key)
+    assert_nil content_table_state["sort_column"]
+    assert_nil content_table_state["sort_direction"]
   end
 
   test "added by sorts by the displayed user value" do
@@ -725,6 +926,32 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     css_select("tbody tr").map do |row|
       row.css("td")[column_index].text.squish
+    end
+  end
+
+  def content_table_state
+    ContentTablePreference.find_by!(user: @user, table_key: CONTENTS_TABLE_KEY).state
+  end
+
+  def assert_saved_page(page)
+    assert_equal page, content_table_state.fetch("page")
+  end
+
+  def create_paginated_contents!(count, title_prefix: "Page Extra", description: "Other field notes")
+    count.times do |index|
+      create_content!(
+        title: "#{title_prefix} #{index}",
+        display_title: "Page display #{index}",
+        description:
+      )
+    end
+  end
+
+  def signed_in_browser(user)
+    ActionDispatch::Integration::Session.new(Rails.application).tap do |browser|
+      browser.post user_session_path, params: {
+        user: { email: user.email, password: "password" }
+      }
     end
   end
 

@@ -1,0 +1,13 @@
+<%= render layout: "shared/modal", locals: { title: "Delete library asset" } do %>
+  <p>Are you sure you want to delete <strong><%= library_asset.name %></strong>?</p>
+
+  <div class="modal-footer px-0 pb-0">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <%= button_to "Delete",
+      library_asset_path(library_asset),
+      method: :delete,
+      class: "btn btn-danger",
+      form: { data: { turbo_frame: "modal" } }
+    %>
+  </div>
+<% end %>

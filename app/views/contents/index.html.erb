@@ -13,86 +13,9 @@
 
 <%= turbo_frame_tag "modal" %>
 
-<div class="row mb-3">
-  <div class="col">
-    <%= form_with(
-      url: table_contents_path,
-      method: :get,
-      class: "row g-2",
-      data: {
-        controller: "content-filters-form",
-        turbo_frame: "contents_table"
-      }
-    ) do |form| %>
-      <div class="col-12 col-md-6">
-        <%= form.label :q, "Search", class: "form-label" %>
-        <%= form.search_field :q,
-          value: @search_query,
-          class: "form-control",
-          placeholder: "Search by title",
-          data: {
-            action: "input->content-filters-form#submit"
-          }
-        %>
-      </div>
-      <div class="col-auto align-self-end">
-        <button
-          class="btn btn-secondary"
-          type="button"
-          data-bs-toggle="offcanvas"
-          data-bs-target="#contents-advanced-filters"
-          aria-controls="contents-advanced-filters">
-          Advanced Filters
-        </button>
-      </div>
-    <% end %>
-  </div>
-</div>
-
-<%= render "contents/advanced_filters_offcanvas",
-  content_columns: @content_columns,
-  metadata_columns: @metadata_columns,
-  filters: @filters
+<%= render "content_tables/content_table",
+  definition: @table_definition,
+  state: @table_state,
+  records: @contents,
+  pagy: @pagy
 %>
-
-<div class="row mb-3">
-  <div class="col">
-    <%= render "contents/column_select_dropdown",
-      content_columns: @content_columns,
-      metadata_columns: @metadata_columns,
-      selected_column_keys: @selected_column_keys
-    %>
-  </div>
-</div>
-
-<%= render "contents/table_frame",
-  contents: @contents,
-  selected_columns: @selected_columns,
-  pagy: @pagy,
-  sort_column: @sort_column,
-  sort_direction: @sort_direction
-%>
-
-<div class="row align-items-center mt-3">
-  <div class="col-auto ms-auto">
-    <%= form_with(
-      url: table_contents_path,
-      method: :get,
-      class: "d-flex align-items-center gap-2",
-      data: {
-        controller: "content-filters-form",
-        turbo_frame: "contents_table"
-      }
-    ) do |form| %>
-      <%= form.label :per_page, "Rows to display", class: "form-label mb-0" %>
-      <%= form.select :per_page,
-        options_for_select(@per_page_options, @per_page),
-        {},
-        class: "form-select",
-        data: {
-          action: "change->content-filters-form#submit"
-        }
-      %>
-    <% end %>
-  </div>
-</div>

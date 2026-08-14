@@ -1,0 +1,48 @@
+<% form_data = local_assigns[:modal] ? { turbo_frame: "modal" } : { turbo: false } %>
+
+<%= form_with(model: library_asset, data: form_data) do |form| %>
+  <% if library_asset.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <p class="mb-2"><%= pluralize(library_asset.errors.count, "error") %> prevented this library asset from being saved:</p>
+
+      <ul class="mb-0">
+        <% library_asset.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= form.label :name, class: "form-label" %>
+    <%= form.text_field :name, class: "form-control", autofocus: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :language, class: "form-label" %>
+    <%= form.text_field :language, class: "form-control" %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :image, "Image (PNG)", class: "form-label" %>
+    <%= form.file_field :image, class: "form-control", accept: "image/png,.png" %>
+    <% if library_asset.image.attached? %>
+      <div class="form-text">Current file: <%= library_asset.image.filename %></div>
+    <% end %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :design_files, "Design files (ZIP)", class: "form-label" %>
+    <%= form.file_field :design_files, class: "form-control", accept: "application/zip,.zip" %>
+    <% if library_asset.design_files.attached? %>
+      <div class="form-text">Current file: <%= library_asset.design_files.filename %></div>
+    <% end %>
+  </div>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if local_assigns[:modal] %>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <% end %>
+    <%= form.submit class: "btn btn-primary" %>
+  </div>
+<% end %>

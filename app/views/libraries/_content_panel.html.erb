@@ -1,0 +1,84 @@
+<%= turbo_frame_tag dom_id(@library, :content_panel), data: { turbo_action: "advance" } do %>
+  <section aria-labelledby="library-content-heading">
+    <h2 id="library-content-heading" class="visually-hidden">Library content</h2>
+
+    <ul class="nav nav-tabs mb-3" role="tablist">
+      <% [ [ "all", "All Content" ], [ "shelves", "Shelves" ], [ "library", "Library Content" ] ].each do |tab_key, label| %>
+        <li class="nav-item" role="presentation">
+          <%= link_to label,
+            library_path(
+              @library,
+              folder_id: @current_folder&.id,
+              tab: tab_key
+            ),
+            class: "nav-link #{"active" if @active_tab == tab_key}",
+            role: "tab",
+            aria: {
+              selected: @active_tab == tab_key,
+              current: (@active_tab == tab_key ? "page" : nil)
+            },
+            data: {
+              turbo_frame: dom_id(@library, :content_panel),
+              turbo_action: "advance"
+            }
+          %>
+        </li>
+      <% end %>
+    </ul>
+
+    <% case @active_tab %>
+    <% when "all" %>
+      <%= render "content_tables/content_table",
+        definition: @table_definition,
+        state: @table_state,
+        records: @contents,
+        pagy: @pagy
+      %>
+    <% when "library" %>
+      <%= render "content_tables/content_table",
+        definition: @table_definition,
+        state: @table_state,
+        records: @contents,
+        pagy: @pagy
+      %>
+    <% when "shelves" %>
+      <div class="list-group mb-4" id="library-active-shelves">
+        <% if @active_shelf_records.any? %>
+          <% @active_shelf_records.each do |active_shelf| %>
+            <% shelf = active_shelf.shelf %>
+            <% selected = shelf == @selected_shelf %>
+            <%= link_to shelf.name,
+              library_path(
+                @library,
+                folder_id: @current_folder&.id,
+                tab: "shelves",
+                shelf_id: shelf.id
+              ),
+              id: dom_id(shelf, :library),
+              class: "list-group-item list-group-item-action #{"active" if selected}",
+              aria: { current: (selected ? "true" : nil) },
+              data: {
+                turbo_frame: dom_id(@library, :content_panel),
+                turbo_action: "advance"
+              }
+            %>
+          <% end %>
+        <% else %>
+          <p class="list-group-item text-center text-body-secondary mb-0">No active shelves.</p>
+        <% end %>
+      </div>
+
+      <% if @selected_shelf %>
+        <h3 class="h4"><%= @selected_shelf.name %></h3>
+        <%= render "content_tables/content_table",
+          definition: @table_definition,
+          state: @table_state,
+          records: @contents,
+          pagy: @pagy
+        %>
+      <% elsif @active_shelf_records.any? %>
+        <p class="text-body-secondary">Select an active shelf to view its content.</p>
+      <% end %>
+    <% end %>
+  </section>
+<% end %>

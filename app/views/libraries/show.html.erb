@@ -1,0 +1,24 @@
+<% content_for :title, @library.name %>
+
+<div class="my-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h1 class="mb-1"><%= @library.name %></h1>
+      <p class="text-body-secondary mb-0">
+        Version <%= @library.current_version.version_number %>
+      </p>
+    </div>
+
+    <%= link_to "Back to libraries", libraries_path, class: "btn btn-outline-secondary" %>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-4">
+      <%= render "libraries/folder_browser" %>
+    </div>
+
+    <div class="col-12 col-lg-8">
+      <%= render "libraries/content_panel" %>
+    </div>
+  </div>
+</div>
