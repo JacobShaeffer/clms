@@ -1,0 +1,32 @@
+<%= form_with(
+  url: add_to_shelves_contents_path,
+  method: :post,
+  id: definition.selection_form_id
+) do %>
+  <% if active_shelves.any? %>
+    <div class="mb-3">
+      <% active_shelves.each do |shelf| %>
+        <% checkbox_id = definition.dom_id("add-to-shelf-#{shelf.id}") %>
+        <div class="form-check form-switch">
+          <%= check_box_tag "shelf_ids[]",
+            shelf.id,
+            false,
+            id: checkbox_id,
+            class: "form-check-input"
+          %>
+          <%= label_tag checkbox_id, shelf.name, class: "form-check-label" %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-body-secondary">No active shelves.</p>
+  <% end %>
+
+  <%= submit_tag "Add to Shelves", class: "btn btn-success w-100" %>
+
+  <div
+    id="<%= definition.dom_id("add-to-shelves-status") %>"
+    class="small mt-2"
+    role="status"
+    aria-live="polite"></div>
+<% end %>

@@ -21,13 +21,14 @@ Rails.application.routes.draw do
     collection do
       get :table
       delete :reset_table
+      post :add_to_shelves
       get :search
       post :add_new_metadatum
       get :add_existing_metadatum
     end
   end
 
-  resources :shelves, only: :index do
+  resources :shelves, only: %i[ index new create ] do
     member do
       get :table
       patch :activate

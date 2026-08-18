@@ -52,6 +52,101 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     @other_content.metadata << @science
   end
 
+  test "index renders row selection and the active shelf dropdown" do
+    first_shelf = @user.shelves.create!(name: "First shelf")
+    second_shelf = @user.shelves.create!(name: "Second shelf")
+    ActiveShelf.prepend!(user: @user, shelf: first_shelf)
+    ActiveShelf.prepend!(user: @user, shelf: second_shelf)
+
+    get contents_url
+
+    assert_response :success
+    assert_select "[data-controller='content-table-selection']"
+    assert_select "thead input[type='checkbox'][data-content-table-selection-target='page']", count: 1
+    assert_select "tbody input[type='checkbox'][name='content_ids[]'][form='contents-add-to-shelves-form']", count: 2
+    assert_select "button.dropdown-toggle[data-bs-auto-close='false']", text: "Shelves"
+    assert_select "form#contents-add-to-shelves-form[action='#{add_to_shelves_contents_path}']" do
+      assert_select "input[name='shelf_ids[]']", count: 2
+      assert_select "label", text: second_shelf.name
+      assert_select "label", text: first_shelf.name
+      assert_select "input[type='submit'][value='Add to Shelves']:not([disabled])"
+      assert_select "#contents-add-to-shelves-status[role='status']"
+    end
+  end
+
+  test "add to shelves creates missing placements and skips existing ones" do
+    first_shelf = @user.shelves.create!(name: "First shelf")
+    second_shelf = @user.shelves.create!(name: "Second shelf")
+    ActiveShelf.activate!(user: @user, shelf: first_shelf)
+    ActiveShelf.activate!(user: @user, shelf: second_shelf)
+    ShelfContent.create!(shelf: first_shelf, content: @matching_content)
+
+    assert_difference("ShelfContent.count", 3) do
+      post add_to_shelves_contents_url,
+        params: {
+          content_ids: [ @matching_content.id, @other_content.id ],
+          shelf_ids: [ first_shelf.id, second_shelf.id ]
+        },
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    end
+
+    assert_response :success
+    assert_equal [ @matching_content.id, @other_content.id ].sort, first_shelf.contents.ids.sort
+    assert_equal [ @matching_content.id, @other_content.id ].sort, second_shelf.contents.ids.sort
+    assert_select "turbo-stream[action='replace'][target='contents_table']" do
+      assert_select "input[name='content_ids[]'][checked]", count: 0
+    end
+    assert_select "turbo-stream[action='replace'][target='contents-add-to-shelves-form']" do
+      assert_select "form#contents-add-to-shelves-form"
+      assert_select "input[name='shelf_ids[]'][checked]", count: 0
+    end
+    assert_select "turbo-stream[action='update'][target='contents-add-to-shelves-status']",
+      text: /Existing placements were skipped/
+
+    assert_no_difference("ShelfContent.count") do
+      post add_to_shelves_contents_url,
+        params: {
+          content_ids: [ @matching_content.id, @other_content.id ],
+          shelf_ids: [ first_shelf.id, second_shelf.id ]
+        },
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    end
+    assert_select "turbo-stream[action='update'][target='contents-add-to-shelves-status']",
+      text: /already on the selected shelves/
+  end
+
+  test "add to shelves rejects empty stale and foreign selections" do
+    active_shelf = @user.shelves.create!(name: "Active shelf")
+    archived_shelf = @user.shelves.create!(name: "Archived shelf")
+    foreign_user = User.create!(
+      name: "Foreign User",
+      email: "foreign-user@example.com",
+      password: "password",
+      role: :organization
+    )
+    foreign_shelf = foreign_user.shelves.create!(name: "Foreign shelf")
+    ActiveShelf.activate!(user: @user, shelf: active_shelf)
+    ActiveShelf.activate!(user: foreign_user, shelf: foreign_shelf)
+
+    assert_no_difference("ShelfContent.count") do
+      post add_to_shelves_contents_url,
+        params: { content_ids: [], shelf_ids: [] },
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    end
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[target='contents-add-to-shelves-status']", text: /Select at least one/
+
+    [ archived_shelf, foreign_shelf ].each do |invalid_shelf|
+      assert_no_difference("ShelfContent.count") do
+        post add_to_shelves_contents_url,
+          params: { content_ids: [ @matching_content.id ], shelf_ids: [ invalid_shelf.id ] },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      end
+      assert_response :unprocessable_content
+      assert_select "turbo-stream[target='contents-add-to-shelves-status']", text: /no longer active/
+    end
+  end
+
   test "index renders table state controls" do
     get contents_url
 
@@ -538,7 +633,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :success
-    assert_select "thead th", count: expected_headers.size
+    assert_select "thead th", count: expected_headers.size + 1
     expected_headers.each do |label, sort_key|
       assert_sort_header label,
         sort_key: sort_key,

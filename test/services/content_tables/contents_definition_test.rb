@@ -38,6 +38,8 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
     assert_equal ContentTables::ContentsDefinition::STATE_KEY, @definition.state_key
     assert_equal "contents_table", @definition.frame_id
     assert_equal "Search by title", @definition.search_placeholder
+    assert @definition.selectable?
+    assert_nil @definition.selection_form_id
     assert_equal %w[id title display_title description year_of_publication additional_notes created_at updated_at added_by],
       @definition.columns_for_group(:content).map(&:key)
     assert_equal @metadata_types.map { |type| "metadata_type:#{type.id}" },
@@ -121,6 +123,12 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
 
     assert_equal "shelf-42-contents", definition.dom_prefix
     assert_equal "shelf-42-contents-advanced-filters", definition.dom_id("advanced-filters")
+  end
+
+  test "accepts a form id for selected content rows" do
+    definition = build_definition(selection_form_id: "bulk-action-form")
+
+    assert_equal "bulk-action-form", definition.selection_form_id
   end
 
   private

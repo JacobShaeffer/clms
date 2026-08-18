@@ -25,6 +25,33 @@ class ActiveShelfTest < ActiveSupport::TestCase
     end
   end
 
+  test "prepend inserts at the top and archives the fifth shelf" do
+    existing_shelves = [ @shelf ] + 4.times.map { |index| @user.shelves.create!(name: "Shelf #{index}") }
+    existing_shelves.each { |shelf| ActiveShelf.activate!(user: @user, shelf:) }
+    new_shelf = @user.shelves.create!(name: "New shelf")
+
+    assert_no_difference("ActiveShelf.count") do
+      ActiveShelf.prepend!(user: @user, shelf: new_shelf)
+    end
+
+    assert_equal [ new_shelf.id ] + existing_shelves.first(4).map(&:id),
+      @user.active_shelves.ordered.pluck(:shelf_id)
+    assert_equal [ 1, 2, 3, 4, 5 ], @user.active_shelves.ordered.pluck(:position)
+    refute @user.active_shelves.exists?(shelf: existing_shelves.last)
+  end
+
+  test "prepend inserts at the top when an active slot is empty" do
+    ActiveShelf.activate!(user: @user, shelf: @shelf)
+    new_shelf = @user.shelves.create!(name: "New shelf")
+
+    assert_difference("ActiveShelf.count", 1) do
+      ActiveShelf.prepend!(user: @user, shelf: new_shelf)
+    end
+
+    assert_equal [ [ new_shelf.id, 1 ], [ @shelf.id, 2 ] ],
+      @user.active_shelves.ordered.pluck(:shelf_id, :position)
+  end
+
   test "a shelf must belong to the active shelf user" do
     active_shelf = ActiveShelf.new(user: @user, shelf: shelves(:two), position: 1)
 

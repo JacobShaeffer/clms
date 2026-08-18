@@ -4,6 +4,18 @@
   <table class="table table-striped align-middle">
     <thead>
       <tr>
+        <% if definition.selectable? %>
+          <th scope="col" class="text-center">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              aria-label="Select all content on this page"
+              data-content-table-selection-target="page"
+              data-action="change->content-table-selection#togglePage"
+              <%= "disabled" if records.empty? || selected_columns.empty? %>
+            >
+          </th>
+        <% end %>
         <% if selected_columns.any? %>
           <% selected_columns.each do |column| %>
             <% sorted = state.sort_column == column.key && state.sort_direction.in?(%w[asc desc]) %>
@@ -42,7 +54,7 @@
     <tbody>
       <% if selected_columns.empty? %>
         <tr>
-          <td class="text-center">No columns selected.</td>
+          <td colspan="<%= 1 + (definition.selectable? ? 1 : 0) %>" class="text-center">No columns selected.</td>
         </tr>
       <% elsif records.any? %>
         <% records.each do |record| %>
@@ -54,7 +66,7 @@
         <% end %>
       <% else %>
         <tr>
-          <td colspan="<%= selected_columns.size %>" class="text-center"><%= definition.empty_message %></td>
+          <td colspan="<%= selected_columns.size + (definition.selectable? ? 1 : 0) %>" class="text-center"><%= definition.empty_message %></td>
         </tr>
       <% end %>
     </tbody>

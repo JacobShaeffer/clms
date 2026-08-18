@@ -34,6 +34,7 @@ class ContentPolicyTest < Minitest::Test
 
     assert organization_policy.table?
     assert organization_policy.reset_table?
+    assert organization_policy.add_to_shelves?
     assert organization_policy.search?
     refute organization_policy.add_new_metadatum?
     refute organization_policy.add_existing_metadatum?

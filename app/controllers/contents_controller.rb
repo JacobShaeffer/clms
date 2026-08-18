@@ -1,11 +1,14 @@
 class ContentsController < ApplicationController
   MAX_METADATA_SEARCH_RESULTS = 100
+  ADD_TO_SHELVES_FORM_ID = "contents-add-to-shelves-form"
+  ADD_TO_SHELVES_STATUS_ID = "contents-add-to-shelves-status"
 
   before_action :authenticate_user!
   before_action :load_metadata_types, only: %i[new create]
 
   def index
     authorize Content
+    load_active_shelves
     load_contents_table
   end
 
@@ -25,6 +28,27 @@ class ContentsController < ApplicationController
     session.delete("contents_index_state")
 
     redirect_to contents_path, status: :see_other
+  end
+
+  def add_to_shelves
+    authorize Content
+
+    content_ids = selected_ids(:content_ids)
+    shelf_ids = selected_ids(:shelf_ids)
+    return render_add_to_shelves_error("Select at least one content item and one shelf.") if content_ids.empty? || shelf_ids.empty?
+
+    permitted_content_ids = policy_scope(Content).where(id: content_ids).pluck(:id)
+    return render_add_to_shelves_error("One or more selected content items is unavailable.") unless permitted_content_ids.sort == content_ids.sort
+
+    message = current_user.with_lock do
+      active_shelf_ids = current_user.active_shelves.where(shelf_id: shelf_ids).pluck(:shelf_id)
+      next unless active_shelf_ids.sort == shelf_ids.sort
+
+      add_to_shelves_message(content_ids:, shelf_ids:)
+    end
+    return render_add_to_shelves_error("One or more selected shelves is no longer active.") unless message
+
+    render_add_to_shelves_success(message)
   end
 
   def search
@@ -116,7 +140,8 @@ class ContentsController < ApplicationController
       source:,
       metadata_types:,
       update_path: table_contents_path,
-      reset_path: reset_table_contents_path
+      reset_path: reset_table_contents_path,
+      selection_form_id: ADD_TO_SHELVES_FORM_ID
     )
     session.delete("contents_index_state")
     table = ContentTables::Coordinator.call(
@@ -133,6 +158,10 @@ class ContentsController < ApplicationController
   def load_metadata_types
     @metadata_types = policy_scope(MetadataType)
       .order(:order, :name)
+  end
+
+  def load_active_shelves
+    @active_shelves = current_user.active_shelves.includes(:shelf).ordered.map(&:shelf)
   end
 
   def content_params
@@ -155,5 +184,68 @@ class ContentsController < ApplicationController
       records: @contents,
       pagy: @pagy
     }
+  end
+
+  def selected_ids(key)
+    Array(params[key]).filter_map { |value| Integer(value, exception: false) }.uniq
+  end
+
+  def render_add_to_shelves_error(message)
+    render_add_to_shelves_status(message, type: :error, status: :unprocessable_content)
+  end
+
+  def render_add_to_shelves_status(message, type:, status: :ok)
+    render turbo_stream: turbo_stream.update(
+      ADD_TO_SHELVES_STATUS_ID,
+      partial: "contents/add_to_shelves_status",
+      locals: { message:, type: }
+    ), status:
+  end
+
+  def render_add_to_shelves_success(message)
+    load_active_shelves
+    load_contents_table
+
+    render turbo_stream: [
+      turbo_stream.replace(
+        @table_definition.frame_id,
+        partial: "content_tables/table_frame",
+        locals: table_locals
+      ),
+      turbo_stream.replace(
+        ADD_TO_SHELVES_FORM_ID,
+        partial: "contents/add_to_shelves_form",
+        locals: { definition: @table_definition, active_shelves: @active_shelves }
+      ),
+      turbo_stream.update(
+        ADD_TO_SHELVES_STATUS_ID,
+        partial: "contents/add_to_shelves_status",
+        locals: { message:, type: :success }
+      )
+    ]
+  end
+
+  def add_to_shelves_message(content_ids:, shelf_ids:)
+    requested_pairs = shelf_ids.product(content_ids)
+    existing_pairs = ShelfContent
+      .where(shelf_id: shelf_ids, content_id: content_ids)
+      .pluck(:shelf_id, :content_id)
+      .to_h { |pair| [ pair, true ] }
+    missing_pairs = requested_pairs.reject { |pair| existing_pairs.key?(pair) }
+
+    if missing_pairs.any?
+      ShelfContent.insert_all(
+        missing_pairs.map { |shelf_id, content_id| { shelf_id:, content_id: } },
+        unique_by: :index_shelf_contents_on_shelf_id_and_content_id
+      )
+    end
+
+    if missing_pairs.empty?
+      "The selected content is already on the selected shelves."
+    elsif missing_pairs.length < requested_pairs.length
+      "Content was added to the selected shelves. Existing placements were skipped."
+    else
+      "Content was added to the selected shelves."
+    end
   end
 end

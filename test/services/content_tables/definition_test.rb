@@ -82,6 +82,15 @@ class ContentTables::DefinitionTest < ActiveSupport::TestCase
     assert_empty definition.filterable_columns
   end
 
+  test "selection is disabled by default and can be configured" do
+    refute @definition.selectable?
+    assert_nil @definition.selection_form_id
+
+    selectable_definition = build_definition(selectable: true, selection_form_id: "bulk-form")
+    assert selectable_definition.selectable?
+    assert_equal "bulk-form", selectable_definition.selection_form_id
+  end
+
   private
 
   def build_definition(

@@ -3,6 +3,11 @@ require "test_helper"
 class ShelvesControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
+  TURBO_STREAM_HEADERS = {
+    "Turbo-Frame" => "modal",
+    "Accept" => "text/vnd.turbo-stream.html"
+  }.freeze
+
   setup do
     @user = users(:one)
     @user.update!(role: :organization)
@@ -26,6 +31,68 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
     assert_select "#active-shelves a", text: @shelf.name
     assert_select "#archived-shelves a", text: second_shelf.name
     assert_select "#archived-shelves", text: shelves(:two).name, count: 0
+    assert_select "a.btn.btn-success[data-turbo-frame='modal'][aria-label='Create shelf']", text: "+"
+    assert_select "turbo-frame#modal"
+  end
+
+  test "new renders the shelf form in a modal" do
+    get new_shelf_url(selected_shelf_id: @shelf.id), headers: { "Turbo-Frame" => "modal" }
+
+    assert_response :success
+    assert_select "turbo-frame#modal .modal-title", text: "New shelf"
+    assert_select "form[action='#{shelves_path}'][data-turbo-frame='modal']" do
+      assert_select "input[name='selected_shelf_id'][value='#{@shelf.id}']"
+      assert_select "input#shelf_name[name='shelf[name]']"
+      assert_select "input.btn.btn-success[type='submit'][value='Create Shelf']"
+    end
+  end
+
+  test "create prepends an active shelf and preserves the selected shelf" do
+    ActiveShelf.activate!(user: @user, shelf: @shelf)
+
+    assert_difference([ "Shelf.count", "ActiveShelf.count" ], 1) do
+      post shelves_url,
+        params: { shelf: { name: "New shelf" }, selected_shelf_id: @shelf.id },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    created = @user.shelves.find_by!(name: "New shelf")
+    assert_equal [ created.id, @shelf.id ], @user.active_shelves.ordered.pluck(:shelf_id)
+    assert_response :success
+    assert_select "turbo-stream[action='update'][target='modal']"
+    assert_select "turbo-stream[action='replace'][target='shelf-lists']"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@shelf, :active)}[aria-current='true']"
+  end
+
+  test "create archives the previous fifth active shelf" do
+    existing_shelves = [ @shelf ] + 4.times.map { |index| @user.shelves.create!(name: "Existing #{index}") }
+    existing_shelves.each { |shelf| ActiveShelf.activate!(user: @user, shelf:) }
+
+    assert_difference("Shelf.count", 1) do
+      assert_no_difference("ActiveShelf.count") do
+        post shelves_url,
+          params: { shelf: { name: "New shelf" } },
+          headers: TURBO_STREAM_HEADERS
+      end
+    end
+
+    created = @user.shelves.find_by!(name: "New shelf")
+    assert_equal [ created.id ] + existing_shelves.first(4).map(&:id),
+      @user.active_shelves.ordered.pluck(:shelf_id)
+    refute @user.active_shelves.exists?(shelf: existing_shelves.last)
+    assert_select "##{ActionView::RecordIdentifier.dom_id(existing_shelves.last, :archived)}"
+  end
+
+  test "invalid create rerenders the modal without creating a shelf" do
+    assert_no_difference([ "Shelf.count", "ActiveShelf.count" ]) do
+      post shelves_url,
+        params: { shelf: { name: " " } },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[action='update'][target='modal'] template .alert.alert-danger",
+      text: /Name can't be blank/
   end
 
   test "selecting either list uses one shared selection" do
@@ -103,6 +170,8 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table"
+    assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table thead input[data-content-table-selection-target='page']"
+    assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table tbody input[data-content-table-selection-target='row']"
     assert_select "th", text: "Shelves"
     assert_select "tbody td", text: "History Document"
     assert_select "tbody td", text: "History, Reference"

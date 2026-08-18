@@ -4,4 +4,6 @@ class Shelf < ApplicationRecord
   has_many :shelf_contents, dependent: :destroy
   has_many :contents, through: :shelf_contents
   has_one :active_shelf, dependent: :destroy
+
+  validates :name, presence: true
 end

@@ -1,0 +1,9 @@
+<% content_for :title, "New shelf" %>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8">
+    <h1 class="mb-4">New shelf</h1>
+    <%= render "shelves/form", shelf: @shelf %>
+    <%= link_to "Back to shelves", shelves_path(selected_shelf_id: @selected_shelf&.id), class: "btn btn-secondary mt-3" %>
+  </div>
+</div>

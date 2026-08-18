@@ -1,6 +1,13 @@
 require "test_helper"
 
 class ShelfTest < ActiveSupport::TestCase
+  test "requires a name" do
+    shelf = users(:one).shelves.build(name: " ")
+
+    refute shelf.valid?
+    assert_includes shelf.errors[:name], "can't be blank"
+  end
+
   test "belongs to a user and contains content through shelf contents" do
     shelf = shelves(:one)
 

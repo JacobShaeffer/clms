@@ -1,4 +1,19 @@
 <tr id="<%= definition.dom_id(dom_id(record)) %>">
+  <% if definition.selectable? %>
+    <td class="text-center">
+      <%= check_box_tag "content_ids[]",
+        record.id,
+        false,
+        class: "form-check-input",
+        form: definition.selection_form_id,
+        aria: { label: "Select #{record.title}" },
+        data: {
+          content_table_selection_target: "row",
+          action: "change->content-table-selection#update"
+        }
+      %>
+    </td>
+  <% end %>
   <% selected_columns.each do |column| %>
     <td>
       <% if column.cell_partial.present? %>

@@ -3,7 +3,7 @@ module ContentTables
     attr_reader :state_key, :frame_id, :update_path, :reset_path, :source,
       :columns, :groups, :default_column_keys, :page_size_options,
       :default_page_size, :empty_message, :quick_search, :default_order,
-      :row_partial, :dom_prefix, :search_placeholder
+      :row_partial, :dom_prefix, :search_placeholder, :selection_form_id
 
     def initialize(
       state_key:,
@@ -23,7 +23,9 @@ module ContentTables
       dom_prefix: nil,
       search_placeholder: "Search",
       search_enabled: true,
-      filters_enabled: true
+      filters_enabled: true,
+      selectable: false,
+      selection_form_id: nil
     )
       @state_key = state_key.to_s
       @frame_id = frame_id.to_s
@@ -42,6 +44,8 @@ module ContentTables
       @search_placeholder = search_placeholder.to_s
       @search_enabled = search_enabled == true
       @filters_enabled = filters_enabled == true
+      @selectable = selectable == true
+      @selection_form_id = selection_form_id&.to_s
       @columns_by_key = @columns.index_by(&:key).freeze
       @default_column_keys = Array(default_column_keys).map(&:to_s).uniq.intersection(available_column_keys).freeze
 
@@ -68,6 +72,10 @@ module ContentTables
 
     def filters_enabled?
       @filters_enabled
+    end
+
+    def selectable?
+      @selectable
     end
 
     def columns_for_group(group)

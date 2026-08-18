@@ -17,5 +17,9 @@
   definition: @table_definition,
   state: @table_state,
   records: @contents,
-  pagy: @pagy
+  pagy: @pagy,
+  table_actions: {
+    partial: "contents/add_to_shelves_dropdown",
+    locals: { active_shelves: @active_shelves }
+  }
 %>

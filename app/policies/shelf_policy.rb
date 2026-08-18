@@ -3,6 +3,14 @@ class ShelfPolicy < ApplicationPolicy
     non_guest?
   end
 
+  def new?
+    non_guest?
+  end
+
+  def create?
+    owned_by_user?
+  end
+
   def table?
     owned_by_user?
   end
@@ -21,6 +29,10 @@ class ShelfPolicy < ApplicationPolicy
 
   def reset_table?
     owned_by_user?
+  end
+
+  def permitted_attributes
+    [ :name ]
   end
 
   private

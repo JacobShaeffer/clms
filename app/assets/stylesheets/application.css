@@ -45,3 +45,7 @@
   outline: 2px solid var(--bs-primary);
   outline-offset: -2px;
 }
+
+.shelf-selection-menu {
+  min-width: 18rem;
+}

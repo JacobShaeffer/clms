@@ -32,6 +32,27 @@ class ActiveShelf < ApplicationRecord
     end
   end
 
+  def self.prepend!(user:, shelf:)
+    validate_owner!(user:, shelf:)
+
+    user.with_lock do
+      normalize_positions!(user)
+      existing = find_by(user:, shelf:)
+      return existing if existing
+
+      records = where(user:).ordered.to_a
+      records.pop&.destroy! if records.length >= MAXIMUM_PER_USER
+      where(user:).update_all("position = -position")
+
+      saved_at = Time.current
+      records.each_with_index do |record, index|
+        record.update_columns(position: index + 2, updated_at: saved_at)
+      end
+
+      create!(user:, shelf:, position: 1)
+    end
+  end
+
   def self.archive!(user:, shelf:)
     validate_owner!(user:, shelf:)
 

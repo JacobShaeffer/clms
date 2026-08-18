@@ -1,0 +1,19 @@
+<div class="dropdown">
+  <button
+    class="btn btn-primary dropdown-toggle"
+    type="button"
+    id="<%= definition.dom_id("add-to-shelves-dropdown") %>"
+    data-bs-toggle="dropdown"
+    data-bs-auto-close="false"
+    aria-expanded="false">
+    Shelves
+  </button>
+
+  <div
+    class="dropdown-menu dropdown-menu-end p-3 shadow shelf-selection-menu"
+    aria-labelledby="<%= definition.dom_id("add-to-shelves-dropdown") %>">
+    <h2 class="h6">Active Shelves</h2>
+
+    <%= render "contents/add_to_shelves_form", definition:, active_shelves: %>
+  </div>
+</div>

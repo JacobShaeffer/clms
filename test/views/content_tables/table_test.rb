@@ -93,6 +93,25 @@ class ContentTables::TableTest < ActionView::TestCase
     end
   end
 
+  test "a selectable table renders page and row checkboxes associated with a form" do
+    column = ContentTables::Column.new(
+      key: "custom",
+      label: "Custom",
+      group: :custom,
+      cell: ->(record) { record.title }
+    )
+
+    render_table(definition_for(
+      column:,
+      selectable: true,
+      selection_form_id: "bulk-content-form"
+    ))
+
+    assert_select "thead input[type='checkbox'][aria-label='Select all content on this page']"
+    assert_select "tbody input[type='checkbox'][name='content_ids[]'][value='#{@record.id}'][form='bulk-content-form']"
+    assert_select "tbody input[data-content-table-selection-target='row'][aria-label='Select #{@record.title}']"
+  end
+
   test "the full component namespaces form controls and renders default group labels" do
     column = ContentTables::Column.new(
       key: "custom",

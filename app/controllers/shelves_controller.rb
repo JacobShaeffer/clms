@@ -9,6 +9,57 @@ class ShelvesController < ApplicationController
     load_contents_table if @selected_shelf
   end
 
+  def new
+    @shelf = current_user.shelves.build
+    authorize @shelf
+    load_selected_shelf if params[:selected_shelf_id].present?
+
+    render partial: "shelves/modal_form", locals: { shelf: @shelf } if turbo_frame_request?
+  end
+
+  def create
+    @shelf = current_user.shelves.build
+    authorize @shelf
+    @shelf.assign_attributes(shelf_params)
+    load_selected_shelf if params[:selected_shelf_id].present?
+
+    created = false
+    Shelf.transaction do
+      if @shelf.save
+        ActiveShelf.prepend!(user: current_user, shelf: @shelf)
+        created = true
+      else
+        raise ActiveRecord::Rollback
+      end
+    end
+
+    respond_to do |format|
+      if created
+        load_shelf_lists
+        format.turbo_stream do
+          render turbo_stream: [
+            turbo_stream.update("modal", ""),
+            turbo_stream.replace("shelf-lists", partial: "shelves/shelf_lists")
+          ]
+        end
+        format.html do
+          redirect_to shelves_path(selected_shelf_id: @selected_shelf&.id),
+            notice: "Shelf was successfully created.",
+            status: :see_other
+        end
+      else
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.update(
+            "modal",
+            partial: "shelves/modal_form",
+            locals: { shelf: @shelf }
+          ), status: :unprocessable_content
+        end
+        format.html { render :new, status: :unprocessable_content }
+      end
+    end
+  end
+
   def table
     load_shelf
     authorize @shelf
@@ -108,5 +159,9 @@ class ShelvesController < ApplicationController
       records: @contents,
       pagy: @pagy
     }
+  end
+
+  def shelf_params
+    params.require(:shelf).permit(policy(@shelf).permitted_attributes)
   end
 end

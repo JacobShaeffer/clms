@@ -29,7 +29,9 @@ module ContentTables
       default_column_keys: nil,
       dom_prefix: nil,
       search_enabled: true,
-      filters_enabled: true
+      filters_enabled: true,
+      selectable: true,
+      selection_form_id: nil
     )
       metadata_types = Array(metadata_types)
       replacement_keys = Array(additional_columns).map(&:key)
@@ -56,7 +58,9 @@ module ContentTables
         row_partial:,
         dom_prefix:,
         search_enabled:,
-        filters_enabled:
+        filters_enabled:,
+        selectable:,
+        selection_form_id:
       )
     end
 

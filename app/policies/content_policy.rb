@@ -11,6 +11,10 @@ class ContentPolicy < ApplicationPolicy
     index?
   end
 
+  def add_to_shelves?
+    index?
+  end
+
   def search?
     index?
   end

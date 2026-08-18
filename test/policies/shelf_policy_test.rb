@@ -38,4 +38,17 @@ class ShelfPolicyTest < ActiveSupport::TestCase
     users(:one).update!(role: :guest)
     refute ShelfPolicy.new(users(:one), shelves(:one)).table?
   end
+
+  test "new and create require a non-guest owner" do
+    shelf = users(:one).shelves.build(name: "New shelf")
+
+    refute ShelfPolicy.new(users(:one), Shelf).new?
+    refute ShelfPolicy.new(users(:one), shelf).create?
+
+    users(:one).update!(role: :organization)
+
+    assert ShelfPolicy.new(users(:one), Shelf).new?
+    assert ShelfPolicy.new(users(:one), shelf).create?
+    assert_equal [ :name ], ShelfPolicy.new(users(:one), shelf).permitted_attributes
+  end
 end

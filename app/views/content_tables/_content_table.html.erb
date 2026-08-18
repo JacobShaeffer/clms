@@ -1,6 +1,9 @@
 <% search_input_id = definition.dom_id("search") %>
 <% per_page_input_id = definition.dom_id("per-page") %>
 
+<div
+  data-controller="content-table-selection"
+  data-action="turbo:before-cache@document->content-table-selection#clearRows">
 <% if definition.search_enabled? || definition.filters_enabled? %>
   <div class="row mb-3">
     <div class="col">
@@ -58,6 +61,14 @@
       form: { data: { turbo_frame: "_top" } }
     %>
   </div>
+  <% if local_assigns[:table_actions] %>
+    <div class="col-auto ms-auto">
+      <%= render table_actions.fetch(:partial),
+        **table_actions.fetch(:locals, {}),
+        definition: definition
+      %>
+    </div>
+  <% end %>
 </div>
 
 <%= render "content_tables/table_frame", definition:, state:, records:, pagy: %>
@@ -89,4 +100,5 @@
       %>
     <% end %>
   </div>
+</div>
 </div>
