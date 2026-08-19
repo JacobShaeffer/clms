@@ -165,7 +165,10 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".offcanvas-body input.btn.btn-primary[type='submit'][value='Apply Filters']"
     assert_select ".offcanvas-body button.btn.btn-secondary[name='clear_filters']", text: "Clear Filters"
     assert_select "turbo-frame#contents_table .table-responsive > table.table.table-striped.align-middle"
-    assert_select "form[action='#{table_contents_path}'] select.form-select[name='per_page']"
+    assert_select "turbo-frame#contents_table .row.align-items-center form[action='#{table_contents_path}']" do
+      assert_select "select.form-select[name='per_page']"
+    end
+    assert_select "turbo-frame#contents_table .row.align-items-center > .col.d-flex.align-items-center"
   end
 
   test "new renders a Bootstrap content form" do
