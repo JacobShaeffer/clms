@@ -50,6 +50,12 @@ class LibraryPolicyTest < Minitest::Test
     end
   end
 
+  def test_adding_content_to_a_folder_requires_intern_plus
+    refute LibraryPolicy.new(user(:intern), Library).add_to_active_folder?
+    assert LibraryPolicy.new(user(:intern_plus), Library).add_to_active_folder?
+    assert LibraryPolicy.new(user(:admin), Library).add_to_active_folder?
+  end
+
   private
 
   def user(role)

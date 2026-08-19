@@ -75,6 +75,71 @@ class LibrariesTest < ApplicationSystemTestCase
     end
   end
 
+  test "creates root and child folders from the active folder" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+
+    visit library_path(library)
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      click_on "Add Folder"
+    end
+
+    within "turbo-frame#modal" do
+      fill_in "Name", with: "Guides"
+      select library_assets(:one).name, from: "Library asset"
+      click_on "Add Folder"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      click_on "Guides"
+      click_on "Add Folder"
+    end
+
+    within "turbo-frame#modal" do
+      assert_no_select "Library asset"
+      fill_in "Name", with: "First Aid"
+      click_on "Add Folder"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      assert_link "First Aid"
+    end
+
+    child = library.library_folders.find_by!(name: "First Aid")
+    assert_nil child.logo
+  end
+
+  test "adds selected content to the folder opened in the browser" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+    root_folder = create_folder!(library, "Guides")
+
+    visit library_path(library)
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      assert_button "Add to Active Folder", disabled: false
+      find("input[aria-label='Select #{contents(:one).title}']", match: :first).check
+      click_on "Add to Active Folder"
+      assert_text "Open a folder before adding content."
+    end
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      click_on root_folder.name
+    end
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      assert_button "Add to Active Folder", disabled: false
+      find("input[aria-label='Select #{contents(:one).title}']", match: :first).check
+      click_on "Add to Active Folder"
+      assert_text "Content was added to the active folder."
+    end
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      assert_text contents(:one).title
+    end
+    assert_includes root_folder.reload.contents, contents(:one)
+  end
+
   private
 
   def create_folder!(library, name, parent_folder: nil)
@@ -82,7 +147,7 @@ class LibrariesTest < ApplicationSystemTestCase
       name:,
       parent_folder:,
       user: users(:one),
-      logo: library_assets(:one)
+      logo: (parent_folder ? nil : library_assets(:one))
     )
   end
 end

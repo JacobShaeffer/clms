@@ -5,6 +5,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
   TURBO_FRAME_HEADERS = { "Turbo-Frame" => "modal" }.freeze
   TURBO_STREAM_HEADERS = TURBO_FRAME_HEADERS.merge("Accept" => "text/vnd.turbo-stream.html").freeze
+  PLACEMENT_HEADERS = { "Accept" => "text/vnd.turbo-stream.html" }.freeze
 
   setup do
     users(:one).update!(
@@ -136,6 +137,42 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "p", text: "No root folders found."
+  end
+
+  test "intern plus users see folder actions and the root placement button is enabled" do
+    users(:one).update!(role: :intern_plus)
+
+    get library_url(@library)
+
+    assert_select "a[data-turbo-frame='modal']", text: "Add Folder"
+    assert_select "input[type='submit'][value='Add to Active Folder']:not([disabled])"
+
+    get library_url(@library, folder_id: @root_folder.id)
+
+    assert_select "input[type='submit'][value='Add to Active Folder']:not([disabled])"
+    assert_select "input[name='folder_id'][value='#{@root_folder.id}']"
+    assert_select "tbody input[name='content_ids[]'][form='library_#{@library.id}_all_contents_table_add_to_active_folder_form']"
+  end
+
+  test "add to active folder appears above each rendered tab table" do
+    users(:one).update!(role: :intern_plus)
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    shelf = users(:one).shelves.create!(name: "Active Shelf")
+    shelf.contents << contents(:one)
+    ActiveShelf.activate!(user: users(:one), shelf:)
+
+    [
+      { tab: "all", frame_id: "library_#{@library.id}_all_contents_table" },
+      { tab: "library", frame_id: "library_#{@library.id}_library_contents_table" },
+      { tab: "shelves", shelf_id: shelf.id, frame_id: "library_#{@library.id}_shelf_#{shelf.id}_contents_table" }
+    ].each do |context|
+      get library_url(@library, folder_id: @root_folder.id, **context.except(:frame_id))
+
+      assert_response :success
+      assert_select "form##{context[:frame_id]}_add_to_active_folder_form" do
+        assert_select "input[type='submit'][value='Add to Active Folder']:not([disabled])"
+      end
+    end
   end
 
   test "folder browser opens a folder and shows direct children content and breadcrumbs" do
@@ -276,6 +313,107 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert ContentTablePreference.exists?(library_preference.id)
   end
 
+  test "add to active folder creates missing placements and keeps existing placements" do
+    users(:one).update!(role: :intern_plus)
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    LibraryFolderContent.create!(library_folder: @child_folder, content: contents(:one))
+
+    assert_difference("LibraryFolderContent.count", 1) do
+      post add_to_active_folder_library_url(@library),
+        params: {
+          folder_id: @root_folder.id,
+          tab: "all",
+          content_ids: [ contents(:one).id, contents(:two).id ]
+        },
+        headers: PLACEMENT_HEADERS
+    end
+
+    assert_equal [ contents(:one).id, contents(:two).id ].sort, @root_folder.contents.ids.sort
+    assert_includes @child_folder.contents, contents(:one)
+    assert_select "turbo-stream[action='replace'][target='#{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}']",
+      text: /#{Regexp.escape(contents(:two).title)}/
+    assert_select "turbo-stream[action='replace'][target='library_#{@library.id}_all_contents_table']"
+    assert_select "turbo-stream[action='update'][target='library-add-to-active-folder-status']",
+      text: /Existing placements were skipped/
+
+    assert_no_difference("LibraryFolderContent.count") do
+      post add_to_active_folder_library_url(@library),
+        params: {
+          folder_id: @root_folder.id,
+          tab: "all",
+          content_ids: [ contents(:one).id, contents(:two).id ]
+        },
+        headers: PLACEMENT_HEADERS
+    end
+    assert_select "turbo-stream[target='library-add-to-active-folder-status']",
+      text: /already in the active folder/
+  end
+
+  test "add to active folder rejects root empty stale foreign and malformed selections" do
+    users(:one).update!(role: :intern_plus)
+
+    assert_no_difference("LibraryFolderContent.count") do
+      post add_to_active_folder_library_url(@library),
+        params: { tab: "all", content_ids: [ contents(:one).id ] },
+        headers: PLACEMENT_HEADERS
+    end
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[target='library-add-to-active-folder-status']", text: /Open a folder/
+
+    assert_no_difference("LibraryFolderContent.count") do
+      post add_to_active_folder_library_url(@library),
+        params: { folder_id: @root_folder.id, tab: "all", content_ids: [] },
+        headers: PLACEMENT_HEADERS
+    end
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[target='library-add-to-active-folder-status']", text: /Select at least one/
+
+    assert_no_difference("LibraryFolderContent.count") do
+      post add_to_active_folder_library_url(@library),
+        params: { folder_id: @root_folder.id, tab: "all", content_ids: [ -999 ] },
+        headers: PLACEMENT_HEADERS
+    end
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[target='library-add-to-active-folder-status']", text: /unavailable/
+
+    post add_to_active_folder_library_url(@library),
+      params: { folder_id: @other_root_folder.id, tab: "all", content_ids: [ contents(:one).id ] },
+      headers: PLACEMENT_HEADERS
+    assert_response :not_found
+
+    post add_to_active_folder_library_url(@library),
+      params: { folder_id: [ @root_folder.id ], tab: "all", content_ids: [ contents(:one).id ] },
+      headers: PLACEMENT_HEADERS
+    assert_response :not_found
+  end
+
+  test "users below intern plus cannot add content to a folder" do
+    assert_no_difference("LibraryFolderContent.count") do
+      post add_to_active_folder_library_url(@library),
+        params: { folder_id: @root_folder.id, tab: "all", content_ids: [ contents(:one).id ] }
+    end
+
+    assert_redirected_to root_url
+  end
+
+  test "shelf placement response requires the selected shelf to remain active" do
+    users(:one).update!(role: :intern_plus)
+    inactive_shelf = users(:one).shelves.create!(name: "Inactive")
+
+    assert_no_difference("LibraryFolderContent.count") do
+      post add_to_active_folder_library_url(@library),
+        params: {
+          folder_id: @root_folder.id,
+          tab: "shelves",
+          shelf_id: inactive_shelf.id,
+          content_ids: [ contents(:one).id ]
+        },
+        headers: PLACEMENT_HEADERS
+    end
+
+    assert_response :not_found
+  end
+
   test "unauthenticated users are redirected to sign in" do
     sign_out users(:one)
 
@@ -306,7 +444,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
       name: name,
       parent_folder: parent_folder,
       user: users(:one),
-      logo: library_assets(:one)
+      logo: (parent_folder ? nil : library_assets(:one))
     )
   end
 end

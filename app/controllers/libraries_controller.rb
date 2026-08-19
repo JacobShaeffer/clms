@@ -1,5 +1,6 @@
 class LibrariesController < ApplicationController
   CONTENT_TABS = %w[all shelves library].freeze
+  ADD_TO_ACTIVE_FOLDER_STATUS_ID = "library-add-to-active-folder-status"
 
   before_action :authenticate_user!
   before_action :set_library, only: %i[
@@ -7,6 +8,7 @@ class LibrariesController < ApplicationController
     all_contents_table reset_all_contents_table
     library_contents_table reset_library_contents_table
     shelf_contents_table reset_shelf_contents_table
+    add_to_active_folder
   ]
 
   def index
@@ -73,6 +75,53 @@ class LibrariesController < ApplicationController
       tab: "shelves",
       shelf_id: @selected_shelf.id
     ), status: :see_other
+  end
+
+  def add_to_active_folder
+    authorize @library
+
+    return render_add_to_active_folder_error("Open a folder before adding content.") if params[:folder_id].blank?
+
+    @current_folder = @library.library_folders.find(scalar_id!(:folder_id))
+    content_ids = selected_ids(:content_ids)
+    return render_add_to_active_folder_error("Select at least one content item.") if content_ids.empty?
+
+    permitted_content_ids = policy_scope(Content).where(id: content_ids).pluck(:id)
+    unless permitted_content_ids.sort == content_ids.sort
+      return render_add_to_active_folder_error("One or more selected content items is unavailable.")
+    end
+
+    validate_placement_context! if request.format.turbo_stream?
+    message = add_to_active_folder_message(folder: @current_folder, content_ids:)
+
+    respond_to do |format|
+      format.turbo_stream do
+        load_folder_browser
+        load_content_panel
+
+        render turbo_stream: [
+          turbo_stream.replace(
+            helpers.dom_id(@library, :folder_browser),
+            partial: "libraries/folder_browser"
+          ),
+          turbo_stream.replace(
+            @table_definition.frame_id,
+            partial: "content_tables/table_frame",
+            locals: table_locals
+          ),
+          turbo_stream.update(
+            ADD_TO_ACTIVE_FOLDER_STATUS_ID,
+            partial: "libraries/add_to_active_folder_status",
+            locals: { message:, type: :success }
+          )
+        ]
+      end
+      format.html do
+        redirect_to library_path(@library, placement_context_params),
+          notice: message,
+          status: :see_other
+      end
+    end
   end
 
   def new
@@ -215,7 +264,8 @@ class LibrariesController < ApplicationController
       frame_id:,
       search_enabled:,
       filters_enabled:,
-      path_index: @folder_path_index
+      path_index: @folder_path_index,
+      selection_form_id: "#{frame_id}_add_to_active_folder_form"
     )
     table = ContentTables::Coordinator.call(
       user: current_user,
@@ -251,6 +301,65 @@ class LibrariesController < ApplicationController
       records: @contents,
       pagy: @pagy
     }
+  end
+
+  def selected_ids(key)
+    Array(params[key]).filter_map { |value| Integer(value, exception: false) }.uniq
+  end
+
+  def validate_placement_context!
+    @active_tab = normalized_tab
+    return unless @active_tab == "shelves"
+
+    load_active_shelves
+    load_selected_active_shelf!
+  end
+
+  def add_to_active_folder_message(folder:, content_ids:)
+    existing_content_ids = folder.library_folder_contents
+      .where(content_id: content_ids)
+      .pluck(:content_id)
+    missing_content_ids = content_ids - existing_content_ids
+
+    if missing_content_ids.any?
+      LibraryFolderContent.insert_all(
+        missing_content_ids.map { |content_id| { library_folder_id: folder.id, content_id: } },
+        unique_by: %i[library_folder_id content_id]
+      )
+    end
+
+    if missing_content_ids.empty?
+      "The selected content is already in the active folder."
+    elsif missing_content_ids.length < content_ids.length
+      "Content was added to the active folder. Existing placements were skipped."
+    else
+      "Content was added to the active folder."
+    end
+  end
+
+  def render_add_to_active_folder_error(message)
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.update(
+          ADD_TO_ACTIVE_FOLDER_STATUS_ID,
+          partial: "libraries/add_to_active_folder_status",
+          locals: { message:, type: :error }
+        ), status: :unprocessable_content
+      end
+      format.html do
+        redirect_to library_path(@library, placement_context_params),
+          alert: message,
+          status: :see_other
+      end
+    end
+  end
+
+  def placement_context_params
+    {
+      folder_id: params[:folder_id].presence,
+      tab: normalized_tab,
+      shelf_id: params[:shelf_id].presence
+    }.compact
   end
 
   def scalar_id!(key)

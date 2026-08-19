@@ -1,5 +1,7 @@
 Rails.application.routes.draw do
   resources :libraries, only: %i[ index show new create ] do
+    resources :library_folders, only: %i[ new create ]
+
     member do
       get :all_contents_table
       delete :reset_all_contents_table
@@ -7,6 +9,7 @@ Rails.application.routes.draw do
       delete :reset_library_contents_table
       get :shelf_contents_table
       delete :reset_shelf_contents_table
+      post :add_to_active_folder
     end
   end
 

@@ -61,7 +61,7 @@ class ContentTables::LibraryContentsDefinitionTest < ActiveSupport::TestCase
       name:,
       parent_folder:,
       user: users(:one),
-      logo: library_assets(:one)
+      logo: (parent_folder ? nil : library_assets(:one))
     )
   end
 

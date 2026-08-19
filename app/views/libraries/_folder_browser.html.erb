@@ -1,5 +1,9 @@
 <%= turbo_frame_tag dom_id(@library, :folder_browser), data: { turbo_action: "advance" } do %>
-  <section class="border rounded p-3" aria-labelledby="library-folder-browser-heading">
+  <section
+    class="border rounded p-3"
+    aria-labelledby="library-folder-browser-heading"
+    data-library-folder-actions-target="folderState"
+    data-folder-id="<%= @current_folder&.id %>">
     <h2 id="library-folder-browser-heading" class="h4 mb-3">Library folder browser</h2>
 
     <nav aria-label="Library folder breadcrumb">
@@ -46,6 +50,21 @@
         <% end %>
       </ol>
     </nav>
+
+    <% if policy(LibraryFolder).new? %>
+      <div class="d-flex justify-content-end mb-3">
+        <%= link_to "Add Folder",
+          new_library_library_folder_path(
+            @library,
+            parent_folder_id: @current_folder&.id,
+            tab: @active_tab,
+            shelf_id: @selected_shelf&.id
+          ),
+          class: "btn btn-success",
+          data: { turbo_frame: "modal" }
+        %>
+      </div>
+    <% end %>
 
     <div class="list-group" id="library-folder-browser-items">
       <% @browser_folders.each do |folder| %>

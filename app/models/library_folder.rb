@@ -2,7 +2,7 @@ class LibraryFolder < ApplicationRecord
   belongs_to :library, inverse_of: :library_folders
   belongs_to :parent_folder, class_name: "LibraryFolder", optional: true
   belongs_to :user
-  belongs_to :logo, class_name: "LibraryAsset"
+  belongs_to :logo, class_name: "LibraryAsset", optional: true
 
   has_many :child_folders,
     class_name: "LibraryFolder",
@@ -15,11 +15,17 @@ class LibraryFolder < ApplicationRecord
   scope :roots, -> { where(parent_folder_id: nil) }
 
   validates :name, presence: true
+  validates :logo, presence: true, if: :root_folder?
+  validates :logo, absence: true, unless: :root_folder?
   validate :parent_folder_belongs_to_library
   validate :parent_folder_is_not_self
   validate :parent_folder_is_not_descendant
 
   private
+
+  def root_folder?
+    parent_folder.nil?
+  end
 
   def parent_folder_belongs_to_library
     return if parent_folder.blank? || parent_folder.library_id == library_id

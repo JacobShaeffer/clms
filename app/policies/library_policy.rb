@@ -35,6 +35,10 @@ class LibraryPolicy < ApplicationPolicy
     at_least?(:intern_plus)
   end
 
+  def add_to_active_folder?
+    at_least?(:intern_plus)
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless non_guest?

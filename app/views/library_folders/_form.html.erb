@@ -1,0 +1,47 @@
+<% form_data = local_assigns[:modal] ? { turbo_frame: "modal" } : { turbo: false } %>
+
+<%= form_with(
+  model: [ library, library_folder ],
+  url: library_library_folders_path(library),
+  data: form_data
+) do |form| %>
+  <% if library_folder.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <p class="mb-2"><%= pluralize(library_folder.errors.count, "error") %> prevented this folder from being saved:</p>
+      <ul class="mb-0">
+        <% library_folder.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= hidden_field_tag :parent_folder_id, @parent_folder&.id %>
+  <%= hidden_field_tag :tab, @active_tab %>
+  <%= hidden_field_tag :shelf_id, @selected_shelf&.id if @selected_shelf %>
+
+  <div class="mb-3">
+    <%= form.label :name, class: "form-label" %>
+    <%= form.text_field :name, class: "form-control", autofocus: true, required: true %>
+  </div>
+
+  <% unless @parent_folder %>
+    <div class="mb-3">
+      <%= form.label :logo_id, "Library asset", class: "form-label" %>
+      <%= form.collection_select :logo_id,
+        @library_assets,
+        :id,
+        :name,
+        { prompt: "Select a library asset" },
+        { class: "form-select", required: true }
+      %>
+    </div>
+  <% end %>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if local_assigns[:modal] %>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <% end %>
+    <%= form.submit "Add Folder", class: "btn btn-primary" %>
+  </div>
+<% end %>

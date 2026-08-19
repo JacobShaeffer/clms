@@ -1,3 +1,14 @@
+<% add_to_folder_actions = if policy(@library).add_to_active_folder?
+  {
+    partial: "libraries/add_to_active_folder_form",
+    locals: {
+      current_folder: @current_folder,
+      active_tab: @active_tab,
+      selected_shelf: @selected_shelf
+    }
+  }
+end %>
+
 <%= turbo_frame_tag dom_id(@library, :content_panel), data: { turbo_action: "advance" } do %>
   <section aria-labelledby="library-content-heading">
     <h2 id="library-content-heading" class="visually-hidden">Library content</h2>
@@ -32,14 +43,16 @@
         definition: @table_definition,
         state: @table_state,
         records: @contents,
-        pagy: @pagy
+        pagy: @pagy,
+        table_actions: add_to_folder_actions
       %>
     <% when "library" %>
       <%= render "content_tables/content_table",
         definition: @table_definition,
         state: @table_state,
         records: @contents,
-        pagy: @pagy
+        pagy: @pagy,
+        table_actions: add_to_folder_actions
       %>
     <% when "shelves" %>
       <div class="list-group mb-4" id="library-active-shelves">
@@ -74,7 +87,8 @@
           definition: @table_definition,
           state: @table_state,
           records: @contents,
-          pagy: @pagy
+          pagy: @pagy,
+          table_actions: add_to_folder_actions
         %>
       <% elsif @active_shelf_records.any? %>
         <p class="text-body-secondary">Select an active shelf to view its content.</p>

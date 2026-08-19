@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_18_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_19_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -118,7 +118,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_18_120000) do
   create_table "library_folders", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "library_id", null: false
-    t.bigint "logo_id", null: false
+    t.bigint "logo_id"
     t.string "name", null: false
     t.bigint "parent_folder_id"
     t.datetime "updated_at", null: false
@@ -127,6 +127,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_18_120000) do
     t.index ["logo_id"], name: "index_library_folders_on_logo_id"
     t.index ["parent_folder_id"], name: "index_library_folders_on_parent_folder_id"
     t.index ["user_id"], name: "index_library_folders_on_user_id"
+    t.check_constraint "parent_folder_id IS NULL AND logo_id IS NOT NULL OR parent_folder_id IS NOT NULL AND logo_id IS NULL", name: "library_folders_root_only_logo"
   end
 
   create_table "library_versions", force: :cascade do |t|

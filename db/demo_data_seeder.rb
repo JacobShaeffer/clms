@@ -236,7 +236,7 @@ class DemoDataSeeder
     FOLDER_TREE.each do |root_name, child_names|
       root = LibraryFolder.create!(name: root_name, library:, user: admin, logo:)
       child_names.each do |child_name|
-        child = LibraryFolder.create!(name: child_name, library:, parent_folder: root, user: admin, logo:)
+        child = LibraryFolder.create!(name: child_name, library:, parent_folder: root, user: admin)
         contents_by_topic.fetch(child_name).each do |content|
           LibraryFolderContent.create!(library_folder: child, content:)
         end

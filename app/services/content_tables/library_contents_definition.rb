@@ -31,7 +31,8 @@ module ContentTables
       frame_id:,
       search_enabled: true,
       filters_enabled: true,
-      path_index: nil
+      path_index: nil,
+      selection_form_id: nil
     )
       @library = library
       @path_index = path_index || LibraryFolderPathIndex.new(library:)
@@ -49,9 +50,10 @@ module ContentTables
         additional_groups: [ LIBRARY_GROUP ],
         default_column_keys: DEFAULT_CONTENT_COLUMN_KEYS +
           metadata_types.first(2).map { |metadata_type| "metadata_type:#{metadata_type.id}" } +
-          [ library_column.key ],
+        [ library_column.key ],
         search_enabled:,
-        filters_enabled:
+        filters_enabled:,
+        selection_form_id:
       )
     end
 

@@ -14,6 +14,27 @@ class LibraryFolderTest < ActiveSupport::TestCase
     assert_equal [ root ], @library.library_folders.roots.to_a
   end
 
+  test "only root folders have library assets" do
+    root = @library.library_folders.build(name: "Health", user: users(:one))
+    assert_not root.valid?
+    assert_includes root.errors[:logo], "can't be blank"
+
+    root.logo = @logo
+    assert root.valid?
+
+    child = @library.library_folders.build(
+      name: "First Aid",
+      parent_folder: root,
+      user: users(:one),
+      logo: @logo
+    )
+    assert_not child.valid?
+    assert_includes child.errors[:logo], "must be blank"
+
+    child.logo = nil
+    assert child.valid?
+  end
+
   test "parent folder must belong to the same library" do
     other_root = @other_library.library_folders.create!(
       name: "Science",
@@ -24,7 +45,7 @@ class LibraryFolderTest < ActiveSupport::TestCase
       name: "Invalid child",
       parent_folder: other_root,
       user: users(:one),
-      logo: @logo
+      logo: nil
     )
 
     assert_not folder.valid?
@@ -55,7 +76,7 @@ class LibraryFolderTest < ActiveSupport::TestCase
       name: name,
       parent_folder: parent_folder,
       user: users(:one),
-      logo: @logo
+      logo: (parent_folder ? nil : @logo)
     )
   end
 end
