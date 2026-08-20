@@ -16,7 +16,11 @@ class MetadataTypePolicy < ApplicationPolicy
   end
 
   def update?
-    at_least?(:intern_plus)
+    user&.admin?
+  end
+
+  def manage?
+    user&.admin?
   end
 
   def destroy?
@@ -24,16 +28,16 @@ class MetadataTypePolicy < ApplicationPolicy
   end
 
   def permitted_attributes
-    return [ :name, :order, :access_level ] if user&.admin?
+    return [ :name, :access_level ] if user&.admin?
 
-    [ :name, :order ]
+    [ :name ]
   end
 
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless non_guest?
 
-      scope.all
+      scope.in_display_order
     end
   end
 end

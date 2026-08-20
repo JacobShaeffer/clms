@@ -20,7 +20,8 @@ end %>
             library_path(
               @library,
               folder_id: @current_folder&.id,
-              tab: tab_key
+              tab: tab_key,
+              shelf_id: @selected_shelf&.id
             ),
             class: "nav-link #{"active" if @active_tab == tab_key}",
             role: "tab",

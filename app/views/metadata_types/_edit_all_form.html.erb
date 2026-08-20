@@ -1,0 +1,75 @@
+<%= form_with url: update_all_metadata_types_path,
+  method: :patch,
+  data: { controller: "metadata-type-order", turbo_frame: local_assigns[:modal] ? "modal" : "_top" } do %>
+  <% metadata_type_errors = metadata_types.flat_map { |metadata_type| metadata_type.errors.full_messages } %>
+  <% if local_assigns[:form_error] || metadata_type_errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <% if local_assigns[:form_error] %>
+        <%= form_error %>
+      <% else %>
+        <ul class="mb-0">
+          <% metadata_type_errors.each do |error| %>
+            <li><%= error %></li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="row g-2 px-3 pb-2 fw-semibold" aria-hidden="true">
+    <div class="col">Name</div>
+    <div class="col">Access level</div>
+    <div class="col-auto" style="width: 5.5rem;">Order</div>
+  </div>
+
+  <div class="list-group">
+    <% metadata_types.each do |metadata_type| %>
+      <div class="list-group-item" data-metadata-type-order-target="item">
+        <%= hidden_field_tag "metadata_type_ids[]", metadata_type.id %>
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <%= label_tag "metadata_types_#{metadata_type.id}_name", "Name for #{metadata_type.name}", class: "visually-hidden" %>
+            <%= text_field_tag "metadata_types[#{metadata_type.id}][name]",
+              metadata_type.name,
+              id: "metadata_types_#{metadata_type.id}_name",
+              class: [ "form-control", { "is-invalid": metadata_type.errors[:name].any? } ]
+            %>
+          </div>
+          <div class="col">
+            <%= label_tag "metadata_types_#{metadata_type.id}_access_level", "Access level for #{metadata_type.name}", class: "visually-hidden" %>
+            <%= select_tag "metadata_types[#{metadata_type.id}][access_level]",
+              options_for_select(metadata_access_level_options, metadata_type.access_level),
+              id: "metadata_types_#{metadata_type.id}_access_level",
+              class: [ "form-select", { "is-invalid": metadata_type.errors[:access_level].any? } ]
+            %>
+          </div>
+          <div class="col-auto">
+            <div class="btn-group" role="group" aria-label="Reorder <%= metadata_type.name %>">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                aria-label="Move <%= metadata_type.name %> up"
+                data-action="metadata-type-order#moveUp"
+              >↑</button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                aria-label="Move <%= metadata_type.name %> down"
+                data-action="metadata-type-order#moveDown"
+              >↓</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if local_assigns[:modal] %>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <% else %>
+      <%= link_to "Cancel", metadata_types_path, class: "btn btn-secondary" %>
+    <% end %>
+    <%= submit_tag "Save", class: "btn btn-primary" %>
+  </div>
+<% end %>

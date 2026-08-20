@@ -168,7 +168,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#contents_table .row.align-items-center form[action='#{table_contents_path}']" do
       assert_select "select.form-select[name='per_page']"
     end
-    assert_select "turbo-frame#contents_table .row.align-items-center > .col.d-flex.align-items-center"
+    assert_select "turbo-frame#contents_table .row.align-items-center > .col-auto.ms-auto form.d-flex.align-items-center"
   end
 
   test "new renders a Bootstrap content form" do
@@ -184,6 +184,16 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       assert_select "input.btn.btn-primary[type='submit']"
       assert_select "a.btn.btn-secondary[href='#{contents_path}']", text: "Cancel"
     end
+  end
+
+  test "new lists metadata types in display order" do
+    earlier_type = MetadataType.create!(name: "Audience", order: 0, user: @user)
+
+    get new_content_url
+
+    labels = css_select("[data-controller='content-multi-select'] > label").map(&:text)
+    assert_equal MetadataType.in_display_order.pluck(:name), labels
+    assert_operator labels.index(earlier_type.name), :<, labels.index(@metadata_type.name)
   end
 
   test "new renders metadata search groups without selecting every available value" do

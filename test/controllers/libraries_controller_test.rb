@@ -267,6 +267,22 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "tbody", text: /#{contents(:one).title}/
   end
 
+  test "tab links preserve the selected shelf only while it remains in the library URL" do
+    shelf = users(:one).shelves.create!(name: "Selected Shelf")
+    ActiveShelf.activate!(user: users(:one), shelf:)
+
+    get library_url(@library, tab: "all", shelf_id: shelf.id)
+
+    assert_response :success
+    assert_select ".nav-tabs a[href='#{library_path(@library, tab: "shelves", shelf_id: shelf.id)}']",
+      text: "Shelves"
+
+    get library_url(@library)
+
+    assert_response :success
+    assert_select ".nav-tabs a[href='#{library_path(@library, tab: "shelves")}']", text: "Shelves"
+  end
+
   test "shelf table ignores submitted search and filters and requires an active shelf" do
     shelf = users(:one).shelves.create!(name: "Active")
     shelf.contents << contents(:one)

@@ -23,6 +23,28 @@ class MetadataControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='metadatum[name]']"
   end
 
+  test "metadata type access level controls who can add values" do
+    @metadata_type.update!(access_level: User.roles.fetch("volunteer"))
+    sign_out @admin
+    @admin.update!(role: :organization)
+    sign_in @admin
+
+    get new_metadata_type_metadatum_url(@metadata_type), headers: TURBO_FRAME_HEADERS
+    assert_redirected_to root_url
+
+    assert_no_difference("Metadatum.count") do
+      post metadata_type_metadata_url(@metadata_type), params: { metadatum: { name: "Blocked value" } }
+    end
+    assert_redirected_to root_url
+
+    sign_out @admin
+    @admin.update!(role: :volunteer)
+    sign_in @admin
+
+    get new_metadata_type_metadatum_url(@metadata_type), headers: TURBO_FRAME_HEADERS
+    assert_response :success
+  end
+
   test "create updates the metadata list and count" do
     assert_difference("Metadatum.count") do
       post metadata_type_metadata_url(@metadata_type),

@@ -72,6 +72,12 @@ class LibrariesTest < ApplicationSystemTestCase
       assert_text contents(:one).title
       assert_no_selector "input[name='q']"
       assert_no_button "Advanced Filters"
+
+      click_on "All Content"
+      assert_selector ".nav-link.active", text: "All Content"
+      click_on "Shelves"
+      assert_selector "##{ActionView::RecordIdentifier.dom_id(shelf, :library)}.active"
+      assert_text contents(:one).title
     end
   end
 

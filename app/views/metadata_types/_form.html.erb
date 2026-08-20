@@ -15,20 +15,16 @@
     <%= form.text_field :name, class: "form-control", autofocus: true %>
   </div>
 
-  <% permitted_attributes = policy(metadata_type).permitted_attributes %>
-
-  <div class="row">
-    <div class="col">
-      <%= form.label :order, "Order", class: "form-label" %>
-      <%= form.number_field :order, class: "form-control" %>
+  <% if policy(metadata_type).permitted_attributes.include?(:access_level) %>
+    <div class="mb-3">
+      <%= form.label :access_level, "Access level", class: "form-label" %>
+      <%= form.select :access_level,
+        options_for_select(metadata_access_level_options, metadata_type.access_level),
+        {},
+        class: "form-select"
+      %>
     </div>
-    <% if permitted_attributes.include?(:access_level) %>
-      <div class="col">
-        <%= form.label :access_level, "Access level", class: "form-label" %>
-        <%= form.number_field :access_level, class: "form-control" %>
-      </div>
-    <% end %>
-  </div>
+  <% end %>
 
   <div class="modal-footer px-0 pb-0">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

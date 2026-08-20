@@ -42,6 +42,11 @@ Rails.application.routes.draw do
   end
 
   resources :metadata_types do
+    collection do
+      get :edit_all
+      patch :update_all
+    end
+
     member do
       get :metadata_values
     end

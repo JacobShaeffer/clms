@@ -2,7 +2,18 @@
 
 <div class="row align-items-center g-3 mb-4">
   <div class="col-12 col-sm">
-    <h1 class="mb-0">Metadata types</h1>
+    <div class="d-flex align-items-center gap-2">
+      <h1 class="mb-0">Metadata types</h1>
+      <% if policy(MetadataType).manage? %>
+        <%= link_to "⋮",
+          edit_all_metadata_types_path,
+          class: "btn btn-outline-secondary fs-4 lh-1 px-2",
+          role: "button",
+          aria: { label: "Edit metadata types" },
+          data: { turbo_frame: "modal" }
+        %>
+      <% end %>
+    </div>
   </div>
   <% if policy(MetadataType).new? %>
     <div class="col-12 col-sm-auto d-grid">
@@ -12,10 +23,9 @@
 </div>
 
 <div id="metadata-types">
-  <%= render partial: "metadata_types/metadata_type",
-    collection: @metadata_types,
-    as: :metadata_type,
-    locals: { metadata_counts: @metadata_counts }
+  <%= render "metadata_types/metadata_types",
+    metadata_types: @metadata_types,
+    metadata_counts: @metadata_counts
   %>
 </div>
 

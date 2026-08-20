@@ -169,14 +169,17 @@ class LibrariesController < ApplicationController
   end
 
   def load_content_panel
+    if @active_tab == "shelves" || params[:shelf_id].present?
+      load_active_shelves
+      load_selected_active_shelf! if params[:shelf_id].present?
+    end
+
     case @active_tab
     when "all"
       load_all_contents_table
     when "library"
       load_library_contents_table
     when "shelves"
-      load_active_shelves
-      load_selected_active_shelf! if params[:shelf_id].present?
       load_shelf_contents_table if @selected_shelf
     end
   end

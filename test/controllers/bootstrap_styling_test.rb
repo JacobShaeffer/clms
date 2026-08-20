@@ -99,7 +99,7 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#metadata_values_metadata_type_#{@metadata_type.id}" do
-      assert_select "label.form-label", text: "Metadata Value"
+      assert_select "label.form-label", text: "Metadata Search"
       assert_select "input.form-control[type='search']"
       assert_select "label.form-label", text: "Status"
       assert_select "select.form-select"

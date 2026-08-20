@@ -2,7 +2,7 @@ require "test_helper"
 
 class MetadataTypePolicyTest < Minitest::Test
   FakeScope = Struct.new(:all_result, :none_result) do
-    def all
+    def in_display_order
       all_result
     end
 
@@ -36,8 +36,13 @@ class MetadataTypePolicyTest < Minitest::Test
 
   def test_update
     refute MetadataTypePolicy.new(user(:intern), @metadata_type).update?
-    assert MetadataTypePolicy.new(user(:intern_plus), @metadata_type).update?
+    refute MetadataTypePolicy.new(user(:intern_plus), @metadata_type).update?
     assert MetadataTypePolicy.new(user(:admin), @metadata_type).edit?
+  end
+
+  def test_manage
+    refute MetadataTypePolicy.new(user(:intern_plus), MetadataType).manage?
+    assert MetadataTypePolicy.new(user(:admin), MetadataType).manage?
   end
 
   def test_destroy
@@ -46,8 +51,8 @@ class MetadataTypePolicyTest < Minitest::Test
   end
 
   def test_permitted_attributes
-    assert_equal [ :name, :order ], MetadataTypePolicy.new(user(:intern_plus), @metadata_type).permitted_attributes
-    assert_equal [ :name, :order, :access_level ], MetadataTypePolicy.new(user(:admin), @metadata_type).permitted_attributes
+    assert_equal [ :name ], MetadataTypePolicy.new(user(:intern_plus), @metadata_type).permitted_attributes
+    assert_equal [ :name, :access_level ], MetadataTypePolicy.new(user(:admin), @metadata_type).permitted_attributes
   end
 
   private

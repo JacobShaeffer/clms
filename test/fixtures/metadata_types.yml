@@ -7,7 +7,7 @@ one:
   access_level: 1
 
 two:
-  name: MyString
+  name: OtherString
   user: two
   order: 1
   access_level: 1
