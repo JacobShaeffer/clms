@@ -1,4 +1,12 @@
-<%= form_with(model: content, data: { turbo_frame: "_top" }) do |form| %>
+<%= form_with(
+	model: content,
+	data: {
+		turbo_frame: local_assigns[:modal] ? "modal" : "_top",
+		controller: "content-file-upload",
+		action: "submit->content-file-upload#prepareSubmission",
+		content_file_upload_url_value: validate_file_contents_path
+	}
+) do |form| %>
 	<% if content.errors.any? %>
 		<div class="alert alert-danger">
 		<p class="mb-2"><%= pluralize(content.errors.count, "error") %> prevented this content from being saved:</p>
@@ -32,7 +40,22 @@
 
 	<div class="mb-3">
 		<%= form.label :file, "File", class: "form-label" %>
-		<%= form.file_field :file, class: "form-control" %>
+		<%= form.file_field :file,
+			class: "form-control",
+			data: {
+				action: "change->content-file-upload#upload",
+				content_file_upload_target: "input"
+			} %>
+		<% if content.file.attached? && content.errors[:file].empty? %>
+			<%= hidden_field_tag "content[file]", content.file.blob.signed_id,
+				data: { content_file_upload_target: "blob" } %>
+		<% end %>
+		<div
+			class="form-text<%= " text-success" if content.file.attached? && content.errors[:file].empty? %>"
+			role="status"
+			aria-live="polite"
+			data-content-file-upload-target="status"
+		><%= "Uploaded and validated: #{content.file.filename}" if content.file.attached? && content.errors[:file].empty? %></div>
 	</div>
 
 	<div class="mb-3">
@@ -79,7 +102,7 @@
 	</div>
 
 	<div class="d-flex gap-2">
-		<%= form.submit class: "btn btn-primary" %>
+		<%= form.submit class: "btn btn-primary", data: { content_file_upload_target: "submit" } %>
 		<%= link_to "Cancel", contents_path, class: "btn btn-secondary" %>
 	</div>
 <% end %>

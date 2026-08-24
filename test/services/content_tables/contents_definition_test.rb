@@ -46,6 +46,11 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
       @definition.columns_for_group(:metadata).map(&:key)
     assert_equal %w[title created_at added_by] + @metadata_types.first(2).map { |type| "metadata_type:#{type.id}" },
       @definition.default_column_keys
+    assert_equal [ :content, :metadata, :advanced ], @definition.filter_groups.map { |group| group.fetch(:key) }
+    assert_equal %w[id title display_title year_of_publication added_by],
+      @definition.columns_for_filter_group(:content).map(&:key)
+    assert_equal %w[created_at updated_at description additional_notes],
+      @definition.columns_for_filter_group(:advanced).map(&:key)
     assert_equal "No metadata types available.",
       @definition.groups.find { |group| group[:key] == :metadata }[:empty_message]
   end

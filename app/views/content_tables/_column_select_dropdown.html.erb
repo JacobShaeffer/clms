@@ -19,7 +19,7 @@
       data: {
         controller: "content-table-form",
         turbo_frame: definition.frame_id,
-        action: "change->content-table-form#submit"
+        action: "change->content-table-form#submit turbo:submit-start->content-table-selection#captureSelection turbo:submit-end->content-table-selection#trackSelectionResponse"
       }
     ) do %>
       <%= hidden_field_tag :columns_present, "1" %>

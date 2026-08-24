@@ -2,10 +2,14 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["page", "row"]
+  static values = { preserveBeforeCache: Boolean }
 
   connect() {
-    this.clearRows()
+    this.selectionSnapshots = new WeakMap()
+    this.responseSelectionSnapshots = new WeakMap()
+    this.resetRows()
     this.update()
+    this.dispatch("connected")
   }
 
   rowTargetConnected() {
@@ -23,6 +27,44 @@ export default class extends Controller {
     this.update()
   }
 
+  captureSelection(event) {
+    this.selectionSnapshots.set(event.detail.formSubmission, {
+      selectedRowIds: new Set(
+        this.rowTargets.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value)
+      ),
+      visibleRowIds: new Set(this.rowTargets.map((checkbox) => checkbox.value))
+    })
+  }
+
+  trackSelectionResponse(event) {
+    const { fetchResponse, formSubmission, success } = event.detail
+    const snapshot = this.selectionSnapshots.get(formSubmission)
+
+    this.selectionSnapshots.delete(formSubmission)
+
+    if (snapshot && success && fetchResponse) {
+      this.responseSelectionSnapshots.set(fetchResponse, snapshot)
+    }
+  }
+
+  restoreSelection(event) {
+    const { fetchResponse } = event.detail
+    const snapshot = this.responseSelectionSnapshots.get(fetchResponse)
+
+    if (!snapshot) return
+
+    this.responseSelectionSnapshots.delete(fetchResponse)
+
+    const visibleRowIds = new Set(this.rowTargets.map((checkbox) => checkbox.value))
+    const rowsUnchanged = this.setsEqual(snapshot.visibleRowIds, visibleRowIds)
+
+    this.rowTargets.forEach((checkbox) => {
+      checkbox.checked = rowsUnchanged && snapshot.selectedRowIds.has(checkbox.value)
+    })
+
+    this.update()
+  }
+
   update() {
     const selectedRows = this.rowTargets.filter((checkbox) => checkbox.checked).length
 
@@ -33,6 +75,12 @@ export default class extends Controller {
   }
 
   clearRows() {
+    if (this.preserveBeforeCacheValue) return
+
+    this.resetRows()
+  }
+
+  resetRows() {
     this.rowTargets.forEach((checkbox) => {
       checkbox.checked = false
     })
@@ -43,5 +91,9 @@ export default class extends Controller {
     }
 
     this.update()
+  }
+
+  setsEqual(first, second) {
+    return first.size === second.size && [...first].every((value) => second.has(value))
   }
 }

@@ -2,7 +2,10 @@
   url: add_to_active_folder_library_path(@library),
   method: :post,
   id: definition.selection_form_id,
-  class: "text-end"
+  class: "text-end",
+  data: {
+    action: "submit->library-content-selection#prepareSubmit turbo:submit-end->library-content-selection#clearAfterSubmit"
+  }
 ) do %>
   <%= hidden_field_tag :folder_id,
     current_folder&.id,

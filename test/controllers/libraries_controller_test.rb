@@ -221,6 +221,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".nav-tabs .nav-link.active", text: "All Content"
+    assert_select "[data-controller~='library-content-selection']"
+    assert_select "[data-library-content-selection-scope='all'][data-content-table-selection-preserve-before-cache-value='true']"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table"
     assert_select "th", text: "Library folders"
     row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"

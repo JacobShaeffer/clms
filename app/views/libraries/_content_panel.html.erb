@@ -45,6 +45,7 @@ end %>
         state: @table_state,
         records: @contents,
         pagy: @pagy,
+        selection_scope: @active_tab,
         table_actions: add_to_folder_actions
       %>
     <% when "library" %>
@@ -53,6 +54,7 @@ end %>
         state: @table_state,
         records: @contents,
         pagy: @pagy,
+        selection_scope: @active_tab,
         table_actions: add_to_folder_actions
       %>
     <% when "shelves" %>
@@ -89,6 +91,7 @@ end %>
           state: @table_state,
           records: @contents,
           pagy: @pagy,
+          selection_scope: @active_tab,
           table_actions: add_to_folder_actions
         %>
       <% elsif @active_shelf_records.any? %>

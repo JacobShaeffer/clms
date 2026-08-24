@@ -2,8 +2,8 @@
 
 <div
   class="my-4"
-  data-controller="library-folder-actions"
-  data-action="turbo:frame-load->library-folder-actions#sync">
+  data-controller="library-folder-actions library-content-selection"
+  data-action="turbo:frame-load->library-folder-actions#sync change->library-content-selection#update turbo:frame-render@document->library-content-selection#frameRendered content-table-selection:connected->library-content-selection#tableConnected">
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
       <h1 class="mb-1"><%= @library.name %></h1>

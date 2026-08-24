@@ -124,7 +124,7 @@ class LibrariesTest < ApplicationSystemTestCase
 
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
       assert_button "Add to Active Folder", disabled: false
-      find("input[aria-label='Select #{contents(:one).title}']", match: :first).check
+      find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
       click_on "Add to Active Folder"
       assert_text "Open a folder before adding content."
     end
@@ -135,7 +135,7 @@ class LibrariesTest < ApplicationSystemTestCase
 
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
       assert_button "Add to Active Folder", disabled: false
-      find("input[aria-label='Select #{contents(:one).title}']", match: :first).check
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:one).id}']:checked"
       click_on "Add to Active Folder"
       assert_text "Content was added to the active folder."
     end
@@ -144,6 +144,81 @@ class LibrariesTest < ApplicationSystemTestCase
       assert_text contents(:one).title
     end
     assert_includes root_folder.reload.contents, contents(:one)
+  end
+
+  test "keeps separate content selections for each library tab" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+    root_folder = create_folder!(library, "Guides")
+    LibraryFolderContent.create!(library_folder: root_folder, content: contents(:one))
+    LibraryFolderContent.create!(library_folder: root_folder, content: contents(:two))
+    shelf = users(:one).shelves.create!(name: "Reading List")
+    shelf.contents << [ contents(:one), contents(:two) ]
+    ActiveShelf.activate!(user: users(:one), shelf:)
+
+    visit library_path(library)
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
+
+      click_on "Library Content"
+      assert_no_selector "input[data-content-table-selection-target='row']:checked"
+      find("input[data-content-table-selection-target='row'][value='#{contents(:two).id}']").check
+
+      click_on "Shelves"
+      click_on shelf.name
+      assert_no_selector "input[data-content-table-selection-target='row']:checked"
+      find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
+
+      click_on "All Content"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:one).id}']:checked"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:two).id}']:not(:checked)"
+
+      click_on "Library Content"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:one).id}']:not(:checked)"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:two).id}']:checked"
+
+      click_on "Shelves"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:one).id}']:checked"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:two).id}']:not(:checked)"
+    end
+
+    assert_not_includes current_url, "selected_content_ids"
+  end
+
+  test "sorting a library table clears its saved tab selection" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+
+    visit library_path(library)
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
+      find("thead a[aria-label='Sort Title ascending']").click
+
+      assert_no_selector "input[data-content-table-selection-target='row']:checked"
+
+      click_on "Library Content"
+      click_on "All Content"
+      assert_no_selector "input[data-content-table-selection-target='row']:checked"
+    end
+  end
+
+  test "column changes can retain a library tab selection" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+
+    visit library_path(library)
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
+      click_button "Column select"
+      check "Display title"
+
+      assert_selector "thead th", text: "Display title"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:one).id}']:checked"
+
+      click_on "Library Content"
+      click_on "All Content"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:one).id}']:checked"
+    end
   end
 
   private

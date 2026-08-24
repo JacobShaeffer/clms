@@ -1,7 +1,7 @@
 module ContentTables
   class Definition
     attr_reader :state_key, :frame_id, :update_path, :reset_path, :source,
-      :columns, :groups, :default_column_keys, :page_size_options,
+      :columns, :groups, :filter_groups, :default_column_keys, :page_size_options,
       :default_page_size, :empty_message, :quick_search, :default_order,
       :row_partial, :dom_prefix, :search_placeholder, :selection_form_id
 
@@ -13,6 +13,7 @@ module ContentTables
       source:,
       columns:,
       groups:,
+      filter_groups: nil,
       default_column_keys:,
       page_size_options:,
       default_page_size:,
@@ -34,6 +35,7 @@ module ContentTables
       @source = source
       @columns = Array(columns).freeze
       @groups = normalize_groups(groups).freeze
+      @filter_groups = normalize_groups(filter_groups || groups).freeze
       @page_size_options = Array(page_size_options).map(&:to_i).select(&:positive?).uniq.freeze
       @default_page_size = default_page_size.to_i
       @empty_message = empty_message.to_s
@@ -80,6 +82,16 @@ module ContentTables
 
     def columns_for_group(group)
       columns.select { |column| column.group == group.to_sym }
+    end
+
+    def columns_for_filter_group(group)
+      configured_group = filter_groups.find { |candidate| candidate.fetch(:key) == group.to_sym }
+      return [] unless configured_group
+
+      column_keys = configured_group[:column_keys]
+      return columns_for_group(group) unless column_keys
+
+      column_keys.filter_map { |key| column(key) }
     end
 
     def selected_columns(keys)
@@ -146,6 +158,7 @@ module ContentTables
       raise ArgumentError, "columns must contain ContentTables::Column objects" unless columns.all? { |column| column.is_a?(Column) }
       raise ArgumentError, "column keys must be unique" unless available_column_keys.size == columns.size
       raise ArgumentError, "group keys must be unique" unless groups.map { |group| group.fetch(:key) }.uniq.size == groups.size
+      raise ArgumentError, "filter group keys must be unique" unless filter_groups.map { |group| group.fetch(:key) }.uniq.size == filter_groups.size
       raise ArgumentError, "every column group must be configured" unless columns.all? { |column| groups.any? { |group| group.fetch(:key) == column.group } }
       raise ArgumentError, "page_size_options cannot be empty" if page_size_options.empty?
       raise ArgumentError, "default_page_size must be an option" unless page_size_options.include?(default_page_size)

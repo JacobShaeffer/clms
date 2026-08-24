@@ -22,6 +22,7 @@ Rails.application.routes.draw do
 
   resources :contents, only: %i[ index new create ] do
     collection do
+      post :validate_file
       get :table
       delete :reset_table
       post :add_to_shelves

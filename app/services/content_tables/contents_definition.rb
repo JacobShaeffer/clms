@@ -13,6 +13,11 @@ module ContentTables
       filters_label: "Metadata Filters",
       empty_message: "No metadata types available."
     }.freeze
+    ADVANCED_FILTER_GROUP = {
+      key: :advanced,
+      filters_label: "Advanced Filters",
+      column_keys: %w[created_at updated_at description additional_notes]
+    }.freeze
     DEFAULT_CONTENT_COLUMN_KEYS = %w[title created_at added_by].freeze
 
     def initialize(
@@ -48,6 +53,7 @@ module ContentTables
         source:,
         columns: configured_columns,
         groups: [ CONTENT_GROUP, METADATA_GROUP ] + Array(additional_groups),
+        filter_groups: build_filter_groups(configured_columns, additional_groups),
         default_column_keys: default_column_keys || build_default_column_keys(metadata_types),
         page_size_options: PER_PAGE_OPTIONS,
         default_page_size: 10,
@@ -65,6 +71,20 @@ module ContentTables
     end
 
     private
+
+    def build_filter_groups(configured_columns, additional_groups)
+      advanced_keys = ADVANCED_FILTER_GROUP.fetch(:column_keys)
+      general_keys = configured_columns
+        .select { |column| column.group == CONTENT_GROUP.fetch(:key) }
+        .map(&:key) - advanced_keys
+
+      [
+        CONTENT_GROUP.merge(column_keys: general_keys),
+        METADATA_GROUP,
+        *Array(additional_groups),
+        ADVANCED_FILTER_GROUP
+      ]
+    end
 
     def content_columns
       contents = Content.arel_table

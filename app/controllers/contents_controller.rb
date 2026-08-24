@@ -124,10 +124,49 @@ class ContentsController < ApplicationController
     authorize @content
     @content.assign_attributes(content_params)
 
-    if @content.save
-      redirect_to contents_path, notice: "Content was successfully created."
+    respond_to do |format|
+      if @content.save
+        format.turbo_stream do
+          if modal_frame_request?
+            flash[:notice] = "Content was successfully created."
+            render turbo_stream: turbo_stream.refresh(request_id: nil)
+          else
+            redirect_to contents_path, notice: "Content was successfully created.", status: :see_other
+          end
+        end
+        format.html { redirect_to contents_path, notice: "Content was successfully created." }
+      else
+        format.turbo_stream do
+          if modal_frame_request?
+            render turbo_stream: turbo_stream.replace(
+              "modal",
+              partial: "contents/modal_form",
+              locals: { content: @content }
+            ), status: :unprocessable_content
+          else
+            render :new, formats: :html, status: :unprocessable_content
+          end
+        end
+        format.html { render :new, status: :unprocessable_content }
+      end
+    end
+  end
+
+  def validate_file
+    content = current_user.contents.build
+    authorize content, :create?
+    blob = create_uploaded_blob(params[:file]) if params[:file].present?
+    content.file.attach(blob) if blob
+    content.valid?
+
+    if content.errors[:file].empty?
+      render json: {
+        signed_id: blob.signed_id,
+        filename: content.file.filename.to_s
+      }
     else
-      render :new, status: :unprocessable_content
+      blob&.purge
+      render json: { errors: content.errors[:file] }, status: :unprocessable_content
     end
   end
 
@@ -166,6 +205,18 @@ class ContentsController < ApplicationController
 
   def content_params
     params.require(:content).permit(policy(@content).permitted_attributes)
+  end
+
+  def create_uploaded_blob(uploaded_file)
+    ActiveStorage::Blob.create_and_upload!(
+      io: uploaded_file,
+      filename: uploaded_file.original_filename,
+      content_type: uploaded_file.content_type
+    )
+  end
+
+  def modal_frame_request?
+    request.headers["Turbo-Frame"] == "modal"
   end
 
   def paginate_contents(relation:, page:, per_page:)

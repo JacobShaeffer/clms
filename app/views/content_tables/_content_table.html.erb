@@ -2,7 +2,12 @@
 
 <div
   data-controller="content-table-selection"
-  data-action="turbo:before-cache@document->content-table-selection#clearRows">
+  data-action="turbo:before-cache@document->content-table-selection#clearRows turbo:frame-render->content-table-selection#restoreSelection"
+  <% if local_assigns[:selection_scope] %>
+    data-content-table-selection-preserve-before-cache-value="true"
+    data-library-content-selection-target="scope"
+    data-library-content-selection-scope="<%= selection_scope %>"
+  <% end %>>
 <% if definition.search_enabled? || definition.filters_enabled? %>
   <div class="row mb-3">
     <div class="col">
@@ -37,7 +42,7 @@
               data-bs-toggle="offcanvas"
               data-bs-target="#<%= definition.dom_id("advanced-filters") %>"
               aria-controls="<%= definition.dom_id("advanced-filters") %>">
-              Advanced Filters
+              Filters
             </button>
           </div>
         <% end %>

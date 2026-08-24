@@ -191,7 +191,7 @@ class ContentTables::TableTest < ActionView::TestCase
     }
 
     assert_select "input[name='q']", count: 0
-    assert_select "button", text: "Advanced Filters", count: 0
+    assert_select "button", text: "Filters", count: 0
     assert_select ".offcanvas", count: 0
     assert_select "button", text: "Column select"
     assert_select "select[name='per_page']"

@@ -2,5 +2,5 @@
   title: content.persisted? ? "Edit content" : "New content",
   dialog_class: ("modal-nearly-fullscreen" unless content.persisted?)
 } do %>
-  <%= render "contents/form", content: content %>
+  <%= render "contents/form", content: content, modal: true %>
 <% end %>

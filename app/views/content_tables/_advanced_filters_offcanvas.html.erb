@@ -5,7 +5,7 @@
   id="<%= definition.dom_id("advanced-filters") %>"
   aria-labelledby="<%= definition.dom_id("advanced-filters-title") %>">
   <div class="offcanvas-header">
-    <h2 class="offcanvas-title h5" id="<%= definition.dom_id("advanced-filters-title") %>">Advanced Filters</h2>
+    <h2 class="offcanvas-title h5" id="<%= definition.dom_id("advanced-filters-title") %>">Filters</h2>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
   </div>
 
@@ -18,23 +18,41 @@
         turbo_frame: definition.frame_id
       }
     ) do %>
-      <% definition.groups.each_with_index do |group, index| %>
-        <% columns = definition.columns_for_group(group.fetch(:key)).select(&:filterable?) %>
+      <% definition.filter_groups.each_with_index do |group, index| %>
+        <% columns = definition.columns_for_filter_group(group.fetch(:key)).select(&:filterable?) %>
+        <% collapsible = group.fetch(:key) == :advanced %>
+        <% collapse_id = definition.dom_id("advanced-filters-fields") if collapsible %>
         <section class="<%= "mt-4" if index.positive? %>">
-          <h3 class="h6"><%= group.fetch(:filters_label) %></h3>
+          <h3 class="h6">
+            <% if collapsible %>
+              <button
+                type="button"
+                class="btn btn-link link-body-emphasis p-0 text-decoration-none collapsed"
+                data-bs-toggle="collapse"
+                data-bs-target="#<%= collapse_id %>"
+                aria-expanded="false"
+                aria-controls="<%= collapse_id %>">
+                <%= group.fetch(:filters_label) %>
+              </button>
+            <% else %>
+              <%= group.fetch(:filters_label) %>
+            <% end %>
+          </h3>
 
-          <% if columns.any? %>
-            <div class="row g-3">
-              <% columns.each do |column| %>
-                <%= render column.filter.input_partial,
-                  definition:,
-                  column:,
-                  values: state.filters.fetch(column.key, {})
-                %>
-              <% end %>
-            </div>
-          <% else %>
-            <p class="text-muted mb-0"><%= group[:empty_message] || "No filters available." %></p>
+          <%= tag.div(id: collapse_id, class: ("collapse" if collapsible)) do %>
+            <% if columns.any? %>
+              <div class="row g-3">
+                <% columns.each do |column| %>
+                  <%= render column.filter.input_partial,
+                    definition:,
+                    column:,
+                    values: state.filters.fetch(column.key, {})
+                  %>
+                <% end %>
+              </div>
+            <% else %>
+              <p class="text-muted mb-0"><%= group[:empty_message] || "No filters available." %></p>
+            <% end %>
           <% end %>
         </section>
       <% end %>

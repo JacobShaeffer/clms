@@ -6,6 +6,8 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   CONTENTS_TABLE_KEY = "contents.index"
+  TURBO_FRAME_HEADERS = { "Turbo-Frame" => "modal" }.freeze
+  TURBO_STREAM_HEADERS = TURBO_FRAME_HEADERS.merge("Accept" => "text/vnd.turbo-stream.html").freeze
 
   self.fixture_table_names = []
 
@@ -157,12 +159,26 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#contents_table"
     assert_select "turbo-frame#contents_table input[name='q']", count: 0
     assert_select "form[action='#{table_contents_path}'][data-turbo-frame='contents_table'] input.form-control[name='q']"
-    assert_select "button.btn.btn-secondary[data-bs-toggle='offcanvas'][data-bs-target='#contents-advanced-filters']", text: "Advanced Filters"
+    assert_select "button.btn.btn-secondary[data-bs-toggle='offcanvas'][data-bs-target='#contents-advanced-filters']", text: "Filters"
     assert_select ".offcanvas.offcanvas-end#contents-advanced-filters"
-    assert_select "#contents-advanced-filters-title.offcanvas-title", text: "Advanced Filters"
+    assert_select "#contents-advanced-filters-title.offcanvas-title", text: "Filters"
+    assert_select ".offcanvas-header > button.btn-close[data-bs-dismiss='offcanvas']"
+    assert_select ".offcanvas-body section h3", text: "General Filters"
+    assert_select ".offcanvas-body section h3", text: "Metadata Filters"
+    assert_select ".offcanvas-body section:last-of-type h3", text: "Advanced Filters"
+    assert_select ".offcanvas-body section:last-of-type button.collapsed[data-bs-toggle='collapse'][data-bs-target='#contents-advanced-filters-fields'][aria-expanded='false']", text: "Advanced Filters"
+    assert_select ".offcanvas-body section:last-of-type #contents-advanced-filters-fields.collapse:not(.show)"
     assert_select ".offcanvas-body input.form-control[name='filters[title][value]']"
     assert_select ".offcanvas-body input.form-control[name='filters[metadata_type:#{@metadata_type.id}][value]']"
-    assert_select ".offcanvas-body input.btn.btn-primary[type='submit'][value='Apply Filters']"
+    assert_select ".offcanvas-body section:last-of-type" do
+      assert_select "input.form-control[name='filters[created_at][from]']"
+      assert_select "input.form-control[name='filters[created_at][to]']"
+      assert_select "input.form-control[name='filters[updated_at][from]']"
+      assert_select "input.form-control[name='filters[updated_at][to]']"
+      assert_select "input.form-control[name='filters[description][value]']"
+      assert_select "input.form-control[name='filters[additional_notes][value]']"
+    end
+    assert_select ".offcanvas-body input.btn.btn-primary[type='submit'][value='Apply Filters']", count: 1
     assert_select ".offcanvas-body button.btn.btn-secondary[name='clear_filters']", text: "Clear Filters"
     assert_select "turbo-frame#contents_table .table-responsive > table.table.table-striped.align-middle"
     assert_select "turbo-frame#contents_table .row.align-items-center form[action='#{table_contents_path}']" do
@@ -177,13 +193,125 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", text: "New content"
     assert_select "h1.title", count: 0
-    assert_select "form[action='#{contents_path}'][method='post'][data-turbo-frame='_top']" do
+    assert_select "form[action='#{contents_path}'][method='post'][data-turbo-frame='_top'][data-controller='content-file-upload']" do
       assert_select "label.form-label[for='content_title']", text: "Title"
       assert_select "input.form-control#content_title[name='content[title]']"
       assert_select "textarea.form-control#content_description[name='content[description]']"
-      assert_select "input.btn.btn-primary[type='submit']"
+      assert_select "input[type='file'][name='content[file]'][data-action='change->content-file-upload#upload']"
+      assert_select "input.btn.btn-primary[type='submit'][data-content-file-upload-target='submit']"
       assert_select "a.btn.btn-secondary[href='#{contents_path}']", text: "Cancel"
     end
+  end
+
+  test "new renders a form targeting the modal when requested in the modal frame" do
+    get new_content_url, headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "turbo-frame#modal form[data-turbo-frame='modal']"
+  end
+
+  test "invalid modal submission rerenders errors inside the modal" do
+    assert_no_difference("Content.count") do
+      post contents_url,
+        params: { content: { title: "", display_title: "", description: "" } },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[action='replace'][target='modal'] template turbo-frame#modal" do
+      assert_select ".alert.alert-danger", text: /prevented this content from being saved/
+      assert_select "form[data-turbo-frame='modal']"
+    end
+  end
+
+  test "validate file uploads a supported file and returns its signed id" do
+    assert_difference("ActiveStorage::Blob.count", 1) do
+      post validate_file_contents_url, params: {
+        file: fixture_file_upload("library_asset.png", "image/png")
+      }, as: :multipart
+    end
+
+    assert_response :success
+    response_body = response.parsed_body
+    blob = ActiveStorage::Blob.find_signed!(response_body.fetch("signed_id"))
+    assert_equal "library_asset.png", response_body.fetch("filename")
+    assert_equal "library_asset.png", blob.filename.to_s
+    assert ActiveStorage::Blob.unattached.exists?(blob.id)
+  end
+
+  test "validate file returns model errors and purges an unsupported file" do
+    assert_no_difference("ActiveStorage::Blob.count") do
+      post validate_file_contents_url, params: {
+        file: fixture_file_upload("design_files.zip", "application/zip")
+      }, as: :multipart
+    end
+
+    assert_response :unprocessable_content
+    assert_includes response.parsed_body.fetch("errors"), "must be a supported file type"
+  end
+
+  test "validate file returns duplicate filename and checksum model errors" do
+    existing_file = @matching_content.file.blob
+
+    assert_no_difference("ActiveStorage::Blob.count") do
+      post validate_file_contents_url, params: {
+        file: Rack::Test::UploadedFile.new(
+          StringIO.new(existing_file.download),
+          "image/png",
+          original_filename: existing_file.filename.to_s.upcase
+        )
+      }, as: :multipart
+    end
+
+    assert_response :unprocessable_content
+    errors = response.parsed_body.fetch("errors")
+    assert_includes errors, "File already exists with title: #{@matching_content.title}"
+    assert_includes errors, "A file with the same filename already exists with title: #{@matching_content.title}"
+  end
+
+  test "validate file requires create permission" do
+    @user.update!(role: :guest)
+
+    assert_no_difference("ActiveStorage::Blob.count") do
+      post validate_file_contents_url, params: {
+        file: fixture_file_upload("library_asset.png", "image/png")
+      }, as: :multipart
+    end
+
+    assert_redirected_to root_path
+  end
+
+  test "create accepts a validated signed blob and preserves it after other validation errors" do
+    post validate_file_contents_url, params: {
+      file: fixture_file_upload("library_asset.png", "image/png")
+    }, as: :multipart
+    signed_id = response.parsed_body.fetch("signed_id")
+
+    post contents_url, params: {
+      content: {
+        title: "",
+        display_title: "Uploaded display title",
+        description: "Uploaded description",
+        file: signed_id
+      }
+    }
+
+    assert_response :unprocessable_content
+    assert_select "input[type='hidden'][name='content[file]'][value='#{signed_id}']"
+
+    assert_difference("Content.count", 1) do
+      post contents_url, params: {
+        content: {
+          title: "Signed upload",
+          display_title: "Uploaded display title",
+          description: "Uploaded description",
+          file: signed_id
+        }
+      }
+    end
+
+    assert_redirected_to contents_path
+    assert_equal "library_asset.png", Content.find_by!(title: "Signed upload").file.filename.to_s
   end
 
   test "new lists metadata types in display order" do
