@@ -9,4 +9,20 @@ class Metadatum < ApplicationRecord
 
   scope :by_metadata_type, ->(metadata_type_id) { where(metadata_type_id: metadata_type_id) }
   scope :by_under_review, ->(under_review) { where(under_review: under_review) }
+
+  def replace_with!(replacement)
+    unless persisted? && replacement&.persisted? && replacement.id != id && replacement.metadata_type_id == metadata_type_id
+      raise ArgumentError, "Replacement must be a different persisted value from the same metadata type"
+    end
+
+    transaction do
+      contents_metadata
+        .where(content_id: replacement.contents_metadata.select(:content_id))
+        .delete_all
+      contents_metadata.update_all(metadata_id: replacement.id, updated_at: Time.current)
+      destroy!
+    end
+
+    replacement
+  end
 end

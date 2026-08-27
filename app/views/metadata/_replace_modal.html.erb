@@ -1,0 +1,88 @@
+<%= turbo_frame_tag "modal" do %>
+  <div
+    class="modal fade"
+    tabindex="-1"
+    aria-labelledby="metadata-replacement-modal-title"
+    aria-hidden="true"
+    data-controller="modal"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable metadata-replacement-dialog">
+      <%= form_with url: replace_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+        method: :patch,
+        class: "modal-content metadata-replacement-form",
+        data: {
+          turbo_frame: "modal",
+          controller: "metadata-replacement-search"
+        } do %>
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="metadata-replacement-modal-title">Replace metadata value</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <p>Replace <strong><%= metadatum.name %></strong> with another <%= metadata_type.name %> value.</p>
+
+          <% if error.present? %>
+            <div class="alert alert-danger" role="alert"><%= error %></div>
+          <% end %>
+
+          <% search_id = dom_id(metadatum, :replacement_search) %>
+          <div class="mb-3 flex-shrink-0">
+            <%= label_tag search_id, "Search metadata values", class: "form-label" %>
+            <%= tag.input type: "search",
+              id: search_id,
+              class: "form-control",
+              autocomplete: "off",
+              disabled: replacement_candidates.none?,
+              data: {
+                metadata_replacement_search_target: "input",
+                action: "input->metadata-replacement-search#filter"
+              }
+            %>
+          </div>
+
+          <% if replacement_candidates.any? %>
+            <div class="metadata-replacement-options" role="radiogroup" aria-label="Replacement value">
+              <div class="list-group">
+                <% replacement_candidates.each do |replacement_candidate| %>
+                  <% input_id = dom_id(replacement_candidate, :replacement) %>
+                  <% status_label = replacement_candidate.under_review? ? "Under Review" : "Reviewed" %>
+                  <% status_class = replacement_candidate.under_review? ? "text-bg-warning" : "text-bg-success" %>
+                  <label
+                    class="list-group-item d-flex align-items-center gap-2"
+                    for="<%= input_id %>"
+                    data-metadata-replacement-search-target="item"
+                    data-metadata-value-name="<%= replacement_candidate.name %>"
+                  >
+                    <%= radio_button_tag :replacement_id,
+                      replacement_candidate.id,
+                      false,
+                      id: input_id,
+                      class: "form-check-input flex-shrink-0",
+                      required: true
+                    %>
+                    <span class="metadata-replacement-name flex-grow-1"><%= replacement_candidate.name %></span>
+                    <span class="badge <%= status_class %>"><%= status_label %></span>
+                  </label>
+                <% end %>
+              </div>
+              <p
+                class="text-muted text-center my-4 d-none"
+                data-metadata-replacement-search-target="empty"
+              >
+                No matching metadata values found.
+              </p>
+            </div>
+          <% else %>
+            <p class="text-muted mb-0">No other metadata values are available for replacement.</p>
+          <% end %>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= submit_tag "Replace", class: "btn btn-danger", disabled: replacement_candidates.none? %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

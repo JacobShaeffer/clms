@@ -4,7 +4,9 @@ class MetadataController < ApplicationController
 
   before_action :authenticate_user!
   before_action :set_metadata_type
-  before_action :set_metadatum, only: %i[ show edit update destroy toggle_review tagged_items delete_confirmation ]
+  before_action :set_metadatum, only: %i[
+    show edit update destroy toggle_review tagged_items replace_confirmation replace delete_confirmation
+  ]
 
   # GET /metadata_types/1/metadata
   def index
@@ -102,6 +104,34 @@ class MetadataController < ApplicationController
     render partial: "metadata/tagged_items_modal", locals: { metadatum: @metadatum }
   end
 
+  # GET /metadata_types/1/metadata/1/replace_confirmation
+  def replace_confirmation
+    authorize @metadatum, :replace?
+
+    render partial: "metadata/replace_modal", locals: replacement_modal_locals
+  end
+
+  # PATCH /metadata_types/1/metadata/1/replace
+  def replace
+    authorize @metadatum, :replace?
+
+    replacement = @metadata_type.metadata.where.not(id: @metadatum.id).find_by(id: params[:replacement_id])
+    unless replacement
+      render_replacement_error
+      return
+    end
+
+    @metadatum.replace_with!(replacement)
+
+    respond_to do |format|
+      format.turbo_stream { render_metadata_values_update }
+      format.html do
+        redirect_to metadata_types_path, notice: "Metadata value was successfully replaced.", status: :see_other
+      end
+      format.json { head :no_content }
+    end
+  end
+
   # GET /metadata_types/1/metadata/1/delete_confirmation
   def delete_confirmation
     authorize @metadatum
@@ -150,6 +180,33 @@ class MetadataController < ApplicationController
       ), status: :unprocessable_entity
     end
 
+    def render_replacement_error
+      locals = replacement_modal_locals(error: "Select a valid replacement value.")
+
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.update(
+            "modal",
+            partial: "metadata/replace_modal",
+            locals: locals
+          ), status: :unprocessable_content
+        end
+        format.html do
+          render partial: "metadata/replace_modal", locals: locals, status: :unprocessable_content
+        end
+      end
+    end
+
+    def replacement_modal_locals(error: nil)
+      {
+        metadata_type: @metadata_type,
+        metadatum: @metadatum,
+        replacement_candidates: policy_scope(@metadata_type.metadata).where.not(id: @metadatum.id).order(:name, :id),
+        frame_params: frame_params,
+        error: error
+      }
+    end
+
     def render_metadata_values_update(close_modal: true)
       streams = []
       streams << turbo_stream.update("modal", "") if close_modal
@@ -178,7 +235,7 @@ class MetadataController < ApplicationController
         metadata_values: metadata_values.limit(limit),
         metadata_values_count: count,
         metadata_values_limit: limit,
-        metadata_values_next_limit: [limit + METADATA_VALUES_PAGE_SIZE, count].min,
+        metadata_values_next_limit: [ limit + METADATA_VALUES_PAGE_SIZE, count ].min,
         search_query: search_query,
         review_filter: review_filter
       }
@@ -205,7 +262,7 @@ class MetadataController < ApplicationController
     def metadata_values_limit
       limit = params[:limit].to_i
       limit = METADATA_VALUES_PAGE_SIZE if limit < METADATA_VALUES_PAGE_SIZE
-      [limit, MAX_METADATA_VALUES_LIMIT].min
+      [ limit, MAX_METADATA_VALUES_LIMIT ].min
     end
 
     def normalized_metadata_review_filter

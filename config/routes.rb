@@ -56,6 +56,8 @@ Rails.application.routes.draw do
       member do
         patch :toggle_review
         get :tagged_items
+        get :replace_confirmation
+        patch :replace
         get :delete_confirmation
       end
     end

@@ -2,17 +2,44 @@
 <% frame_params = local_assigns.fetch(:frame_params, {}) %>
 <% metadatum_policy = policy(metadatum) %>
 <% review_action_label = metadatum.under_review? ? "Approve" : "Mark for Review" %>
+<% status_label = metadatum.under_review? ? "Under Review" : "Reviewed" %>
+<% status_class = metadatum.under_review? ? "text-bg-warning" : "text-bg-success" %>
 
 <div id="<%= dom_id metadatum %>" class="row align-items-center g-2 metadata-value-row">
   <div class="col-12 col-sm-6">
     <p class="mb-0"><%= metadatum.name %></p>
   </div>
   <div class="col-9 col-sm-5">
-    <% if metadatum.under_review? %>
-      <span class="badge text-bg-warning">Under Review</span>
-    <% else %>
-      <span class="badge text-bg-success">Reviewed</span>
-    <% end %>
+    <div class="dropdown">
+      <button
+        class="badge <%= status_class %> dropdown-toggle border-0"
+        type="button"
+        data-bs-toggle="dropdown"
+        aria-expanded="false"
+        aria-label="<%= status_label %> status actions"
+      >
+        <%= status_label %>
+      </button>
+      <ul class="dropdown-menu">
+        <% if metadatum_policy.toggle_review? %>
+          <li>
+            <%= button_to review_action_label,
+              toggle_review_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+              method: :patch,
+              form_class: "m-0",
+              class: "dropdown-item text-start w-100 border-0 bg-transparent"
+            %>
+          </li>
+        <% end %>
+        <li>
+          <%= link_to "See all tagged items",
+            tagged_items_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+            class: "dropdown-item",
+            data: { turbo_frame: "modal" }
+          %>
+        </li>
+      </ul>
+    </div>
   </div>
   <div class="col-3 col-sm-1 d-flex justify-content-end">
     <div class="dropdown">
@@ -24,6 +51,15 @@
           <li>
             <%= link_to "Edit",
               edit_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
+              class: "dropdown-item",
+              data: { turbo_frame: "modal" }
+            %>
+          </li>
+        <% end %>
+        <% if metadatum_policy.replace? %>
+          <li>
+            <%= link_to "Replace",
+              replace_confirmation_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
               class: "dropdown-item",
               data: { turbo_frame: "modal" }
             %>

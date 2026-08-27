@@ -53,6 +53,12 @@ class MetadatumPolicyTest < Minitest::Test
     assert MetadatumPolicy.new(user(:admin), @metadatum).toggle_review?
   end
 
+  def test_replace
+    refute MetadatumPolicy.new(user(:intern), @metadatum).replace?
+    assert MetadatumPolicy.new(user(:intern_plus), @metadatum).replace?
+    assert MetadatumPolicy.new(user(:admin), @metadatum).replace_confirmation?
+  end
+
   def test_permitted_attributes
     assert_equal [ :name ], MetadatumPolicy.new(user(:volunteer), @metadatum).permitted_attributes
     assert_equal [ :name, :under_review ], MetadatumPolicy.new(user(:intern_plus), @metadatum).permitted_attributes

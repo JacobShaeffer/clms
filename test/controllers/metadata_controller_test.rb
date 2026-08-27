@@ -100,6 +100,119 @@ class MetadataControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-stream[action='replace'][target='metadata_values_metadata_type_#{@metadata_type.id}']"
   end
 
+  test "metadata value renders status and overflow action dropdowns" do
+    get metadata_values_metadata_type_url(@metadata_type)
+
+    assert_response :success
+    row = css_select("#metadatum_#{@metadatum.id}").first
+    assert_equal "Reviewed", row.css(".col-sm-5 button.badge[data-bs-toggle='dropdown']").text.strip
+    assert_equal [ "Mark for Review", "See all tagged items" ],
+      row.css(".col-sm-5 .dropdown-menu .dropdown-item").map { |item| item.text.strip }
+    assert_equal [ "Edit", "Replace", "Mark for Review", "See all tagged items", "Delete" ],
+      row.css(".col-sm-1 .dropdown-menu .dropdown-item").map { |item| item.text.strip }
+  end
+
+  test "replace confirmation lists only other same-type values in alphabetical order" do
+    later = create_metadatum!(name: "Zulu", under_review: true)
+    earlier = create_metadatum!(name: "Alpha")
+    frame_params = { q: "value", status: "reviewed", limit: 10 }
+
+    get replace_confirmation_metadata_type_metadatum_url(@metadata_type, @metadatum, frame_params),
+      headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "turbo-frame#modal .modal-title", text: "Replace metadata value"
+    assert_select ".modal-dialog.modal-dialog-centered.modal-dialog-scrollable.metadata-replacement-dialog"
+    assert_select "form.modal-content.metadata-replacement-form" do
+      assert_select ".modal-body .metadata-replacement-options[role='radiogroup'][aria-label='Replacement value']"
+      assert_select ".modal-footer input[type='submit'][value='Replace']"
+      assert_select ".modal-footer button", text: "Cancel"
+    end
+    assert_select "input[type='radio'][name='replacement_id']", 2
+    assert_select "input[type='radio'][value='#{@metadatum.id}']", count: 0
+    other_type_value = Metadatum.find_by!(metadata_type: metadata_types(:two))
+    assert_select "input[type='radio'][value='#{other_type_value.id}']", count: 0
+    assert_select "form[data-controller='metadata-replacement-search']" do
+      assert_select "label.form-label", text: "Search metadata values"
+      assert_select "input[type='search'][data-action='input->metadata-replacement-search#filter']"
+    end
+    assert_equal [ earlier.name, later.name ],
+      css_select(".metadata-replacement-name").map { |item| item.text.strip }
+    assert_equal [ "Reviewed", "Under Review" ],
+      css_select(".list-group-item .badge").map { |item| item.text.strip }
+    form_action = css_select("form").first["action"]
+    assert_includes form_action, "q=value"
+    assert_includes form_action, "status=reviewed"
+    assert_includes form_action, "limit=10"
+  end
+
+  test "replace confirmation disables replacement when there are no candidates" do
+    get replace_confirmation_metadata_type_metadatum_url(@metadata_type, @metadatum),
+      headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "input[type='search'][disabled]", 1
+    assert_select "input[type='radio'][name='replacement_id']", count: 0
+    assert_select "input[type='submit'][value='Replace'][disabled]", 1
+    assert_select ".text-muted", text: "No other metadata values are available for replacement."
+  end
+
+  test "replace moves references, removes overlaps, deletes the original, and refreshes the list" do
+    replacement = create_metadatum!(name: "Replacement", under_review: true, user: users(:two))
+    overlapping_content = contents(:two)
+    ContentMetadatum.create!(content: overlapping_content, metadata: @metadatum)
+    ContentMetadatum.create!(content: overlapping_content, metadata: replacement)
+    replacement_attributes = replacement.attributes.slice("name", "user_id", "under_review")
+
+    assert_difference("Metadatum.count", -1) do
+      patch replace_metadata_type_metadatum_url(@metadata_type, @metadatum),
+        params: { replacement_id: replacement.id },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :success
+    refute Metadatum.exists?(@metadatum.id)
+    assert_equal [ contents(:one).id, overlapping_content.id ].sort,
+      ContentMetadatum.where(metadata: replacement).pluck(:content_id).sort
+    assert_equal 1, ContentMetadatum.where(metadata: replacement, content: overlapping_content).count
+    assert_equal replacement_attributes, replacement.reload.attributes.slice("name", "user_id", "under_review")
+    assert_select "turbo-stream[action='update'][target='modal']"
+    assert_select "turbo-stream[action='replace'][target='metadata_values_metadata_type_#{@metadata_type.id}']"
+    assert_select "turbo-stream[action='update'][target='metadata_count_metadata_type_#{@metadata_type.id}']", text: "1"
+  end
+
+  test "replace rejects missing, self, and cross-type replacement values" do
+    other_type_value = Metadatum.find_by!(metadata_type: metadata_types(:two))
+
+    [ nil, @metadatum.id, other_type_value.id ].each do |replacement_id|
+      assert_no_difference([ "Metadatum.count", "ContentMetadatum.count" ]) do
+        patch replace_metadata_type_metadatum_url(@metadata_type, @metadatum),
+          params: { replacement_id: replacement_id },
+          headers: TURBO_STREAM_HEADERS
+      end
+
+      assert_response :unprocessable_content
+      assert_select "turbo-stream[action='update'][target='modal'] template .alert.alert-danger",
+        text: "Select a valid replacement value."
+    end
+  end
+
+  test "replace requires delete-level permission" do
+    replacement = create_metadatum!(name: "Replacement")
+    sign_out @admin
+    @admin.update!(role: :intern)
+    sign_in @admin
+
+    assert_no_difference([ "Metadatum.count", "ContentMetadatum.count" ]) do
+      patch replace_metadata_type_metadatum_url(@metadata_type, @metadatum),
+        params: { replacement_id: replacement.id },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_redirected_to root_url
+    assert Metadatum.exists?(@metadatum.id)
+  end
+
   test "delete confirmation and destroy use the nested resource" do
     get delete_confirmation_metadata_type_metadatum_url(@metadata_type, @metadatum), headers: TURBO_FRAME_HEADERS
 
@@ -121,5 +234,11 @@ class MetadataControllerTest < ActionDispatch::IntegrationTest
     get new_metadata_type_metadatum_url(@metadata_type)
 
     assert_redirected_to new_user_session_url
+  end
+
+  private
+
+  def create_metadatum!(name:, under_review: false, user: @admin)
+    @metadata_type.metadata.create!(name: name, under_review: under_review, user: user)
   end
 end

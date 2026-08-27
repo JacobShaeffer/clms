@@ -105,7 +105,7 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
       assert_select "select.form-select"
       assert_select "a.btn.btn-primary[data-turbo-frame='modal']", text: "Add"
       assert_select ".border.rounded .metadata-value-row", 5
-      assert_select ".dropdown button[data-bs-toggle='dropdown']", 5
+      assert_select ".dropdown button[data-bs-toggle='dropdown']", 10
       assert_select "a.btn.btn-outline-secondary", text: "Show More"
     end
 

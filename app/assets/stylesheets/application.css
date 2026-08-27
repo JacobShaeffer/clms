@@ -24,6 +24,25 @@
   overflow-y: auto;
 }
 
+.metadata-replacement-dialog .modal-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.metadata-replacement-form {
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.metadata-replacement-options {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .auto-complete {
 	border:0; outline:0;
 }

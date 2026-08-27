@@ -27,6 +27,14 @@ class MetadatumPolicy < ApplicationPolicy
     at_least?(:intern_plus)
   end
 
+  def replace?
+    destroy?
+  end
+
+  def replace_confirmation?
+    replace?
+  end
+
   def delete_confirmation?
     destroy?
   end
