@@ -1,6 +1,14 @@
 Rails.application.routes.draw do
   resources :libraries, only: %i[ index show new create ] do
     resources :library_folders, only: %i[ new create ]
+    resource :folder_selection, controller: "library_folder_selections", only: [] do
+      get :remove_confirmation
+      delete :remove
+      get :move
+      patch :apply_move
+      get :duplicate
+      post :apply_duplicate
+    end
 
     member do
       get :all_contents_table

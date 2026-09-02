@@ -2,6 +2,8 @@
   <section
     class="border rounded p-3"
     aria-labelledby="library-folder-browser-heading"
+    data-controller="library-folder-selection"
+    data-action="change->library-folder-selection#update turbo:before-cache@document->library-folder-selection#clear"
     data-library-folder-actions-target="folderState"
     data-folder-id="<%= @current_folder&.id %>">
     <h2 id="library-folder-browser-heading" class="h4 mb-3">Library folder browser</h2>
@@ -51,52 +53,107 @@
       </ol>
     </nav>
 
-    <% if policy(LibraryFolder).new? %>
-      <div class="d-flex justify-content-end mb-3">
-        <%= link_to "Add Folder",
-          new_library_library_folder_path(
-            @library,
-            parent_folder_id: @current_folder&.id,
-            tab: @active_tab,
-            shelf_id: @selected_shelf&.id
-          ),
-          class: "btn btn-success",
-          data: { turbo_frame: "modal" }
-        %>
-      </div>
-    <% end %>
+    <%= form_with(
+      url: move_library_folder_selection_path(@library),
+      method: :get,
+      data: { turbo_frame: "modal" }
+    ) do %>
+      <%= hidden_field_tag :source_folder_id, @current_folder&.id %>
+      <%= hidden_field_tag :tab, @active_tab %>
+      <%= hidden_field_tag :shelf_id, @selected_shelf&.id if @selected_shelf %>
 
-    <div class="list-group" id="library-folder-browser-items">
-      <% @browser_folders.each do |folder| %>
-        <%= link_to library_path(
-          @library,
-          folder_id: folder.id,
-          tab: @active_tab,
-          shelf_id: @selected_shelf&.id
-        ),
-          id: dom_id(folder, :browser),
-          class: "list-group-item list-group-item-action d-flex justify-content-between align-items-center",
-          data: {
-            turbo_frame: dom_id(@library, :folder_browser),
-            turbo_action: "advance"
-          } do %>
-          <span><%= folder.name %></span>
-          <span class="badge text-bg-secondary">Folder</span>
-        <% end %>
-      <% end %>
-
-      <% @browser_contents.each do |content| %>
-        <div id="<%= dom_id(content, :browser) %>" class="list-group-item d-flex justify-content-between align-items-center">
-          <span><%= content.title %></span>
-          <span class="badge text-bg-light">Content</span>
+      <% if policy(LibraryFolder).manage? %>
+        <div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
+          <div
+            class="d-none d-flex gap-2"
+            hidden
+            data-library-folder-selection-target="actions">
+            <%= button_tag "Move",
+              type: "submit",
+              name: nil,
+              class: "btn btn-warning",
+              formaction: move_library_folder_selection_path(@library),
+              formmethod: "get"
+            %>
+            <%= button_tag "Remove",
+              type: "submit",
+              name: nil,
+              class: "btn btn-danger",
+              formaction: remove_confirmation_library_folder_selection_path(@library),
+              formmethod: "get"
+            %>
+            <%= button_tag "Duplicate",
+              type: "submit",
+              name: nil,
+              class: "btn btn-secondary",
+              formaction: duplicate_library_folder_selection_path(@library),
+              formmethod: "get"
+            %>
+          </div>
+          <%= link_to "New Folder",
+            new_library_library_folder_path(
+              @library,
+              parent_folder_id: @current_folder&.id,
+              tab: @active_tab,
+              shelf_id: @selected_shelf&.id
+            ),
+            class: "btn btn-success",
+            data: { turbo_frame: "modal" }
+          %>
         </div>
       <% end %>
 
-      <% if @browser_folders.empty? && @browser_contents.empty? %>
-        <p class="list-group-item text-center text-body-secondary mb-0">
-          <%= @current_folder ? "This folder is empty." : "No root folders found." %>
-        </p>
-      <% end %>
-    </div>
+      <div
+        class="list-group"
+        id="library-folder-browser-items">
+        <% @browser_folders.each do |folder| %>
+          <div id="<%= dom_id(folder, :browser) %>" class="list-group-item d-flex align-items-center gap-2">
+            <%= check_box_tag "folder_ids[]",
+              folder.id,
+              false,
+              id: dom_id(folder, :browser_selection),
+              class: "form-check-input flex-shrink-0",
+              aria: { label: "Select folder #{folder.name}" },
+              data: { library_folder_selection_target: "item" }
+            %>
+            <%= link_to folder.name,
+              library_path(
+                @library,
+                folder_id: folder.id,
+                tab: @active_tab,
+                shelf_id: @selected_shelf&.id
+              ),
+              class: "link-body-emphasis",
+              data: {
+                turbo_frame: dom_id(@library, :folder_browser),
+                turbo_action: "advance"
+              }
+            %>
+            <span class="badge text-bg-secondary ms-auto">Folder</span>
+          </div>
+        <% end %>
+
+        <% @browser_contents.each do |content| %>
+          <div id="<%= dom_id(content, :browser) %>" class="list-group-item d-flex align-items-center gap-2">
+            <%= check_box_tag "content_ids[]",
+              content.id,
+              false,
+              id: dom_id(content, :browser_selection),
+              class: "form-check-input flex-shrink-0",
+              aria: { label: "Select content #{content.title}" },
+              data: { library_folder_selection_target: "item" }
+            %>
+            <span><%= content.title %></span>
+            <span class="badge text-bg-light ms-auto">Content</span>
+          </div>
+        <% end %>
+
+        <% if @browser_folders.empty? && @browser_contents.empty? %>
+          <p class="list-group-item text-center text-body-secondary mb-0">
+            <%= @current_folder ? "This folder is empty." : "No root folders found." %>
+          </p>
+        <% end %>
+      </div>
+    <% end %>
   </section>
 <% end %>

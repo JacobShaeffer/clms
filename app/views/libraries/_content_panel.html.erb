@@ -14,7 +14,7 @@ end %>
     <h2 id="library-content-heading" class="visually-hidden">Library content</h2>
 
     <ul class="nav nav-tabs mb-3" role="tablist">
-      <% [ [ "all", "All Content" ], [ "shelves", "Shelves" ], [ "library", "Library Content" ] ].each do |tab_key, label| %>
+      <% [ [ "all", "All Content" ], [ "shelves", "Shelves" ], [ "library", "Current Library" ] ].each do |tab_key, label| %>
         <li class="nav-item" role="presentation">
           <%= link_to label,
             library_path(

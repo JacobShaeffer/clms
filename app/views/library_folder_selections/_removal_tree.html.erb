@@ -1,0 +1,17 @@
+<% nodes.each do |node| %>
+  <li>
+    <span class="badge text-bg-secondary">Folder</span>
+    <%= node.folder.name %>
+    <% if node.contents.any? || node.children.any? %>
+      <ul>
+        <% node.contents.each do |content| %>
+          <li>
+            <span class="badge text-bg-light">Content</span>
+            <%= content.title %>
+          </li>
+        <% end %>
+        <%= render "library_folder_selections/removal_tree", nodes: node.children %>
+      </ul>
+    <% end %>
+  </li>
+<% end %>

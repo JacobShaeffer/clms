@@ -1,0 +1,7 @@
+<%= render layout: "shared/modal", locals: { title: "Folder operation unavailable" } do %>
+  <div class="alert alert-danger mb-0" role="alert"><%= @error_message %></div>
+
+  <div class="modal-footer px-0 pb-0">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+  </div>
+<% end %>

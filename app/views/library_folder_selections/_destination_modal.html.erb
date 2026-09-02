@@ -1,0 +1,64 @@
+<% title = @operation == :move ? "Move items" : "Duplicate items" %>
+<% submit_label = @operation == :move ? "Move Here" : "Duplicate Here" %>
+<% apply_path = @operation == :move ?
+  apply_move_library_folder_selection_path(@library) :
+  apply_duplicate_library_folder_selection_path(@library) %>
+<% apply_method = @operation == :move ? :patch : :post %>
+<% selection_params = {
+  source_folder_id: @selection.source_folder_id,
+  folder_ids: @selection.folder_ids,
+  content_ids: @selection.content_ids,
+  tab: params[:tab],
+  shelf_id: params[:shelf_id]
+}.compact %>
+<% picker_url = ->(extra = {}) do
+  route_params = selection_params.merge(extra)
+  if @operation == :move
+    move_library_folder_selection_path(@library, route_params)
+  else
+    duplicate_library_folder_selection_path(@library, route_params)
+  end
+end %>
+<% browser_frame_id = "library-folder-destination-browser" %>
+
+<%= render layout: "shared/modal", locals: { title:, dialog_class: "modal-lg modal-dialog-scrollable" } do %>
+  <%= form_with(
+    url: apply_path,
+    method: apply_method,
+    data: {
+      controller: "library-folder-destination",
+      turbo_frame: "modal",
+      action: "turbo:frame-load->library-folder-destination#update"
+    }
+  ) do %>
+    <%= hidden_field_tag :source_folder_id, @selection.source_folder_id %>
+    <% @selection.folder_ids.each do |folder_id| %>
+      <%= hidden_field_tag "folder_ids[]", folder_id %>
+    <% end %>
+    <% @selection.content_ids.each do |content_id| %>
+      <%= hidden_field_tag "content_ids[]", content_id %>
+    <% end %>
+    <%= hidden_field_tag :tab, params[:tab] if params[:tab].present? %>
+    <%= hidden_field_tag :shelf_id, params[:shelf_id] if params[:shelf_id].present? %>
+
+    <%= render "library_folder_selections/destination_browser",
+      picker_url:,
+      browser_frame_id:,
+      selection_params:
+    %>
+
+    <div class="modal-footer px-0 pb-0">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        data-bs-dismiss="modal"
+        data-action="click->modal#hide">Cancel</button>
+      <%= button_tag submit_label,
+        type: "submit",
+        class: "btn #{@operation == :move ? "btn-warning" : "btn-secondary"}",
+        disabled: !@picker.current_folder_selectable?,
+        data: { library_folder_destination_target: "submit" }
+      %>
+    </div>
+  <% end %>
+<% end %>

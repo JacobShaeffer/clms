@@ -34,7 +34,7 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     get new_library_library_folder_url(@library), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Add folder"
+    assert_select "turbo-frame#modal .modal-title", text: "New folder"
     assert_select "form[action='#{library_library_folders_path(@library)}']" do
       assert_select "input[name='library_folder[name]']"
       assert_select "select[name='library_folder[logo_id]'][required]"
@@ -97,6 +97,103 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     assert_select "turbo-stream[action='replace'][target='modal'] .alert-danger"
+  end
+
+  test "new folder opened from a destination picker preserves its operation context" do
+    selected_folder = @library.library_folders.create!(
+      name: "Selected",
+      parent_folder: @root_folder,
+      user: @user
+    )
+    destination = @library.library_folders.create!(
+      name: "Destination",
+      user: @user,
+      logo: library_assets(:one)
+    )
+
+    get new_library_library_folder_url(
+      @library,
+      parent_folder_id: destination.id,
+      picker_operation: "move",
+      source_folder_id: @root_folder.id,
+      folder_ids: [ selected_folder.id ],
+      tab: "all"
+    ), headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "turbo-frame#modal .modal-title", text: "New folder"
+    assert_select "input[name='picker_operation'][value='move']"
+    assert_select "input[name='source_folder_id'][value='#{@root_folder.id}']"
+    assert_select "input[name='folder_ids[]'][value='#{selected_folder.id}']"
+    assert_select "a.btn.btn-secondary[data-turbo-frame='modal']", text: "Back"
+    assert_select ".modal-footer button[data-bs-dismiss='modal']", count: 0
+  end
+
+  test "creating a picker folder returns to the picker inside the new destination" do
+    selected_folder = @library.library_folders.create!(
+      name: "Selected",
+      parent_folder: @root_folder,
+      user: @user
+    )
+    destination = @library.library_folders.create!(
+      name: "Destination",
+      user: @user,
+      logo: library_assets(:one)
+    )
+
+    assert_difference("LibraryFolder.count") do
+      post library_library_folders_url(@library),
+        params: {
+          library_folder: { name: "New Destination" },
+          parent_folder_id: destination.id,
+          picker_operation: "duplicate",
+          picker_folder_id: destination.id,
+          source_folder_id: @root_folder.id,
+          folder_ids: [ selected_folder.id ],
+          tab: "all"
+        },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    new_destination = destination.child_folders.find_by!(name: "New Destination")
+    assert_select "turbo-stream[action='replace'][target='#{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}']"
+    assert_select "turbo-stream[action='replace'][target='modal'] template" do
+      assert_select ".modal-title", text: "Duplicate items"
+      assert_select ".breadcrumb-item.active", text: new_destination.name
+      assert_select "input[type='hidden'][name='destination_folder_id']" \
+        "[value='#{new_destination.id}']:not([disabled])"
+      assert_select "button", text: "Duplicate Here", disabled: false
+    end
+  end
+
+  test "invalid picker folder retains the pending selection" do
+    selected_folder = @library.library_folders.create!(
+      name: "Selected",
+      parent_folder: @root_folder,
+      user: @user
+    )
+
+    assert_no_difference("LibraryFolder.count") do
+      post library_library_folders_url(@library),
+        params: {
+          library_folder: { name: "" },
+          parent_folder_id: @root_folder.id,
+          picker_operation: "move",
+          picker_folder_id: @root_folder.id,
+          source_folder_id: @root_folder.id,
+          folder_ids: [ selected_folder.id ],
+          tab: "all"
+        },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[action='replace'][target='modal'] template" do
+      assert_select ".alert-danger"
+      assert_select "input[name='picker_operation'][value='move']"
+      assert_select "input[name='folder_ids[]'][value='#{selected_folder.id}']"
+      assert_select "a", text: "Back"
+    end
   end
 
   test "rejects foreign and malformed parents" do

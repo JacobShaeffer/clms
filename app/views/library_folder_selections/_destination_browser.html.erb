@@ -1,0 +1,75 @@
+<%= turbo_frame_tag browser_frame_id do %>
+  <div class="d-flex justify-content-end mb-3">
+    <%= link_to "New Folder",
+      new_library_library_folder_path(
+        @library,
+        parent_folder_id: @picker.current_folder&.id,
+        picker_operation: @operation,
+        picker_folder_id: @picker.current_folder&.id,
+        **selection_params
+      ),
+      class: "btn btn-success",
+      data: { turbo_frame: "modal" }
+    %>
+  </div>
+
+  <% if @picker.current_folder %>
+    <%= hidden_field_tag :destination_folder_id,
+      @picker.current_folder.id,
+      disabled: !@picker.current_folder_selectable?,
+      data: { library_folder_destination_target: "destination" }
+    %>
+  <% end %>
+
+  <nav class="mb-3" aria-label="Destination folder breadcrumb">
+    <ol class="breadcrumb flex-nowrap overflow-x-auto mb-0">
+      <% root_is_current = @picker.current_folder.nil? %>
+      <li class="breadcrumb-item <%= "active" if root_is_current %>" <%= "aria-current=page" if root_is_current %>>
+        <% if root_is_current %>
+          <%= @library.name %>
+        <% else %>
+          <%= link_to @library.name,
+            picker_url.call,
+            data: { turbo_frame: browser_frame_id }
+          %>
+        <% end %>
+      </li>
+
+      <% @picker.breadcrumbs.each_with_index do |folder, index| %>
+        <% current = index == @picker.breadcrumbs.length - 1 %>
+        <li class="breadcrumb-item <%= "active" if current %>" <%= "aria-current=page" if current %>>
+          <% if current %>
+            <%= folder.name %>
+          <% else %>
+            <%= link_to folder.name,
+              picker_url.call(picker_folder_id: folder.id),
+              data: { turbo_frame: browser_frame_id }
+            %>
+          <% end %>
+        </li>
+      <% end %>
+    </ol>
+  </nav>
+
+  <div class="list-group" id="library-folder-destination-items">
+    <% @picker.folders.each do |folder| %>
+      <% blocked = @picker.blocked?(folder) %>
+      <div class="list-group-item d-flex align-items-center gap-2 <%= "bg-body-tertiary text-body-secondary" if blocked %>">
+        <% if @picker.openable?(folder) %>
+          <%= link_to folder.name,
+            picker_url.call(picker_folder_id: folder.id),
+            class: "link-body-emphasis",
+            data: { turbo_frame: browser_frame_id }
+          %>
+        <% else %>
+          <span><%= folder.name %></span>
+        <% end %>
+        <span class="badge text-bg-secondary ms-auto">Folder</span>
+      </div>
+    <% end %>
+
+    <% if @picker.folders.empty? %>
+      <p class="list-group-item text-center text-body-secondary mb-0">No folders found.</p>
+    <% end %>
+  </div>
+<% end %>

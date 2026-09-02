@@ -144,7 +144,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     get library_url(@library)
 
-    assert_select "a[data-turbo-frame='modal']", text: "Add Folder"
+    assert_select "a[data-turbo-frame='modal']", text: "New Folder"
     assert_select "input[type='submit'][value='Add to Active Folder']:not([disabled])"
 
     get library_url(@library, folder_id: @root_folder.id)
@@ -198,6 +198,51 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:two), :browser)}", text: /#{contents(:two).title}/
   end
 
+  test "folder browser renders accessible selection checkboxes for direct folders and content" do
+    users(:one).update!(role: :intern_plus)
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    LibraryFolderContent.create!(library_folder: @child_folder, content: contents(:two))
+
+    get library_url(@library, folder_id: @root_folder.id)
+
+    assert_response :success
+    assert_select "section[data-controller='library-folder-selection']" \
+      "[data-action*='change->library-folder-selection#update']" do
+      assert_select "[data-library-folder-selection-target='actions'].d-none[hidden]" do
+        assert_select "button.btn.btn-warning[type='submit'][formaction='#{move_library_folder_selection_path(@library)}']",
+          text: "Move"
+        assert_select "button.btn.btn-danger[type='submit']" \
+          "[formaction='#{remove_confirmation_library_folder_selection_path(@library)}']",
+          text: "Remove"
+        assert_select "button.btn.btn-secondary[type='submit']" \
+          "[formaction='#{duplicate_library_folder_selection_path(@library)}']",
+          text: "Duplicate"
+      end
+
+      assert_select "#library-folder-browser-items" do
+        assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}" do
+          assert_select "input.form-check-input[type='checkbox'][name='folder_ids[]'][value='#{@child_folder.id}']" \
+            "[id='#{ActionView::RecordIdentifier.dom_id(@child_folder, :browser_selection)}']" \
+            "[aria-label='Select folder #{@child_folder.name}']" \
+            "[data-library-folder-selection-target='item']",
+            count: 1
+          assert_select "a[href='#{library_path(@library, folder_id: @child_folder.id, tab: "all")}']",
+            text: @child_folder.name
+        end
+        assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}" do
+          assert_select "input.form-check-input[type='checkbox'][name='content_ids[]'][value='#{contents(:one).id}']" \
+            "[id='#{ActionView::RecordIdentifier.dom_id(contents(:one), :browser_selection)}']" \
+            "[aria-label='Select content #{contents(:one).title}']" \
+            "[data-library-folder-selection-target='item']",
+            count: 1
+        end
+        assert_select "input[type='checkbox'][checked]", count: 0
+      end
+    end
+
+    assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:two), :browser)}", count: 0
+  end
+
   test "folder browser rejects a folder from another library" do
     get library_url(@library, folder_id: @other_root_folder.id)
 
@@ -242,7 +287,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     get library_url(@library, tab: "library")
 
     assert_response :success
-    assert_select ".nav-tabs .nav-link.active", text: "Library Content"
+    assert_select ".nav-tabs .nav-link.active", text: "Current Library"
     assert_select "turbo-frame#library_#{@library.id}_library_contents_table tbody tr", count: 1
     assert_select "tbody", text: /#{contents(:one).title}/
   end

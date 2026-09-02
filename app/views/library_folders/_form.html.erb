@@ -19,6 +19,17 @@
   <%= hidden_field_tag :parent_folder_id, @parent_folder&.id %>
   <%= hidden_field_tag :tab, @active_tab %>
   <%= hidden_field_tag :shelf_id, @selected_shelf&.id if @selected_shelf %>
+  <% if @picker_operation %>
+    <%= hidden_field_tag :picker_operation, @picker_operation %>
+    <%= hidden_field_tag :picker_folder_id, @parent_folder&.id %>
+    <%= hidden_field_tag :source_folder_id, @selection.source_folder_id %>
+    <% @selection.folder_ids.each do |folder_id| %>
+      <%= hidden_field_tag "folder_ids[]", folder_id %>
+    <% end %>
+    <% @selection.content_ids.each do |content_id| %>
+      <%= hidden_field_tag "content_ids[]", content_id %>
+    <% end %>
+  <% end %>
 
   <div class="mb-3">
     <%= form.label :name, class: "form-label" %>
@@ -40,8 +51,23 @@
 
   <div class="modal-footer px-0 pb-0">
     <% if local_assigns[:modal] %>
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <% if @picker_operation %>
+        <% picker_params = {
+          source_folder_id: @selection.source_folder_id,
+          folder_ids: @selection.folder_ids,
+          content_ids: @selection.content_ids,
+          picker_folder_id: @parent_folder&.id,
+          tab: @active_tab,
+          shelf_id: @selected_shelf&.id
+        }.compact %>
+        <% picker_path = @picker_operation == :move ?
+          move_library_folder_selection_path(@library, picker_params) :
+          duplicate_library_folder_selection_path(@library, picker_params) %>
+        <%= link_to "Back", picker_path, class: "btn btn-secondary", data: { turbo_frame: "modal" } %>
+      <% else %>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <% end %>
     <% end %>
-    <%= form.submit "Add Folder", class: "btn btn-primary" %>
+    <%= form.submit "New Folder", class: "btn btn-primary" %>
   </div>
 <% end %>

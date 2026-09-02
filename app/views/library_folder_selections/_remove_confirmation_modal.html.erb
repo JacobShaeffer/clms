@@ -1,0 +1,37 @@
+<%= render layout: "shared/modal", locals: { title: "Remove selected items", dialog_class: "modal-lg modal-dialog-scrollable" } do %>
+  <p>Are you sure you want to remove all of the following items?</p>
+
+  <ul class="mb-0">
+    <% @selection.direct_content_placements.each do |placement| %>
+      <li>
+        <span class="badge text-bg-light">Content</span>
+        <%= placement.content.title %>
+      </li>
+    <% end %>
+    <%= render "library_folder_selections/removal_tree", nodes: @selection.removal_tree %>
+  </ul>
+
+  <div class="modal-footer px-0 pb-0">
+    <button
+      type="button"
+      class="btn btn-secondary"
+      data-bs-dismiss="modal"
+      data-action="click->modal#hide">Cancel</button>
+    <%= form_with(
+      url: remove_library_folder_selection_path(@library),
+      method: :delete,
+      data: { turbo_frame: "modal" }
+    ) do %>
+      <%= hidden_field_tag :source_folder_id, @selection.source_folder_id %>
+      <% @selection.folder_ids.each do |folder_id| %>
+        <%= hidden_field_tag "folder_ids[]", folder_id %>
+      <% end %>
+      <% @selection.content_ids.each do |content_id| %>
+        <%= hidden_field_tag "content_ids[]", content_id %>
+      <% end %>
+      <%= hidden_field_tag :tab, params[:tab] if params[:tab].present? %>
+      <%= hidden_field_tag :shelf_id, params[:shelf_id] if params[:shelf_id].present? %>
+      <%= button_tag "Remove", type: "submit", class: "btn btn-danger" %>
+    <% end %>
+  </div>
+<% end %>

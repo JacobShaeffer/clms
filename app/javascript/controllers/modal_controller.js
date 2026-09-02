@@ -7,11 +7,15 @@ export default class extends Controller {
     }
 
     this.modal = new window.bootstrap.Modal(this.element)
+    this.shown = false
+    this.element.addEventListener("shown.bs.modal", this.markShown)
     this.modal.show()
     this.element.addEventListener("hidden.bs.modal", this.clearFrame, { once: true })
   }
 
   disconnect() {
+    this.element.removeEventListener("shown.bs.modal", this.markShown)
+
     if (this.modal) {
       this.modal.dispose()
     }
@@ -20,6 +24,25 @@ export default class extends Controller {
     document.body.classList.remove("modal-open")
     document.body.style.removeProperty("overflow")
     document.body.style.removeProperty("padding-right")
+  }
+
+  hide() {
+    if (!this.modal) return
+
+    if (this.shown) {
+      this.modal.hide()
+    } else {
+      this.element.addEventListener("shown.bs.modal", this.hideAfterShown, { once: true })
+    }
+  }
+
+  markShown = () => {
+    this.shown = true
+  }
+
+  hideAfterShown = () => {
+    this.shown = true
+    this.modal?.hide()
   }
 
   clearFrame = () => {
