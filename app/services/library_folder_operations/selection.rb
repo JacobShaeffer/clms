@@ -6,19 +6,24 @@ module LibraryFolderOperations
 
     TreeNode = Struct.new(:folder, :contents, :children, keyword_init: true)
 
-    attr_reader :library, :source_folder, :selected_folders, :direct_content_placements,
-      :all_folders, :folder_ids, :content_ids
+    attr_reader :library, :library_version, :source_folder, :selected_folders,
+      :direct_content_placements, :all_folders, :folder_ids, :content_ids
 
-    def initialize(library:, source_folder_id:, folder_ids:, content_ids:)
+    def initialize(library:, source_folder_id:, folder_ids:, content_ids:, library_version: nil)
       @library = library
+      @library_version = library_version || library.reload.current_version
+      raise InvalidSelection, "The library does not have a current version." unless @library_version
+
+      VersionGuard.ensure_current!(library:, library_version: @library_version)
+      @all_folders = @library_version.library_folders.order(:name, :id).to_a
+      @folders_by_id = @all_folders.index_by(&:id)
+      @children_by_parent_id = @all_folders.group_by(&:parent_folder_id)
       @source_folder = resolve_optional_folder(source_folder_id, "source folder")
       @folder_ids = parse_ids(folder_ids, "folder")
       @content_ids = parse_ids(content_ids, "content")
 
       raise InvalidSelection, "Select at least one folder or content item." if @folder_ids.empty? && @content_ids.empty?
 
-      @all_folders = library.library_folders.order(:name, :id).to_a
-      @children_by_parent_id = @all_folders.group_by(&:parent_folder_id)
       @selected_folders = resolve_selected_folders
       @direct_content_placements = resolve_direct_content_placements
       @subtree_folders = build_subtree_folders
@@ -60,9 +65,8 @@ module LibraryFolderOperations
 
     def folder!(value, label: "folder")
       id = parse_id(value, label)
-      folder = LibraryFolder.find_by(id:)
-      raise InvalidSelection, "The #{label} is no longer available." unless folder
-      raise ActiveRecord::RecordNotFound, "#{label.titleize} not found" unless folder.library_id == library.id
+      folder = @folders_by_id[id]
+      raise_unavailable_folder!(id, label:) unless folder
 
       folder
     end
@@ -89,9 +93,8 @@ module LibraryFolderOperations
 
     def resolve_selected_folders
       folder_ids.map do |id|
-        folder = LibraryFolder.find_by(id:)
-        raise InvalidSelection, "A selected folder is no longer available." unless folder
-        raise ActiveRecord::RecordNotFound, "Selected folder not found" unless folder.library_id == library.id
+        folder = @folders_by_id[id]
+        raise_unavailable_folder!(id, label: "selected folder") unless folder
         unless folder.parent_folder_id == source_folder_id
           raise InvalidSelection, "Selected folders must be direct children of the open folder."
         end
@@ -105,7 +108,11 @@ module LibraryFolderOperations
       raise InvalidSelection, "Content cannot be selected from the library root." unless source_folder
 
       placements = LibraryFolderContent
-        .where(library_folder_id: source_folder.id, content_id: content_ids)
+        .where(
+          library_version_id: library_version.id,
+          library_folder_id: source_folder.id,
+          content_id: content_ids
+        )
         .includes(:content)
         .to_a
       if placements.length != content_ids.length
@@ -136,7 +143,10 @@ module LibraryFolderOperations
       return {} if @subtree_folders.empty?
 
       LibraryFolderContent
-        .where(library_folder_id: @subtree_folders.map(&:id))
+        .where(
+          library_version_id: library_version.id,
+          library_folder_id: @subtree_folders.map(&:id)
+        )
         .includes(:content)
         .to_a
         .group_by(&:library_folder_id)
@@ -155,6 +165,15 @@ module LibraryFolderOperations
 
     def parse_ids(values, label)
       Array(values).map { |value| parse_id(value, label) }.uniq
+    end
+
+    def raise_unavailable_folder!(id, label:)
+      folder_library_id = LibraryFolder.where(id:).pick(:library_id)
+      if folder_library_id.present? && folder_library_id != library.id
+        raise ActiveRecord::RecordNotFound, "#{label.titleize} not found"
+      end
+
+      raise InvalidSelection, "The #{label} is no longer available."
     end
 
     def parse_id(value, label)

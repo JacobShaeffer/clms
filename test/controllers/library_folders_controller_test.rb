@@ -207,6 +207,22 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "rejects a parent folder from a locked version" do
+    locked_root = @root_folder
+    LibraryVersions::Create.call(library: @library, version_number: "2.0", user: @user)
+
+    assert_no_difference("LibraryFolder.count") do
+      post library_library_folders_url(@library),
+        params: {
+          library_folder: { name: "Stale child" },
+          parent_folder_id: locked_root.id
+        },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :not_found
+  end
+
   test "users below intern plus cannot create folders" do
     @user.update!(role: :intern)
 

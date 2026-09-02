@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_20_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_02_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -109,36 +109,55 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_120000) do
     t.bigint "content_id", null: false
     t.datetime "created_at", null: false
     t.bigint "library_folder_id", null: false
+    t.bigint "library_version_id", null: false
     t.datetime "updated_at", null: false
     t.index ["content_id"], name: "index_library_folder_contents_on_content_id"
     t.index ["library_folder_id", "content_id"], name: "idx_on_library_folder_id_content_id_f0777ce9d7", unique: true
     t.index ["library_folder_id"], name: "index_library_folder_contents_on_library_folder_id"
+    t.index ["library_version_id"], name: "index_library_folder_contents_on_library_version_id"
   end
 
   create_table "library_folders", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "library_id", null: false
+    t.bigint "library_version_id", null: false
     t.bigint "logo_id"
     t.string "name", null: false
     t.bigint "parent_folder_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["id", "library_version_id"], name: "index_library_folders_on_id_and_library_version_id", unique: true
     t.index ["library_id"], name: "index_library_folders_on_library_id"
+    t.index ["library_version_id"], name: "index_library_folders_on_library_version_id"
     t.index ["logo_id"], name: "index_library_folders_on_logo_id"
     t.index ["parent_folder_id"], name: "index_library_folders_on_parent_folder_id"
     t.index ["user_id"], name: "index_library_folders_on_user_id"
     t.check_constraint "parent_folder_id IS NULL AND logo_id IS NOT NULL OR parent_folder_id IS NOT NULL AND logo_id IS NULL", name: "library_folders_root_only_logo"
   end
 
+  create_table "library_version_contents", force: :cascade do |t|
+    t.bigint "content_id", null: false
+    t.datetime "created_at", null: false
+    t.string "file_checksum"
+    t.bigint "library_version_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["content_id"], name: "index_library_version_contents_on_content_id"
+    t.index ["library_version_id", "content_id"], name: "index_library_version_contents_on_version_and_content", unique: true
+    t.index ["library_version_id"], name: "index_library_version_contents_on_library_version_id"
+  end
+
   create_table "library_versions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "library_id", null: false
+    t.datetime "locked_at"
     t.bigint "previous_version_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.string "version_number", null: false
+    t.index ["id", "library_id"], name: "index_library_versions_on_id_and_library_id", unique: true
     t.index ["library_id", "version_number"], name: "index_library_versions_on_library_id_and_version_number", unique: true
     t.index ["library_id"], name: "index_library_versions_on_library_id"
+    t.index ["library_id"], name: "index_library_versions_on_one_unlocked_per_library", unique: true, where: "(locked_at IS NULL)"
     t.index ["previous_version_id"], name: "index_library_versions_on_previous_version_id", unique: true
     t.index ["user_id"], name: "index_library_versions_on_user_id"
   end
@@ -210,14 +229,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_120000) do
   add_foreign_key "contents_metadata", "contents"
   add_foreign_key "contents_metadata", "metadata", column: "metadata_id"
   add_foreign_key "libraries", "library_versions", column: "current_version_id"
+  add_foreign_key "libraries", "library_versions", column: ["current_version_id", "id"], primary_key: ["id", "library_id"], name: "fk_libraries_current_version_library"
   add_foreign_key "libraries", "users"
   add_foreign_key "library_assets", "users"
   add_foreign_key "library_folder_contents", "contents"
   add_foreign_key "library_folder_contents", "library_folders"
+  add_foreign_key "library_folder_contents", "library_folders", column: ["library_folder_id", "library_version_id"], primary_key: ["id", "library_version_id"], name: "fk_folder_contents_folder_version"
+  add_foreign_key "library_folder_contents", "library_version_contents", column: ["library_version_id", "content_id"], primary_key: ["library_version_id", "content_id"], name: "fk_folder_contents_manifest"
+  add_foreign_key "library_folder_contents", "library_versions"
   add_foreign_key "library_folders", "libraries"
   add_foreign_key "library_folders", "library_assets", column: "logo_id"
   add_foreign_key "library_folders", "library_folders", column: "parent_folder_id"
+  add_foreign_key "library_folders", "library_folders", column: ["parent_folder_id", "library_version_id"], primary_key: ["id", "library_version_id"], name: "fk_library_folders_parent_version"
+  add_foreign_key "library_folders", "library_versions"
+  add_foreign_key "library_folders", "library_versions", column: ["library_version_id", "library_id"], primary_key: ["id", "library_id"], name: "fk_library_folders_version_library"
   add_foreign_key "library_folders", "users"
+  add_foreign_key "library_version_contents", "contents"
+  add_foreign_key "library_version_contents", "library_versions"
   add_foreign_key "library_versions", "libraries"
   add_foreign_key "library_versions", "library_versions", column: "previous_version_id"
   add_foreign_key "library_versions", "users"

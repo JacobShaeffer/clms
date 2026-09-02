@@ -79,7 +79,8 @@ class LibraryFolderOperations::DestinationPickerTest < ActiveSupport::TestCase
   private
 
   def create_folder!(name, parent_folder: nil)
-    @library.library_folders.create!(
+    @library.current_version.library_folders.create!(
+      library: @library,
       name:,
       parent_folder:,
       user: users(:one),

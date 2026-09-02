@@ -7,7 +7,7 @@ module ContentTables
     }.freeze
     LIBRARY_FOLDERS_COLUMN_KEY = "library_folders"
 
-    attr_reader :library
+    attr_reader :library, :library_version
 
     def self.all_content_state_key(library)
       "libraries.#{library.id}.all_contents"
@@ -23,6 +23,7 @@ module ContentTables
 
     def initialize(
       library:,
+      library_version: library.current_version,
       source:,
       metadata_types:,
       update_path:,
@@ -35,7 +36,8 @@ module ContentTables
       selection_form_id: nil
     )
       @library = library
-      @path_index = path_index || LibraryFolderPathIndex.new(library:)
+      @library_version = library_version
+      @path_index = path_index || LibraryFolderPathIndex.new(library:, library_version:)
       metadata_types = Array(metadata_types)
       library_column = build_library_folders_column
 
@@ -58,9 +60,7 @@ module ContentTables
     end
 
     def library_folders_for(content)
-      content.library_folders
-        .select { |folder| folder.library_id == library.id }
-        .sort_by { |folder| [ folder.name.downcase, folder.name, folder.id ] }
+      library_folders_by_content_id.fetch(content.id, [])
     end
 
     def breadcrumb_for(folder)
@@ -71,11 +71,23 @@ module ContentTables
 
     attr_reader :path_index
 
+    def library_folders_by_content_id
+      @library_folders_by_content_id ||= library_version.library_folder_contents
+        .includes(:library_folder)
+        .group_by(&:content_id)
+        .transform_values do |placements|
+          placements
+            .map(&:library_folder)
+            .sort_by { |folder| [ folder.name.downcase, folder.name, folder.id ] }
+        end
+    end
+
     def build_library_folders_column
       filter = Filters::Text.new(apply: lambda do |relation:, values:, **|
         query = ActiveRecord::Base.sanitize_sql_like(values.fetch("value"))
-        matching_content_ids = LibraryFolderContent.joins(:library_folder)
-          .where(library_folders: { library_id: library.id })
+        matching_content_ids = LibraryFolderContent
+          .where(library_version_id: library_version.id)
+          .joins(:library_folder)
           .where(LibraryFolder.arel_table[:name].matches("%#{query}%"))
           .select(:content_id)
 
@@ -105,7 +117,7 @@ module ContentTables
         .join(folders)
         .on(folders[:id].eq(placements[:library_folder_id]))
         .where(placements[:content_id].eq(contents[:id]))
-        .where(folders[:library_id].eq(library.id))
+        .where(placements[:library_version_id].eq(library_version.id))
 
       Arel::Nodes::Grouping.new(subquery.ast)
     end

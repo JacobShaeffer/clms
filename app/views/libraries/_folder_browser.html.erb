@@ -144,7 +144,12 @@
               data: { library_folder_selection_target: "item" }
             %>
             <span><%= content.title %></span>
-            <span class="badge text-bg-light ms-auto">Content</span>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+              <% if @file_changed_content_ids.key?(content.id) %>
+                <span class="badge text-bg-warning">File changed</span>
+              <% end %>
+              <span class="badge text-bg-light">Content</span>
+            </div>
           </div>
         <% end %>
 

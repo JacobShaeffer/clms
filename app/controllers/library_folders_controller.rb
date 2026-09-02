@@ -9,7 +9,8 @@ class LibraryFoldersController < ApplicationController
   rescue_from LibraryFolderOperations::Selection::InvalidSelection, with: :render_picker_context_error
 
   def new
-    @library_folder = @library.library_folders.build(
+    @library_folder = @library_version.library_folders.build(
+      library: @library,
       parent_folder: @parent_folder,
       user: current_user
     )
@@ -19,7 +20,8 @@ class LibraryFoldersController < ApplicationController
   end
 
   def create
-    @library_folder = @library.library_folders.build(
+    @library_folder = @library_version.library_folders.build(
+      library: @library,
       name: library_folder_params[:name],
       parent_folder: @parent_folder,
       user: current_user
@@ -28,7 +30,7 @@ class LibraryFoldersController < ApplicationController
     assign_root_logo
 
     respond_to do |format|
-      if @library_folder.save
+      if save_current_version_folder
         format.turbo_stream { render_folder_creation_success }
         format.html do
           redirect_to library_path(@library, page_context_params),
@@ -51,6 +53,7 @@ class LibraryFoldersController < ApplicationController
 
   def set_library
     @library = policy_scope(Library).find(params.expect(:library_id))
+    @library_version = @library.current_version
   end
 
   def set_page_context
@@ -68,7 +71,7 @@ class LibraryFoldersController < ApplicationController
   def set_parent_folder
     return if params[:parent_folder_id].blank?
 
-    @parent_folder = @library.library_folders.find(scalar_id!(:parent_folder_id))
+    @parent_folder = @library_version.library_folders.find(scalar_id!(:parent_folder_id))
   end
 
   def set_picker_context
@@ -105,8 +108,12 @@ class LibraryFoldersController < ApplicationController
   end
 
   def load_folder_browser(current_folder: @parent_folder)
-    folders = @library.library_folders.order(:name, :id).to_a
-    @folder_path_index = LibraryFolderPathIndex.new(library: @library, folders:)
+    folders = @library_version.library_folders.order(:name, :id).to_a
+    @folder_path_index = LibraryFolderPathIndex.new(
+      library: @library,
+      library_version: @library_version,
+      folders:
+    )
     @current_folder = current_folder
     @breadcrumb_folders = @current_folder ? @folder_path_index.path(@current_folder) : []
     @browser_folders = if @current_folder
@@ -114,7 +121,24 @@ class LibraryFoldersController < ApplicationController
     else
       folders.select { |folder| folder.parent_folder_id.nil? }
     end
-    @browser_contents = @current_folder ? @current_folder.contents.order(Content.arel_table[:title].lower, :id).to_a : []
+    @browser_contents = if @current_folder
+      @current_folder.contents.with_attached_file.order(Content.arel_table[:title].lower, :id).to_a
+    else
+      []
+    end
+    @file_changed_content_ids = @library_version
+      .file_changed_content_ids(@browser_contents)
+      .index_with(true)
+  end
+
+  def save_current_version_folder
+    @library.with_lock do
+      @library.reload
+      raise ActiveRecord::RecordNotFound, "Library version is no longer current" unless
+        @library.current_version_id == @library_version.id
+
+      @library_folder.save
+    end
   end
 
   def library_folder_params

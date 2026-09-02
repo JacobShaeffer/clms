@@ -12,7 +12,15 @@
       </p>
     </div>
 
-    <%= link_to "Back to libraries", libraries_path, class: "btn btn-outline-secondary" %>
+    <div class="d-flex flex-wrap gap-2">
+      <% if policy(LibraryVersion).create? %>
+        <%= link_to "New version",
+          new_library_library_version_path(@library),
+          class: "btn btn-primary",
+          data: { turbo_frame: "modal" } %>
+      <% end %>
+      <%= link_to "Back to libraries", libraries_path, class: "btn btn-outline-secondary" %>
+    </div>
   </div>
 
   <div class="row g-4">

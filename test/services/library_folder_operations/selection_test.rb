@@ -15,6 +15,9 @@ class LibraryFolderOperations::SelectionTest < ActiveSupport::TestCase
     selection = build_selection(folder_ids: [ @selected.id ], content_ids: [ contents(:one).id ])
 
     assert_equal @source, selection.source_folder
+    assert_equal @library.current_version, selection.library_version
+    assert_equal @library.current_version.library_folders.order(:name, :id).to_a,
+      selection.all_folders
     assert_equal [ @selected ], selection.selected_folders
     assert_equal [ @direct_placement ], selection.direct_content_placements
     assert_equal [ @selected, @nested ], selection.subtree_folders
@@ -67,7 +70,8 @@ class LibraryFolderOperations::SelectionTest < ActiveSupport::TestCase
   end
 
   def create_folder!(name, library: @library, parent_folder: nil)
-    library.library_folders.create!(
+    library.current_version.library_folders.create!(
+      library:,
       name:,
       parent_folder:,
       user: users(:one),

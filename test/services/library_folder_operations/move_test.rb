@@ -23,6 +23,9 @@ class LibraryFolderOperations::MoveTest < ActiveSupport::TestCase
     assert_equal @selected, @nested.reload.parent_folder
     refute @source.library_folder_contents.exists?(content_id: contents(:one).id)
     assert @destination.library_folder_contents.exists?(content_id: contents(:one).id)
+    assert_equal @library.current_version_id,
+      @destination.library_folder_contents.find_by!(content: contents(:one)).library_version_id
+    assert @library.current_version.library_version_contents.exists?(content: contents(:one))
   end
 
   test "moving content merges an existing destination placement" do
@@ -83,10 +86,30 @@ class LibraryFolderOperations::MoveTest < ActiveSupport::TestCase
     assert_equal @source, @selected.reload.parent_folder
   end
 
+  test "rejects moves when the current version is locked" do
+    @library.current_version.update_column(:locked_at, Time.current)
+
+    assert_no_difference("LibraryFolderContent.count") do
+      assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
+        LibraryFolderOperations::Move.call(
+          library: @library,
+          source_folder_id: @source.id,
+          folder_ids: [ @selected.id ],
+          content_ids: [ contents(:one).id ],
+          destination_folder_id: @destination.id
+        )
+      end
+    end
+
+    assert_equal @source, @selected.reload.parent_folder
+    assert LibraryFolderContent.exists?(@source_placement.id)
+  end
+
   private
 
   def create_folder!(name, parent_folder: nil)
-    @library.library_folders.create!(
+    @library.current_version.library_folders.create!(
+      library: @library,
       name:,
       parent_folder:,
       user: users(:one),

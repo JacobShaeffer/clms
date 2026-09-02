@@ -23,6 +23,17 @@ class LibraryTest < ActiveSupport::TestCase
     assert_includes library.errors[:current_version], "must belong to this library"
   end
 
+  test "current version must be editable" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+    locked_version = library.current_version
+    LibraryVersions::Create.call(library:, version_number: "2.0", user: users(:one))
+
+    library.current_version = locked_version
+
+    assert_not library.valid?
+    assert_includes library.errors[:current_version], "must be editable"
+  end
+
   test "name is required" do
     library = Library.new(name: "", user: users(:one))
 

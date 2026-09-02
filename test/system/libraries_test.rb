@@ -38,6 +38,33 @@ class LibrariesTest < ApplicationSystemTestCase
     assert_selector "tbody#libraries tr", text: /Agriculture Library.*1\.0/
   end
 
+  test "an admin creates an editable snapshot from the library page" do
+    users(:one).update!(role: :admin)
+    library = Library.create!(name: "Versioned Library", user: users(:one))
+    folder = create_folder!(library, "Guides")
+    LibraryFolderContent.create!(library_folder: folder, content: contents(:one))
+    previous_version = library.current_version
+
+    visit library_path(library, folder_id: folder.id)
+    click_on "New version"
+
+    within "turbo-frame#modal" do
+      fill_in "Version number", with: "2.0"
+      click_on "Create version"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    assert_current_path library_path(library)
+    assert_text "Version 2.0"
+    assert_link "Guides"
+
+    current_version = library.reload.current_version
+    assert_equal "2.0", current_version.version_number
+    assert_predicate current_version, :editable?
+    assert_predicate previous_version.reload, :locked?
+    assert current_version.library_version_contents.exists?(content: contents(:one))
+  end
+
   test "browses folders tabs shelves and library placement tooltips" do
     library = Library.create!(name: "Health Library", user: users(:one))
     root_folder = create_folder!(library, "Guides")

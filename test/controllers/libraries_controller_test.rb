@@ -19,7 +19,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     users(:one).active_shelves.delete_all
 
     @library = Library.create!(name: "Health Library", user: users(:one))
-    @library.library_versions.create!(version_number: "2.0", user: users(:one))
+    LibraryVersions::Create.call(library: @library, version_number: "2.0", user: users(:one))
     @root_folder = create_folder!(@library, name: "Health")
     @child_folder = create_folder!(@library, name: "First Aid", parent_folder: @root_folder)
 
@@ -106,6 +106,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index renders an empty state" do
+    LibraryFolderContent.delete_all
+    LibraryVersionContent.delete_all
     LibraryFolder.delete_all
     Library.update_all(current_version_id: nil)
     LibraryVersion.delete_all
@@ -196,6 +198,57 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".breadcrumb-item a", text: @root_folder.name
     assert_select ".breadcrumb-item.active", text: @child_folder.name
     assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:two), :browser)}", text: /#{contents(:two).title}/
+  end
+
+  test "folder browser marks files changed since the previous version and resets on the next version" do
+    content = create_content_with_file!(bytes: "original library file")
+    LibraryFolderContent.create!(library_folder: @root_folder, content:)
+    LibraryVersions::Create.call(library: @library, version_number: "3.0", user: users(:one))
+    current_root = @library.reload.current_version.library_folders.find_by!(name: @root_folder.name)
+
+    get library_url(@library, folder_id: current_root.id)
+    assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
+      text: "File changed",
+      count: 0
+
+    content.update!(display_title: "Updated display title")
+    get library_url(@library, folder_id: current_root.id)
+    assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
+      text: "File changed",
+      count: 0
+
+    content.file.attach(
+      io: StringIO.new("changed library file"),
+      filename: "changed-library-file.png",
+      content_type: "image/png"
+    )
+    get library_url(@library, folder_id: current_root.id)
+    assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
+      text: "File changed",
+      count: 1
+
+    LibraryVersions::Create.call(library: @library, version_number: "4.0", user: users(:one))
+    next_root = @library.reload.current_version.library_folders.find_by!(name: @root_folder.name)
+    get library_url(@library, folder_id: next_root.id)
+    assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
+      text: "File changed",
+      count: 0
+  end
+
+  test "folder browser does not mark changed files for content absent from the previous version" do
+    content = create_content_with_file!(bytes: "new content original file")
+    LibraryFolderContent.create!(library_folder: @root_folder, content:)
+    content.file.attach(
+      io: StringIO.new("new content changed file"),
+      filename: "new-content-changed-file.png",
+      content_type: "image/png"
+    )
+
+    get library_url(@library, folder_id: @root_folder.id)
+
+    assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
+      text: "File changed",
+      count: 0
   end
 
   test "folder browser renders accessible selection checkboxes for direct folders and content" do
@@ -290,6 +343,23 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".nav-tabs .nav-link.active", text: "Current Library"
     assert_select "turbo-frame#library_#{@library.id}_library_contents_table tbody tr", count: 1
     assert_select "tbody", text: /#{contents(:one).title}/
+  end
+
+  test "library content and folder tooltips exclude placements from locked versions" do
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    locked_version = @library.current_version
+    LibraryVersions::Create.call(library: @library, version_number: "3.0", user: users(:one))
+    current_root = @library.reload.current_version.library_folders.find_by!(name: @root_folder.name)
+    current_root.library_folder_contents.find_by!(content: contents(:one)).destroy!
+
+    assert locked_version.library_folder_contents.exists?(content: contents(:one))
+
+    get library_url(@library, tab: "library")
+    assert_select "tbody", text: /#{Regexp.escape(contents(:one).title)}/, count: 0
+
+    get library_url(@library, tab: "all")
+    row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"
+    assert_select "tr##{row_id} [title='Health Library / Health']", count: 0
   end
 
   test "shelves tab lists active shelves in saved order and opens a table without search or filters" do
@@ -509,5 +579,21 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
       user: users(:one),
       logo: (parent_folder ? nil : library_assets(:one))
     )
+  end
+
+  def create_content_with_file!(bytes:)
+    Content.new(
+      title: "Versioned content #{SecureRandom.hex(4)}",
+      display_title: "Versioned content",
+      description: "Content used to verify library file changes.",
+      user: users(:one)
+    ).tap do |content|
+      content.file.attach(
+        io: StringIO.new(bytes),
+        filename: "library-file-#{SecureRandom.hex(4)}.png",
+        content_type: "image/png"
+      )
+      content.save!
+    end
   end
 end

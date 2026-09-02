@@ -85,6 +85,7 @@ class DemoDataSeederTest < ActiveSupport::TestCase
     assert_equal 1, Library.count
     library = Library.find_by!(name: "Community Health Demonstration Library")
     assert_equal "1.0", library.current_version.version_number
+    assert_predicate library.current_version, :editable?
     assert_equal 1, LibraryAsset.count
 
     logo = LibraryAsset.first
@@ -93,15 +94,18 @@ class DemoDataSeederTest < ActiveSupport::TestCase
     assert_equal "\x89PNG\r\n\x1A\n".b, logo.image.download.first(8)
     assert_equal "PK\x05\x06".b, logo.design_files.download.first(4)
 
-    roots = library.library_folders.roots.order(:id)
+    roots = library.current_version.library_folders.roots.order(:id)
     assert_equal DemoDataSeeder::FOLDER_TREE.keys, roots.pluck(:name)
     assert roots.all? { |root| root.child_folders.count == 3 }
 
-    child_folders = library.library_folders.where.not(parent_folder_id: nil)
+    child_folders = library.current_version.library_folders.where.not(parent_folder_id: nil)
     assert_equal 18, child_folders.count
     assert_equal [ 5, 6 ], child_folders.map { |folder| folder.contents.count }.uniq.sort
-    assert_equal DemoDataSeeder::CONTENT_COUNT, library.library_folder_contents.count
-    assert_equal DemoDataSeeder::CONTENT_COUNT, library.library_folder_contents.distinct.count(:content_id)
+    assert_equal DemoDataSeeder::CONTENT_COUNT, library.current_version.library_folder_contents.count
+    assert_equal DemoDataSeeder::CONTENT_COUNT,
+      library.current_version.library_folder_contents.distinct.count(:content_id)
+    assert_equal DemoDataSeeder::CONTENT_COUNT, library.current_version.library_version_contents.count
+    assert library.current_version.library_version_contents.all? { |entry| entry.file_checksum.present? }
 
     topic_type = MetadataType.find_by!(name: "Topic")
     child_folders.includes(contents: :metadata).find_each do |folder|

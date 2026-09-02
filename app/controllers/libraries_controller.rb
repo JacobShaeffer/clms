@@ -82,7 +82,7 @@ class LibrariesController < ApplicationController
 
     return render_add_to_active_folder_error("Open a folder before adding content.") if params[:folder_id].blank?
 
-    @current_folder = @library.library_folders.find(scalar_id!(:folder_id))
+    @current_folder = @library_version.library_folders.find(scalar_id!(:folder_id))
     content_ids = selected_ids(:content_ids)
     return render_add_to_active_folder_error("Select at least one content item.") if content_ids.empty?
 
@@ -92,7 +92,12 @@ class LibrariesController < ApplicationController
     end
 
     validate_placement_context! if request.format.turbo_stream?
-    message = add_to_active_folder_message(folder: @current_folder, content_ids:)
+    placement_result = LibraryFolderOperations::PlaceContents.call(
+      library: @library,
+      folder_id: @current_folder.id,
+      content_ids:
+    )
+    message = add_to_active_folder_message(placement_result)
 
     respond_to do |format|
       format.turbo_stream do
@@ -122,6 +127,8 @@ class LibrariesController < ApplicationController
           status: :see_other
       end
     end
+  rescue LibraryFolderOperations::Selection::InvalidSelection => error
+    render_add_to_active_folder_error(error.message)
   end
 
   def new
@@ -185,9 +192,13 @@ class LibrariesController < ApplicationController
   end
 
   def load_folder_browser
-    folders = @library.library_folders.order(:name, :id).to_a
-    @folder_path_index = LibraryFolderPathIndex.new(library: @library, folders:)
-    @current_folder = @library.library_folders.find(scalar_id!(:folder_id)) if params[:folder_id].present?
+    folders = @library_version.library_folders.order(:name, :id).to_a
+    @folder_path_index = LibraryFolderPathIndex.new(
+      library: @library,
+      library_version: @library_version,
+      folders:
+    )
+    @current_folder = @library_version.library_folders.find(scalar_id!(:folder_id)) if params[:folder_id].present?
     @breadcrumb_folders = @current_folder ? @folder_path_index.path(@current_folder) : []
     @browser_folders = if @current_folder
       folders.select { |folder| folder.parent_folder_id == @current_folder.id }
@@ -195,10 +206,13 @@ class LibrariesController < ApplicationController
       folders.select { |folder| folder.parent_folder_id.nil? }
     end
     @browser_contents = if @current_folder
-      @current_folder.contents.order(Content.arel_table[:title].lower, :id).to_a
+      @current_folder.contents.with_attached_file.order(Content.arel_table[:title].lower, :id).to_a
     else
       []
     end
+    @file_changed_content_ids = @library_version
+      .file_changed_content_ids(@browser_contents)
+      .index_with(true)
   end
 
   def load_active_shelves
@@ -224,9 +238,7 @@ class LibrariesController < ApplicationController
   end
 
   def load_library_contents_table
-    content_ids = LibraryFolderContent.joins(:library_folder)
-      .where(library_folders: { library_id: @library.id })
-      .select(:content_id)
+    content_ids = @library_version.library_folder_contents.select(:content_id)
     load_contents_table(
       source: base_content_source.where(id: content_ids),
       state_key: ContentTables::LibraryContentsDefinition.library_content_state_key(@library),
@@ -259,6 +271,7 @@ class LibrariesController < ApplicationController
   )
     @table_definition = ContentTables::LibraryContentsDefinition.new(
       library: @library,
+      library_version: @library_version,
       source:,
       metadata_types: policy_scope(MetadataType).order(:order, :name),
       update_path:,
@@ -284,7 +297,6 @@ class LibrariesController < ApplicationController
   def base_content_source
     policy_scope(Content).includes(
       :user,
-      :library_folders,
       metadata: :metadata_type
     )
   end
@@ -318,22 +330,10 @@ class LibrariesController < ApplicationController
     load_selected_active_shelf!
   end
 
-  def add_to_active_folder_message(folder:, content_ids:)
-    existing_content_ids = folder.library_folder_contents
-      .where(content_id: content_ids)
-      .pluck(:content_id)
-    missing_content_ids = content_ids - existing_content_ids
-
-    if missing_content_ids.any?
-      LibraryFolderContent.insert_all(
-        missing_content_ids.map { |content_id| { library_folder_id: folder.id, content_id: } },
-        unique_by: %i[library_folder_id content_id]
-      )
-    end
-
-    if missing_content_ids.empty?
+  def add_to_active_folder_message(result)
+    if result.none_added?
       "The selected content is already in the active folder."
-    elsif missing_content_ids.length < content_ids.length
+    elsif result.some_skipped?
       "Content was added to the active folder. Existing placements were skipped."
     else
       "Content was added to the active folder."
@@ -374,6 +374,7 @@ class LibrariesController < ApplicationController
 
   def set_library
     @library = policy_scope(Library).find(params.expect(:id))
+    @library_version = @library.current_version
   end
 
   def ordered_libraries

@@ -69,6 +69,39 @@ class LibraryFolderTest < ActiveSupport::TestCase
     assert_includes root.errors[:parent_folder], "cannot be a descendant"
   end
 
+  test "a parent folder must belong to the same version" do
+    old_root = create_folder!(name: "Health")
+    LibraryVersions::Create.call(library: @library, version_number: "2.0", user: users(:one))
+    folder = @library.current_version.library_folders.build(
+      library: @library,
+      name: "Invalid child",
+      parent_folder: old_root,
+      user: users(:one)
+    )
+
+    assert_not folder.valid?
+    assert_includes folder.errors[:parent_folder], "must belong to the same library version"
+  end
+
+  test "folders in locked versions cannot be changed or destroyed" do
+    folder = create_folder!(name: "Health")
+    LibraryVersions::Create.call(library: @library, version_number: "2.0", user: users(:one))
+
+    assert_not folder.reload.update(name: "Changed")
+    assert_includes folder.errors[:base], "Locked library versions cannot be changed"
+    assert_not folder.destroy
+    assert_includes folder.errors[:base], "Locked library versions cannot be changed"
+
+    new_folder = folder.library_version.library_folders.build(
+      library: @library,
+      name: "New locked folder",
+      user: users(:one),
+      logo: @logo
+    )
+    assert_not new_folder.valid?
+    assert_includes new_folder.errors[:base], "Locked library versions cannot be changed"
+  end
+
   private
 
   def create_folder!(name:, parent_folder: nil)

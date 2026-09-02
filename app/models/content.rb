@@ -4,8 +4,10 @@ class Content < ApplicationRecord
   has_many :shelf_contents, dependent: :destroy
   has_many :shelves, through: :shelf_contents
 
-  has_many :library_folder_contents, dependent: :destroy
+  has_many :library_folder_contents, dependent: :restrict_with_error
   has_many :library_folders, through: :library_folder_contents
+  has_many :library_version_contents, dependent: :restrict_with_error
+  has_many :library_versions, through: :library_version_contents
 
   has_many :contents_metadata, class_name: "ContentMetadatum", dependent: :destroy
   has_many :metadata, through: :contents_metadata

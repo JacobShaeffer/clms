@@ -27,8 +27,15 @@ class LibraryFolderOperations::DuplicateTest < ActiveSupport::TestCase
 
     copied_selected = @destination.child_folders.find_by!(name: @selected.name)
     copied_nested = copied_selected.child_folders.find_by!(name: @nested.name)
+    assert_equal @library.current_version, copied_selected.library_version
+    assert_equal @library.current_version, copied_nested.library_version
     assert_equal [ contents(:two) ], copied_nested.contents.to_a
     assert_equal [ contents(:one) ], @destination.contents.to_a
+    assert @library.current_version.library_version_contents.exists?(content: contents(:one))
+    assert @library.current_version.library_version_contents.exists?(content: contents(:two))
+    assert copied_nested.library_folder_contents.all? { |placement|
+      placement.library_version_id == @library.current_version_id
+    }
     assert_equal @source, @selected.reload.parent_folder
     assert_equal @selected, @nested.reload.parent_folder
   end
@@ -80,10 +87,28 @@ class LibraryFolderOperations::DuplicateTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects duplication when the current version is locked" do
+    @library.current_version.update_column(:locked_at, Time.current)
+
+    assert_no_difference([ "LibraryFolder.count", "LibraryFolderContent.count" ]) do
+      assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
+        LibraryFolderOperations::Duplicate.call(
+          library: @library,
+          source_folder_id: @source.id,
+          folder_ids: [ @selected.id ],
+          content_ids: [],
+          destination_folder_id: @destination.id,
+          user: users(:one)
+        )
+      end
+    end
+  end
+
   private
 
   def create_folder!(name, parent_folder: nil)
-    @library.library_folders.create!(
+    @library.current_version.library_folders.create!(
+      library: @library,
       name:,
       parent_folder:,
       user: users(:one),

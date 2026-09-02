@@ -31,12 +31,30 @@ class LibraryFolderOperations::RemoveTest < ActiveSupport::TestCase
     assert LibraryFolderContent.exists?(@outside_placement.id)
     assert Content.exists?(contents(:one).id)
     assert Content.exists?(contents(:two).id)
+    refute @library.current_version.library_version_contents.exists?(content: contents(:one))
+    assert @library.current_version.library_version_contents.exists?(content: contents(:two))
+  end
+
+  test "rejects removal when the current version is locked" do
+    @library.current_version.update_column(:locked_at, Time.current)
+
+    assert_no_difference([ "LibraryFolder.count", "LibraryFolderContent.count" ]) do
+      assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
+        LibraryFolderOperations::Remove.call(
+          library: @library,
+          source_folder_id: @source.id,
+          folder_ids: [ @selected.id ],
+          content_ids: [ contents(:one).id ]
+        )
+      end
+    end
   end
 
   private
 
   def create_folder!(name, parent_folder: nil)
-    @library.library_folders.create!(
+    @library.current_version.library_folders.create!(
+      library: @library,
       name:,
       parent_folder:,
       user: users(:one),

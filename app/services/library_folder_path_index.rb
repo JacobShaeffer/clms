@@ -1,11 +1,12 @@
 class LibraryFolderPathIndex
   class InvalidFolder < ArgumentError; end
 
-  attr_reader :library
+  attr_reader :library, :library_version
 
-  def initialize(library:, folders: nil)
+  def initialize(library:, library_version: library.current_version, folders: nil)
     @library = library
-    configured_folders = folders || library.library_folders.order(:name, :id).to_a
+    @library_version = library_version
+    configured_folders = folders || library_version.library_folders.order(:name, :id).to_a
     @folders_by_id = Array(configured_folders).index_by(&:id)
     @paths_by_id = {}
   end
@@ -25,9 +26,9 @@ class LibraryFolderPathIndex
 
   def folder_for(folder)
     configured_folder = folders_by_id[folder&.id]
-    return configured_folder if configured_folder&.library_id == library.id
+    return configured_folder if configured_folder&.library_version_id == library_version.id
 
-    raise InvalidFolder, "Folder does not belong to this library"
+    raise InvalidFolder, "Folder does not belong to this library version"
   end
 
   def build_path(folder)
@@ -42,7 +43,7 @@ class LibraryFolderPathIndex
       result.unshift(current_folder)
       parent_id = current_folder.parent_folder_id
       current_folder = parent_id.present? ? folders_by_id[parent_id] : nil
-      raise InvalidFolder, "Folder hierarchy leaves this library" if parent_id.present? && current_folder.nil?
+      raise InvalidFolder, "Folder hierarchy leaves this library version" if parent_id.present? && current_folder.nil?
     end
 
     result

@@ -1,0 +1,34 @@
+<% form_data = local_assigns[:modal] ? { turbo_frame: "_top" } : { turbo: false } %>
+
+<%= form_with(
+  model: [ library, library_version ],
+  data: form_data
+) do |form| %>
+  <% if library_version.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <p class="mb-2"><%= pluralize(library_version.errors.count, "error") %> prevented this version from being created:</p>
+
+      <ul class="mb-0">
+        <% library_version.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <p class="text-body-secondary">
+    Creating a new version will lock version <%= library.current_version.version_number %> and copy its folders and content placements.
+  </p>
+
+  <div class="mb-3">
+    <%= form.label :version_number, class: "form-label" %>
+    <%= form.text_field :version_number, class: "form-control", autofocus: true, required: true %>
+  </div>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if local_assigns[:modal] %>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <% end %>
+    <%= form.submit "Create version", class: "btn btn-primary" %>
+  </div>
+<% end %>

@@ -92,6 +92,7 @@ class DemoDataSeeder
     ActiveShelf.delete_all
     ContentTablePreference.delete_all
     LibraryFolderContent.delete_all
+    LibraryVersionContent.delete_all
     ShelfContent.delete_all
     ContentMetadatum.delete_all
     Library.update_all(current_version_id: nil)
@@ -232,13 +233,14 @@ class DemoDataSeeder
   def create_library!(admin, contents_by_topic)
     logo = create_library_asset!(admin)
     library = Library.create!(name: "Community Health Demonstration Library", user: admin)
+    library_version = library.current_version
 
     FOLDER_TREE.each do |root_name, child_names|
-      root = LibraryFolder.create!(name: root_name, library:, user: admin, logo:)
+      root = LibraryFolder.create!(name: root_name, library:, library_version:, user: admin, logo:)
       child_names.each do |child_name|
-        child = LibraryFolder.create!(name: child_name, library:, parent_folder: root, user: admin)
+        child = LibraryFolder.create!(name: child_name, library:, library_version:, parent_folder: root, user: admin)
         contents_by_topic.fetch(child_name).each do |content|
-          LibraryFolderContent.create!(library_folder: child, content:)
+          LibraryFolderContent.create!(library_folder: child, library_version:, content:)
         end
       end
     end
@@ -304,7 +306,7 @@ class DemoDataSeeder
     output.puts "  #{MetadataType.count} metadata types and #{Metadatum.count} metadata values"
     output.puts "  #{Content.count} contents"
     output.puts "  Shelf: #{shelf.name} (#{shelf.contents.count} contents)"
-    output.puts "  Library: #{library.name} (#{library.library_folders.roots.count} root folders)"
+    output.puts "  Library: #{library.name} (#{library.current_version.library_folders.roots.count} root folders)"
     output.puts "Demo credentials: role@role.com / rolerole"
   end
 end

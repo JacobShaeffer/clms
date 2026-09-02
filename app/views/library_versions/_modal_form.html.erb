@@ -1,0 +1,6 @@
+<%= render layout: "shared/modal", locals: { title: "New version" } do %>
+  <%= render "library_versions/form",
+    library: @library,
+    library_version: @library_version,
+    modal: true %>
+<% end %>
