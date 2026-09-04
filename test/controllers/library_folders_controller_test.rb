@@ -223,6 +223,23 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "rejects a new folder request for a non-current version" do
+    historical_version = @library.current_version
+    LibraryVersions::Create.call(library: @library, version_number: "2.0", user: @user)
+
+    assert_no_difference("LibraryFolder.count") do
+      post library_library_folders_url(@library),
+        params: {
+          library_folder: { name: "Historical folder", logo_id: library_assets(:one).id },
+          library_version_id: historical_version.id
+        },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_select ".alert-danger", text: "Only the current library version can be changed."
+  end
+
   test "users below intern plus cannot create folders" do
     @user.update!(role: :intern)
 

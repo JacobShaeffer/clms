@@ -38,6 +38,39 @@ class LibrariesTest < ApplicationSystemTestCase
     assert_selector "tbody#libraries tr", text: /Agriculture Library.*1\.0/
   end
 
+  test "selecting a previous version shows its folder snapshot as read only" do
+    library = Library.create!(name: "Versioned Library", user: users(:one))
+    root_folder = create_folder!(library, "Guides")
+    child_folder = create_folder!(library, "First Aid", parent_folder: root_folder)
+    LibraryFolderContent.create!(library_folder: child_folder, content: contents(:one))
+    historical_version = library.current_version
+
+    LibraryVersions::Create.call(library:, version_number: "2.0", user: users(:one))
+    current_root = library.reload.current_version.library_folders.find_by!(name: root_folder.name)
+    current_child = current_root.child_folders.find_by!(name: child_folder.name)
+    current_child.library_folder_contents.find_by!(content: contents(:one)).destroy!
+    current_child.destroy!
+
+    visit library_path(library, folder_id: current_root.id)
+    click_button "2.0"
+    within "ul[aria-labelledby='library-version-dropdown']" do
+      click_link historical_version.version_number
+    end
+
+    assert_current_path library_path(library, library_version_id: historical_version.id)
+    assert_no_selector "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}"
+    assert_no_selector ".nav-tabs"
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      assert_no_selector "input[data-library-folder-selection-target='item']"
+      assert_no_link "New Folder"
+      click_link root_folder.name
+      click_link child_folder.name
+      assert_text contents(:one).title
+      assert_no_selector "input[data-library-folder-selection-target='item']"
+    end
+  end
+
   test "an admin creates an editable snapshot from the library page" do
     users(:one).update!(role: :admin)
     library = Library.create!(name: "Versioned Library", user: users(:one))
@@ -55,7 +88,7 @@ class LibrariesTest < ApplicationSystemTestCase
 
     assert_no_selector "turbo-frame#modal .modal"
     assert_current_path library_path(library)
-    assert_text "Version 2.0"
+    assert_button "2.0"
     assert_link "Guides"
 
     current_version = library.reload.current_version

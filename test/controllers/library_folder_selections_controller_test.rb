@@ -167,6 +167,32 @@ class LibraryFolderSelectionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "move remove and duplicate reject a non-current version" do
+    historical_version = @library.current_version
+    LibraryVersions::Create.call(library: @library, version_number: "2.0", user: @user)
+    historical_params = selection_params.merge(
+      library_version_id: historical_version.id,
+      destination_folder_id: @destination.id
+    )
+    original_parent_id = @selected_folder.parent_folder_id
+
+    requests = [
+      -> { patch apply_move_library_folder_selection_url(@library), params: historical_params, headers: TURBO_STREAM_HEADERS },
+      -> { delete remove_library_folder_selection_url(@library), params: historical_params, headers: TURBO_STREAM_HEADERS },
+      -> { post apply_duplicate_library_folder_selection_url(@library), params: historical_params, headers: TURBO_STREAM_HEADERS }
+    ]
+
+    requests.each do |request|
+      assert_no_changes -> { [ LibraryFolder.count, LibraryFolderContent.count ] } do
+        request.call
+      end
+
+      assert_response :unprocessable_content
+      assert_select ".alert-danger", text: "Only the current library version can be changed."
+      assert_equal original_parent_id, @selected_folder.reload.parent_folder_id
+    end
+  end
+
   test "users below intern plus cannot manage folder selections" do
     @user.update!(role: :intern)
 

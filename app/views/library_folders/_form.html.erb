@@ -16,6 +16,7 @@
     </div>
   <% end %>
 
+  <%= hidden_field_tag :library_version_id, @library_version.id %>
   <%= hidden_field_tag :parent_folder_id, @parent_folder&.id %>
   <%= hidden_field_tag :tab, @active_tab %>
   <%= hidden_field_tag :shelf_id, @selected_shelf&.id if @selected_shelf %>
@@ -53,6 +54,7 @@
     <% if local_assigns[:modal] %>
       <% if @picker_operation %>
         <% picker_params = {
+          library_version_id: @library_version.id,
           source_folder_id: @selection.source_folder_id,
           folder_ids: @selection.folder_ids,
           content_ids: @selection.content_ids,

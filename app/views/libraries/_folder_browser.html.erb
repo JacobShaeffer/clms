@@ -1,4 +1,10 @@
 <%= turbo_frame_tag dom_id(@library, :folder_browser), data: { turbo_action: "advance" } do %>
+  <% viewing_current_version = @library_version.id == @library.current_version_id %>
+  <% navigation_context = {
+    tab: @active_tab,
+    shelf_id: @selected_shelf&.id,
+    library_version_id: (viewing_current_version ? nil : @library_version.id)
+  }.compact %>
   <section
     class="border rounded p-3"
     aria-labelledby="library-folder-browser-heading"
@@ -6,63 +12,19 @@
     data-action="change->library-folder-selection#update turbo:before-cache@document->library-folder-selection#clear"
     data-library-folder-actions-target="folderState"
     data-folder-id="<%= @current_folder&.id %>">
-    <h2 id="library-folder-browser-heading" class="h4 mb-3">Library folder browser</h2>
 
-    <nav aria-label="Library folder breadcrumb">
-      <ol class="breadcrumb flex-nowrap overflow-x-auto">
-        <% root_is_current = @current_folder.nil? %>
-        <li class="breadcrumb-item <%= "active" if root_is_current %>" <%= "aria-current=page" if root_is_current %>>
-          <% if root_is_current %>
-            <%= @library.name %>
-          <% else %>
-            <%= link_to @library.name,
-              library_path(
-                @library,
-                tab: @active_tab,
-                shelf_id: @selected_shelf&.id
-              ),
-              data: {
-                turbo_frame: dom_id(@library, :folder_browser),
-                turbo_action: "advance"
-              }
-            %>
-          <% end %>
-        </li>
-
-        <% @breadcrumb_folders.each_with_index do |folder, index| %>
-          <% current = index == @breadcrumb_folders.length - 1 %>
-          <li class="breadcrumb-item <%= "active" if current %>" <%= "aria-current=page" if current %>>
-            <% if current %>
-              <%= folder.name %>
-            <% else %>
-              <%= link_to folder.name,
-                library_path(
-                  @library,
-                  folder_id: folder.id,
-                  tab: @active_tab,
-                  shelf_id: @selected_shelf&.id
-                ),
-                data: {
-                  turbo_frame: dom_id(@library, :folder_browser),
-                  turbo_action: "advance"
-                }
-              %>
-            <% end %>
-          </li>
-        <% end %>
-      </ol>
-    </nav>
 
     <%= form_with(
       url: move_library_folder_selection_path(@library),
       method: :get,
       data: { turbo_frame: "modal" }
     ) do %>
+      <%= hidden_field_tag :library_version_id, @library_version.id %>
       <%= hidden_field_tag :source_folder_id, @current_folder&.id %>
       <%= hidden_field_tag :tab, @active_tab %>
       <%= hidden_field_tag :shelf_id, @selected_shelf&.id if @selected_shelf %>
 
-      <% if policy(LibraryFolder).manage? %>
+      <% if viewing_current_version && policy(LibraryFolder).manage? %>
         <div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
           <div
             class="d-none d-flex gap-2"
@@ -94,6 +56,7 @@
             new_library_library_folder_path(
               @library,
               parent_folder_id: @current_folder&.id,
+              library_version_id: @library_version.id,
               tab: @active_tab,
               shelf_id: @selected_shelf&.id
             ),
@@ -103,25 +66,71 @@
         </div>
       <% end %>
 
+      <nav
+        style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='%236c757d'/%3E%3C/svg%3E&#34;);"
+        aria-label="Library folder breadcrumb">
+        <ol class="breadcrumb flex-nowrap overflow-x-auto">
+          <% root_is_current = @current_folder.nil? %>
+          <li class="breadcrumb-item <%= "active" if root_is_current %>" <%= "aria-current=page" if root_is_current %>>
+            <% if root_is_current %>
+              <%= @library.name %>
+            <% else %>
+              <%= link_to @library.name,
+                library_path(
+                  @library,
+                  **navigation_context
+                ),
+                data: {
+                  turbo_frame: dom_id(@library, :folder_browser),
+                  turbo_action: "advance"
+                }
+              %>
+            <% end %>
+          </li>
+
+          <% @breadcrumb_folders.each_with_index do |folder, index| %>
+            <% current = index == @breadcrumb_folders.length - 1 %>
+            <li class="breadcrumb-item <%= "active" if current %>" <%= "aria-current=page" if current %>>
+              <% if current %>
+                <%= folder.name %>
+              <% else %>
+                <%= link_to folder.name,
+                  library_path(
+                    @library,
+                    folder_id: folder.id,
+                    **navigation_context
+                  ),
+                  data: {
+                    turbo_frame: dom_id(@library, :folder_browser),
+                    turbo_action: "advance"
+                  }
+                %>
+              <% end %>
+            </li>
+          <% end %>
+        </ol>
+      </nav>
+
       <div
         class="list-group"
         id="library-folder-browser-items">
         <% @browser_folders.each do |folder| %>
           <div id="<%= dom_id(folder, :browser) %>" class="list-group-item d-flex align-items-center gap-2">
-            <%= check_box_tag "folder_ids[]",
-              folder.id,
-              false,
-              id: dom_id(folder, :browser_selection),
-              class: "form-check-input flex-shrink-0",
-              aria: { label: "Select folder #{folder.name}" },
-              data: { library_folder_selection_target: "item" }
-            %>
+            <% if viewing_current_version %>
+              <%= check_box_tag "folder_ids[]",
+                folder.id,
+                false,
+                id: dom_id(folder, :browser_selection),
+                class: "form-check-input flex-shrink-0",
+                aria: { label: "Select folder #{folder.name}" },
+                data: { library_folder_selection_target: "item" }
+              %>
+            <% end %>
             <%= link_to folder.name,
               library_path(
                 @library,
                 folder_id: folder.id,
-                tab: @active_tab,
-                shelf_id: @selected_shelf&.id
+                **navigation_context
               ),
               class: "link-body-emphasis",
               data: {
@@ -135,14 +144,16 @@
 
         <% @browser_contents.each do |content| %>
           <div id="<%= dom_id(content, :browser) %>" class="list-group-item d-flex align-items-center gap-2">
-            <%= check_box_tag "content_ids[]",
-              content.id,
-              false,
-              id: dom_id(content, :browser_selection),
-              class: "form-check-input flex-shrink-0",
-              aria: { label: "Select content #{content.title}" },
-              data: { library_folder_selection_target: "item" }
-            %>
+            <% if viewing_current_version %>
+              <%= check_box_tag "content_ids[]",
+                content.id,
+                false,
+                id: dom_id(content, :browser_selection),
+                class: "form-check-input flex-shrink-0",
+                aria: { label: "Select content #{content.title}" },
+                data: { library_folder_selection_target: "item" }
+              %>
+            <% end %>
             <span><%= content.title %></span>
             <div class="d-flex align-items-center gap-2 ms-auto">
               <% if @file_changed_content_ids.key?(content.id) %>
@@ -159,6 +170,8 @@
           </p>
         <% end %>
       </div>
+
+
     <% end %>
   </section>
 <% end %>

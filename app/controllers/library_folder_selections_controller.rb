@@ -2,6 +2,7 @@ class LibraryFolderSelectionsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_library
   before_action :authorize_management
+  before_action :ensure_current_version
 
   rescue_from LibraryFolderOperations::Selection::InvalidSelection, with: :render_invalid_selection
   rescue_from ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed, with: :render_invalid_selection
@@ -55,6 +56,16 @@ class LibraryFolderSelectionsController < ApplicationController
 
   def authorize_management
     authorize LibraryFolder, :manage?
+  end
+
+  def ensure_current_version
+    return if params[:library_version_id].blank?
+
+    requested_version = @library.library_versions.find(scalar_id!(:library_version_id))
+    return if requested_version.id == @library.current_version_id
+
+    raise LibraryFolderOperations::Selection::InvalidSelection,
+      "Only the current library version can be changed."
   end
 
   def build_selection
@@ -120,8 +131,16 @@ class LibraryFolderSelectionsController < ApplicationController
     {
       folder_id: optional_scalar(params[:source_folder_id], "source folder"),
       tab: normalized_tab,
-      shelf_id: optional_scalar(params[:shelf_id], "shelf")
+      shelf_id: optional_scalar(params[:shelf_id], "shelf"),
+      library_version_id: optional_scalar(params[:library_version_id], "library version")
     }.compact
+  end
+
+  def scalar_id!(key)
+    value = params[key]
+    return value if value.is_a?(String) || value.is_a?(Integer)
+
+    raise ActiveRecord::RecordNotFound, "Invalid #{key}"
   end
 
   def normalized_tab

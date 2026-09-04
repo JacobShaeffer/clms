@@ -20,9 +20,11 @@ class LibrariesController < ApplicationController
   def show
     authorize @library
 
+    @library_versions = @library.library_versions.order(created_at: :desc, id: :desc)
+    @viewing_current_version = @library_version.id == @library.current_version_id
     @active_tab = normalized_tab
     load_folder_browser
-    load_content_panel
+    load_content_panel if @viewing_current_version
   end
 
   def all_contents_table
@@ -374,7 +376,11 @@ class LibrariesController < ApplicationController
 
   def set_library
     @library = policy_scope(Library).find(params.expect(:id))
-    @library_version = @library.current_version
+    @library_version = if action_name == "show" && params[:library_version_id].present?
+      @library.library_versions.find(scalar_id!(:library_version_id))
+    else
+      @library.current_version
+    end
   end
 
   def ordered_libraries

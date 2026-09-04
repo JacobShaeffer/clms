@@ -7,9 +7,32 @@
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
       <h1 class="mb-1"><%= @library.name %></h1>
-      <p class="text-body-secondary mb-0">
-        Version <%= @library.current_version.version_number %>
-      </p>
+      <div class="dropdown">
+        <button
+          class="btn btn-sm btn-outline-secondary dropdown-toggle"
+          type="button"
+          id="library-version-dropdown"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+          aria-label="Library version">
+          <%= @library_version.version_number %>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="library-version-dropdown">
+          <% @library_versions.each do |library_version| %>
+            <% selected = library_version.id == @library_version.id %>
+            <li>
+              <%= link_to library_path(
+                @library,
+                library_version_id: (library_version.id unless library_version.id == @library.current_version_id)
+              ),
+                class: "dropdown-item #{"active" if selected}",
+                aria: { current: ("true" if selected) } do %>
+                <%= library_version.version_number %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
     </div>
 
     <div class="d-flex flex-wrap gap-2">
@@ -24,13 +47,15 @@
   </div>
 
   <div class="row g-4">
-    <div class="col-12 col-lg-4">
+    <div class="col-12 <%= "col-lg-4" if @viewing_current_version %>">
       <%= render "libraries/folder_browser" %>
     </div>
 
-    <div class="col-12 col-lg-8">
-      <%= render "libraries/content_panel" %>
-    </div>
+    <% if @viewing_current_version %>
+      <div class="col-12 col-lg-8">
+        <%= render "libraries/content_panel" %>
+      </div>
+    <% end %>
   </div>
 </div>
 

@@ -1,6 +1,8 @@
 class LibraryFoldersController < ApplicationController
   before_action :authenticate_user!
   before_action :set_library
+  before_action :authorize_management
+  before_action :ensure_current_version
   before_action :set_page_context
   before_action :set_parent_folder
   before_action :set_picker_context
@@ -54,6 +56,20 @@ class LibraryFoldersController < ApplicationController
   def set_library
     @library = policy_scope(Library).find(params.expect(:library_id))
     @library_version = @library.current_version
+  end
+
+  def authorize_management
+    authorize LibraryFolder, :manage?
+  end
+
+  def ensure_current_version
+    return if params[:library_version_id].blank?
+
+    requested_version = @library.library_versions.find(scalar_id!(:library_version_id))
+    return if requested_version.id == @library.current_version_id
+
+    raise LibraryFolderOperations::Selection::InvalidSelection,
+      "Only the current library version can be changed."
   end
 
   def set_page_context

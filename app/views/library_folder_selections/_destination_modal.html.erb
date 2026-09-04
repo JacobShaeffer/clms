@@ -5,6 +5,7 @@
   apply_duplicate_library_folder_selection_path(@library) %>
 <% apply_method = @operation == :move ? :patch : :post %>
 <% selection_params = {
+  library_version_id: @selection.library_version.id,
   source_folder_id: @selection.source_folder_id,
   folder_ids: @selection.folder_ids,
   content_ids: @selection.content_ids,
@@ -31,6 +32,7 @@ end %>
       action: "turbo:frame-load->library-folder-destination#update"
     }
   ) do %>
+    <%= hidden_field_tag :library_version_id, @selection.library_version.id %>
     <%= hidden_field_tag :source_folder_id, @selection.source_folder_id %>
     <% @selection.folder_ids.each do |folder_id| %>
       <%= hidden_field_tag "folder_ids[]", folder_id %>

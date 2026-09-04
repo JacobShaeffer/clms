@@ -124,12 +124,67 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: @library.name
-    assert_select "p", text: /Version 2\.0/
+    assert_select "button#library-version-dropdown.dropdown-toggle[data-bs-toggle='dropdown']", text: "2.0"
+    assert_select "ul.dropdown-menu[aria-labelledby='library-version-dropdown']" do
+      assert_select ".dropdown-item", count: 2
+      assert_select ".dropdown-item", text: "1.0", count: 1
+      assert_select ".dropdown-item.active[aria-current='true']", text: "2.0", count: 1
+    end
     assert_select "#library-folder-browser-items" do
       assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :browser)}", text: /#{@root_folder.name}/
       assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}", count: 0
       assert_select "##{ActionView::RecordIdentifier.dom_id(@other_root_folder, :browser)}", count: 0
     end
+  end
+
+  test "show browses a previous folder snapshot without current-version controls" do
+    users(:one).update!(role: :intern_plus)
+    historical_version = @library.current_version
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+
+    LibraryVersions::Create.call(library: @library, version_number: "3.0", user: users(:one))
+    current_root = @library.reload.current_version.library_folders.find_by!(name: @root_folder.name)
+    current_child = current_root.child_folders.find_by!(name: @child_folder.name)
+    current_root.library_folder_contents.find_by!(content: contents(:one)).destroy!
+    current_child.destroy!
+
+    get library_url(
+      @library,
+      library_version_id: historical_version.id,
+      folder_id: @root_folder.id
+    )
+
+    assert_response :success
+    assert_select "button#library-version-dropdown", text: historical_version.version_number
+    assert_select "a.dropdown-item.active" \
+      "[href='#{library_path(@library, library_version_id: historical_version.id)}']",
+      text: historical_version.version_number
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}" do
+      assert_select "a[href='#{library_path(
+        @library,
+        folder_id: @child_folder.id,
+        tab: "all",
+        library_version_id: historical_version.id
+      )}']",
+        text: @child_folder.name
+    end
+    assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}",
+      text: /#{Regexp.escape(contents(:one).title)}/
+    assert_select "input[data-library-folder-selection-target='item']", count: 0
+    assert_select "a", text: "New Folder", count: 0
+    assert_select ".nav-tabs", count: 0
+    assert_select "turbo-frame##{ActionView::RecordIdentifier.dom_id(@library, :content_panel)}", count: 0
+
+    get library_url(@library, folder_id: current_root.id)
+
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}", count: 0
+    assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}", count: 0
+  end
+
+  test "show rejects a version from another library" do
+    get library_url(@library, library_version_id: @other_library.current_version_id)
+
+    assert_response :not_found
   end
 
   test "show renders an empty root folder state" do
@@ -186,6 +241,9 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "turbo-frame##{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}"
     assert_select "nav[aria-label='Library folder breadcrumb'] .breadcrumb-item", count: 2
+    breadcrumb = css_select("nav[aria-label='Library folder breadcrumb']").first
+    assert_includes breadcrumb["style"], "--bs-breadcrumb-divider: url(\"data:image/svg+xml,"
+    assert_includes breadcrumb["style"], "%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z'"
     assert_select ".breadcrumb-item.active", text: @root_folder.name
     assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}", text: /#{@child_folder.name}/
     assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}", text: /#{contents(:one).title}/

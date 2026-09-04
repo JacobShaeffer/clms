@@ -22,6 +22,7 @@
       method: :delete,
       data: { turbo_frame: "modal" }
     ) do %>
+      <%= hidden_field_tag :library_version_id, @selection.library_version.id %>
       <%= hidden_field_tag :source_folder_id, @selection.source_folder_id %>
       <% @selection.folder_ids.each do |folder_id| %>
         <%= hidden_field_tag "folder_ids[]", folder_id %>
