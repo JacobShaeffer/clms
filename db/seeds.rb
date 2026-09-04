@@ -1,7 +1,7 @@
 if Rails.env.development?
-  require_relative "demo_data_seeder"
+  require_relative "development_seed_runner"
 
-  DemoDataSeeder.call
+  DevelopmentSeedRunner.call
 else
-  puts "Skipping destructive demo data outside development."
+  puts "Skipping destructive seed data outside development."
 end

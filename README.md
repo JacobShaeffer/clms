@@ -53,6 +53,24 @@ This deletes all development records and Active Storage files before loading dat
 
 The seed creates one user for each role: `guest`, `organization`, `volunteer`, `intern`, `intern_plus`, and `admin`. Sign in with `role@role.com` and the password `rolerole`; for example, `admin@admin.com` with `adminadmin`.
 
+## Real-world development data
+
+The real-world catalog is stored in `db/real_world_data/contents.csv`. Its associated document archive is intentionally not committed because it expands to approximately 2.5 GB.
+
+Place the archive at `tmp/real_world_documents.zip`, then run:
+
+```sh
+SEED_DATA=real_world bin/rails db:seed
+```
+
+To read the archive from another location, provide an absolute path:
+
+```sh
+SEED_DATA=real_world REAL_WORLD_DOCUMENTS_ZIP=/path/to/documents.zip bin/rails db:seed
+```
+
+The real-world seed validates the CSV and archive before deleting existing development data. It creates the standard development users, imported content, metadata, and Active Storage attachments. It does not create shelves or libraries. Size differences between the CSV and ZIP are reported as warnings; missing files and unsupported file types stop the seed before reset.
+
 ## Tests
 
 Run all tests with:
