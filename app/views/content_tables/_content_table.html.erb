@@ -1,6 +1,9 @@
 <% search_input_id = definition.dom_id("search") %>
 
 <div
+  data-controller="content-table-navigation"
+  data-action="turbo:before-frame-render->content-table-navigation#preserveScroll">
+<div
   data-controller="content-table-selection"
   data-action="turbo:before-cache@document->content-table-selection#clearRows turbo:frame-render->content-table-selection#restoreSelection"
   <% if local_assigns[:selection_scope] %>
@@ -76,4 +79,5 @@
 </div>
 
 <%= render "content_tables/table_frame", definition:, state:, records:, pagy: %>
+</div>
 </div>

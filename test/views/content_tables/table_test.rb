@@ -137,6 +137,27 @@ class ContentTables::TableTest < ActionView::TestCase
     assert_select ".offcanvas h3", text: "Custom filters"
   end
 
+  test "pagination renders pre-render scroll preservation hooks" do
+    column = ContentTables::Column.new(
+      key: "custom",
+      label: "Custom",
+      group: :custom,
+      cell: ->(record) { record.title }
+    )
+
+    render partial: "content_tables/content_table", locals: {
+      definition: definition_for(column:),
+      state: @state,
+      records: [ @record ],
+      pagy: @pagy
+    }
+
+    assert_select "[data-controller='content-table-navigation']" do
+      assert_select "[data-action='turbo:before-frame-render->content-table-navigation#preserveScroll']"
+      assert_select ".row > .col[data-action='click->content-table-navigation#captureScroll']"
+    end
+  end
+
   test "a custom column controls filtering sorting input and cell rendering" do
     contents(:one).update_column(:title, "River Zulu")
     contents(:two).update_column(:title, "River Alpha")

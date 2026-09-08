@@ -73,6 +73,37 @@ class ContentsTest < ApplicationSystemTestCase
     assert_no_selector "input[data-content-table-selection-target='row']:checked"
   end
 
+  test "pagination preserves vertical scroll before the updated frame is painted" do
+    20.times { |index| create_selection_content!(index) }
+
+    visit contents_path
+    assert_selector "tbody tr", count: 10
+    page.execute_script("document.body.insertAdjacentHTML('afterbegin', '<div style=\"height: 1000px\"></div>')")
+
+    page.execute_script(<<~JAVASCRIPT)
+      document.addEventListener("click", () => {
+        window.paginationClickScrollY = window.scrollY
+      }, { capture: true, once: true })
+
+      document.addEventListener("turbo:before-frame-render", (event) => {
+        const render = event.detail.render
+        event.detail.render = (currentFrame, newFrame) => {
+          const result = render(currentFrame, newFrame)
+          window.paginationRenderScrollY = window.scrollY
+          return result
+        }
+      }, { once: true })
+    JAVASCRIPT
+
+    find("nav.pagy-bootstrap a.page-link", text: "2", exact_text: true).click
+
+    assert_selector "nav.pagy-bootstrap a[aria-current='page']", text: "2", exact_text: true
+    scroll_y = page.evaluate_script("window.paginationClickScrollY")
+    assert_operator scroll_y, :>, 0
+    assert_equal scroll_y, page.evaluate_script("window.paginationRenderScrollY")
+    assert_equal scroll_y, page.evaluate_script("window.scrollY")
+  end
+
   test "uploads and validates a file when it is selected" do
     @user.update!(role: :volunteer)
     visit contents_path

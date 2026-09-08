@@ -75,7 +75,7 @@
 </div>
 
 <div class="row align-items-center mt-3" data-turbo-prefetch="false">
-  <div class="col">
+  <div class="col" data-action="click->content-table-navigation#captureScroll">
     <% if pagy.pages > 1 %>
       <%== pagy.series_nav(
         :bootstrap,
