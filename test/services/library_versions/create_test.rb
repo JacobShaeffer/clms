@@ -113,8 +113,8 @@ class LibraryVersions::CreateTest < ActiveSupport::TestCase
     ).tap do |content|
       content.file.attach(
         io: StringIO.new(bytes),
-        filename: "version-content-#{SecureRandom.hex(4)}.png",
-        content_type: "image/png"
+        filename: "version-content-#{SecureRandom.hex(4)}.pdf",
+        content_type: "application/pdf"
       )
       content.save!
     end
@@ -123,8 +123,8 @@ class LibraryVersions::CreateTest < ActiveSupport::TestCase
   def replace_file!(content, bytes)
     content.file.attach(
       io: StringIO.new(bytes),
-      filename: "version-content-#{SecureRandom.hex(4)}.png",
-      content_type: "image/png"
+      filename: "version-content-#{SecureRandom.hex(4)}.pdf",
+      content_type: "application/pdf"
     )
   end
 end

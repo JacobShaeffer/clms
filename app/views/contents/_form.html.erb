@@ -42,6 +42,7 @@
 		<%= form.label :file, "File", class: "form-label" %>
 		<%= form.file_field :file,
 			class: "form-control",
+			accept: "application/pdf,audio/mpeg,video/mp4,.pdf,.mp3,.mp4",
 			data: {
 				action: "change->content-file-upload#upload",
 				content_file_upload_target: "input"

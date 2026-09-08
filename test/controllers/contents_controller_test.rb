@@ -197,7 +197,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       assert_select "label.form-label[for='content_title']", text: "Title"
       assert_select "input.form-control#content_title[name='content[title]']"
       assert_select "textarea.form-control#content_description[name='content[description]']"
-      assert_select "input[type='file'][name='content[file]'][data-action='change->content-file-upload#upload']"
+      assert_select "input[type='file'][name='content[file]'][accept='application/pdf,audio/mpeg,video/mp4,.pdf,.mp3,.mp4'][data-action='change->content-file-upload#upload']"
       assert_select "input.btn.btn-primary[type='submit'][data-content-file-upload-target='submit']"
       assert_select "a.btn.btn-secondary[href='#{contents_path}']", text: "Cancel"
     end
@@ -227,22 +227,26 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
   test "validate file uploads a supported file and returns its signed id" do
     assert_difference("ActiveStorage::Blob.count", 1) do
       post validate_file_contents_url, params: {
-        file: fixture_file_upload("library_asset.png", "image/png")
+        file: Rack::Test::UploadedFile.new(
+          StringIO.new("PDF contents"),
+          "application/pdf",
+          original_filename: "document.pdf"
+        )
       }, as: :multipart
     end
 
     assert_response :success
     response_body = response.parsed_body
     blob = ActiveStorage::Blob.find_signed!(response_body.fetch("signed_id"))
-    assert_equal "library_asset.png", response_body.fetch("filename")
-    assert_equal "library_asset.png", blob.filename.to_s
+    assert_equal "document.pdf", response_body.fetch("filename")
+    assert_equal "document.pdf", blob.filename.to_s
     assert ActiveStorage::Blob.unattached.exists?(blob.id)
   end
 
   test "validate file returns model errors and purges an unsupported file" do
     assert_no_difference("ActiveStorage::Blob.count") do
       post validate_file_contents_url, params: {
-        file: fixture_file_upload("design_files.zip", "application/zip")
+        file: fixture_file_upload("library_asset.png", "image/png")
       }, as: :multipart
     end
 
@@ -257,7 +261,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       post validate_file_contents_url, params: {
         file: Rack::Test::UploadedFile.new(
           StringIO.new(existing_file.download),
-          "image/png",
+          existing_file.content_type,
           original_filename: existing_file.filename.to_s.upcase
         )
       }, as: :multipart
@@ -274,7 +278,11 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("ActiveStorage::Blob.count") do
       post validate_file_contents_url, params: {
-        file: fixture_file_upload("library_asset.png", "image/png")
+        file: Rack::Test::UploadedFile.new(
+          StringIO.new("PDF contents"),
+          "application/pdf",
+          original_filename: "document.pdf"
+        )
       }, as: :multipart
     end
 
@@ -283,7 +291,11 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
   test "create accepts a validated signed blob and preserves it after other validation errors" do
     post validate_file_contents_url, params: {
-      file: fixture_file_upload("library_asset.png", "image/png")
+      file: Rack::Test::UploadedFile.new(
+        StringIO.new("PDF contents"),
+        "application/pdf",
+        original_filename: "document.pdf"
+      )
     }, as: :multipart
     signed_id = response.parsed_body.fetch("signed_id")
 
@@ -311,7 +323,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to contents_path
-    assert_equal "library_asset.png", Content.find_by!(title: "Signed upload").file.filename.to_s
+    assert_equal "document.pdf", Content.find_by!(title: "Signed upload").file.filename.to_s
   end
 
   test "new lists metadata types in display order" do
@@ -1201,8 +1213,8 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     )
     content.file.attach(
       io: StringIO.new("file contents for #{title}"),
-      filename: "#{title.parameterize}.png",
-      content_type: "image/png"
+      filename: "#{title.parameterize}.pdf",
+      content_type: "application/pdf"
     )
     content.save!
     content

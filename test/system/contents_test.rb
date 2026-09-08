@@ -82,9 +82,9 @@ class ContentsTest < ApplicationSystemTestCase
       fill_in "Title", with: "Early upload"
       fill_in "Display title", with: "Early upload display"
       fill_in "Description", with: "A file uploaded before the form is submitted"
-      attach_file "File", file_fixture("library_asset.png")
+      attach_file "File", file_fixture("document.pdf")
 
-      assert_text "Uploaded and validated: library_asset.png"
+      assert_text "Uploaded and validated: document.pdf"
       assert_button "Create Content", disabled: false
       click_button "Create Content"
     end
@@ -92,7 +92,7 @@ class ContentsTest < ApplicationSystemTestCase
     assert_text "Content was successfully created."
     assert_current_path contents_path
     content = Content.find_by!(title: "Early upload")
-    assert_equal "library_asset.png", content.file.filename.to_s
+    assert_equal "document.pdf", content.file.filename.to_s
   end
 
   test "shows duplicate file validation before submission" do
@@ -102,17 +102,17 @@ class ContentsTest < ApplicationSystemTestCase
       display_title: "Existing upload display",
       description: "Existing upload description"
     )
-    File.open(file_fixture("library_asset.png")) do |file|
+    File.open(file_fixture("document.pdf")) do |file|
       existing_content.file.attach(
         io: file,
-        filename: "library_asset.png",
-        content_type: "image/png"
+        filename: "document.pdf",
+        content_type: "application/pdf"
       )
       existing_content.save!
     end
 
     visit new_content_path
-    attach_file "File", file_fixture("library_asset.png")
+    attach_file "File", file_fixture("document.pdf")
 
     assert_text "File already exists with title: Existing upload"
     assert_text "A file with the same filename already exists with title: Existing upload"
@@ -144,8 +144,8 @@ class ContentsTest < ApplicationSystemTestCase
     )
     content.file.attach(
       io: StringIO.new("selection file #{index}"),
-      filename: "selection-#{index}.png",
-      content_type: "image/png"
+      filename: "selection-#{index}.pdf",
+      content_type: "application/pdf"
     )
     content.save!
     content.update_column(:created_at, (10 - index).days.ago)

@@ -1,4 +1,7 @@
 class Content < ApplicationRecord
+  ALLOWED_FILE_CONTENT_TYPES = [ "application/pdf", "audio/mpeg", "video/mp4" ].freeze
+  ALLOWED_FILE_EXTENSIONS = [ ".pdf", ".mp3", ".mp4" ].freeze
+
   belongs_to :user
 
   has_many :shelf_contents, dependent: :destroy
@@ -19,7 +22,11 @@ class Content < ApplicationRecord
   validates :display_title, presence: true, allow_blank: false
   validates :description, presence: true, allow_blank: false
   validates :file, presence: true,
-                   blob: { content_type: [ "application/pdf", "audio/mpeg", "video/mp4", "image/png" ], size_range: 0..(256.megabytes) }
+                   blob: {
+                     content_type: ALLOWED_FILE_CONTENT_TYPES,
+                     extension: ALLOWED_FILE_EXTENSIONS,
+                     size_range: 0..(256.megabytes)
+                   }
 
   validate :file_checksum_must_be_unique
   validate :file_filename_must_be_unique

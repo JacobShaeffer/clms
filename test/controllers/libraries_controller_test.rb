@@ -277,8 +277,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     content.file.attach(
       io: StringIO.new("changed library file"),
-      filename: "changed-library-file.png",
-      content_type: "image/png"
+      filename: "changed-library-file.pdf",
+      content_type: "application/pdf"
     )
     get library_url(@library, folder_id: current_root.id)
     assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
@@ -298,8 +298,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     LibraryFolderContent.create!(library_folder: @root_folder, content:)
     content.file.attach(
       io: StringIO.new("new content changed file"),
-      filename: "new-content-changed-file.png",
-      content_type: "image/png"
+      filename: "new-content-changed-file.pdf",
+      content_type: "application/pdf"
     )
 
     get library_url(@library, folder_id: @root_folder.id)
@@ -648,8 +648,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     ).tap do |content|
       content.file.attach(
         io: StringIO.new(bytes),
-        filename: "library-file-#{SecureRandom.hex(4)}.png",
-        content_type: "image/png"
+        filename: "library-file-#{SecureRandom.hex(4)}.pdf",
+        content_type: "application/pdf"
       )
       content.save!
     end
