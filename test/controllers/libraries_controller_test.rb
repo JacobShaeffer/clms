@@ -381,6 +381,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-library-content-selection-scope='all'][data-content-table-selection-preserve-before-cache-value='true']"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table"
     assert_select "th", text: "Library folders"
+    assert_select "turbo-frame#library_#{@library.id}_all_contents_table thead th:last-child.content-table-actions", text: "Actions"
+    assert_select "turbo-frame#library_#{@library.id}_all_contents_table a[aria-label='Preview #{contents(:one).title}'][data-turbo-frame='modal']"
     row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"
     assert_select "tr##{row_id}" do
       assert_select "[data-controller='tooltip']", count: 2

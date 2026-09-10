@@ -26,7 +26,8 @@ module ContentTables
       search_enabled: true,
       filters_enabled: true,
       selectable: false,
-      selection_form_id: nil
+      selection_form_id: nil,
+      actions_partial: nil
     )
       @state_key = state_key.to_s
       @frame_id = frame_id.to_s
@@ -48,6 +49,7 @@ module ContentTables
       @filters_enabled = filters_enabled == true
       @selectable = selectable == true
       @selection_form_id = selection_form_id&.to_s
+      @actions_partial = actions_partial&.to_s
       @columns_by_key = @columns.index_by(&:key).freeze
       @default_column_keys = Array(default_column_keys).map(&:to_s).uniq.intersection(available_column_keys).freeze
 
@@ -78,6 +80,14 @@ module ContentTables
 
     def selectable?
       @selectable
+    end
+
+    def actions?
+      @actions_partial.present?
+    end
+
+    def actions_partial
+      @actions_partial
     end
 
     def columns_for_group(group)

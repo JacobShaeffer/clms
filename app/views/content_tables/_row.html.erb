@@ -28,4 +28,15 @@
       <% end %>
     </td>
   <% end %>
+  <% if selected_columns.empty? %>
+    <td class="text-muted">No columns selected.</td>
+  <% end %>
+  <% if definition.actions? %>
+    <td class="content-table-actions">
+      <%= render definition.actions_partial,
+        content: record,
+        navigation_token: local_assigns[:navigation_token]
+      %>
+    </td>
+  <% end %>
 </tr>

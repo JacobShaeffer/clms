@@ -4,7 +4,8 @@ class ContentsController < ApplicationController
   ADD_TO_SHELVES_STATUS_ID = "contents-add-to-shelves-status"
 
   before_action :authenticate_user!
-  before_action :load_metadata_types, only: %i[new create]
+  before_action :set_content, only: %i[show edit update]
+  before_action :load_metadata_types, only: %i[new create edit update]
 
   def index
     authorize Content
@@ -119,6 +120,26 @@ class ContentsController < ApplicationController
     render partial: "contents/modal_form", locals: { content: @content } if turbo_frame_request?
   end
 
+  def show
+    authorize @content
+    @previous_content, @next_content = preview_neighbors
+
+    if turbo_frame_request?
+      render partial: "contents/preview_modal", locals: {
+        content: @content,
+        previous_content: @previous_content,
+        next_content: @next_content,
+        navigation_token: params[:navigation]
+      }
+    end
+  end
+
+  def edit
+    authorize @content
+
+    render partial: "contents/modal_form", locals: { content: @content } if turbo_frame_request?
+  end
+
   def create
     @content = current_user.contents.build
     authorize @content
@@ -152,9 +173,40 @@ class ContentsController < ApplicationController
     end
   end
 
+  def update
+    authorize @content
+    authorize @content, :replace_file? if replacement_file_requested?
+
+    respond_to do |format|
+      if @content.update(content_params)
+        format.turbo_stream do
+          if modal_frame_request?
+            flash[:notice] = "Content was successfully updated."
+            render turbo_stream: turbo_stream.refresh(request_id: nil)
+          else
+            redirect_to contents_path, notice: "Content was successfully updated.", status: :see_other
+          end
+        end
+        format.html { redirect_to contents_path, notice: "Content was successfully updated.", status: :see_other }
+      else
+        format.turbo_stream do
+          if modal_frame_request?
+            render turbo_stream: turbo_stream.replace(
+              "modal",
+              partial: "contents/modal_form",
+              locals: { content: @content }
+            ), status: :unprocessable_content
+          else
+            render :edit, formats: :html, status: :unprocessable_content
+          end
+        end
+        format.html { render :edit, status: :unprocessable_content }
+      end
+    end
+  end
+
   def validate_file
-    content = current_user.contents.build
-    authorize content, :create?
+    content = content_for_file_validation
     blob = create_uploaded_blob(params[:file]) if params[:file].present?
     content.file.attach(blob) if blob
     content.valid?
@@ -192,6 +244,7 @@ class ContentsController < ApplicationController
     @table_state = table.state
     @pagy = table.pagy
     @contents = table.records
+    @navigation_token = table.navigation_token
   end
 
   def load_metadata_types
@@ -201,6 +254,10 @@ class ContentsController < ApplicationController
 
   def load_active_shelves
     @active_shelves = current_user.active_shelves.includes(:shelf).ordered.map(&:shelf)
+  end
+
+  def set_content
+    @content = policy_scope(Content).with_attached_file.find(params.expect(:id))
   end
 
   def content_params
@@ -213,6 +270,40 @@ class ContentsController < ApplicationController
       filename: uploaded_file.original_filename,
       content_type: uploaded_file.content_type
     )
+  end
+
+  def content_for_file_validation
+    return new_content_for_file_validation unless params[:id].present?
+
+    content = policy_scope(Content).find(params.expect(:id))
+    authorize content, :replace_file?
+    content.dup.tap { |candidate| candidate.id = content.id }
+  end
+
+  def new_content_for_file_validation
+    current_user.contents.build.tap { |content| authorize content, :create? }
+  end
+
+  def replacement_file_requested?
+    content_attributes = params[:content]
+    content_attributes.respond_to?(:[]) && content_attributes[:file].present?
+  end
+
+  def preview_neighbors
+    content_ids = ContentTables::PageNavigation.content_ids_for(
+      user: current_user,
+      token: params[:navigation]
+    )
+    current_index = content_ids.index(@content.id)
+    return [ nil, nil ] unless current_index
+
+    previous_id = content_ids[current_index - 1] unless current_index.zero?
+    next_id = content_ids[current_index + 1]
+    neighboring_contents = policy_scope(Content)
+      .where(id: [ previous_id, next_id ].compact)
+      .index_by(&:id)
+
+    [ neighboring_contents[previous_id], neighboring_contents[next_id] ]
   end
 
   def modal_frame_request?
@@ -233,7 +324,8 @@ class ContentsController < ApplicationController
       definition: @table_definition,
       state: @table_state,
       records: @contents,
-      pagy: @pagy
+      pagy: @pagy,
+      navigation_token: @navigation_token
     }
   end
 

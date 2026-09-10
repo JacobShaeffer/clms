@@ -2,7 +2,10 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
 	static targets = ["input", "blob", "status", "submit"]
-	static values = { url: String }
+	static values = {
+		url: String,
+		required: { type: Boolean, default: true }
+	}
 
 	connect() {
 		this.requestNumber = 0
@@ -21,7 +24,11 @@ export default class extends Controller {
 
 		const file = this.inputTarget.files[0]
 		if (!file) {
-			this.showError("File can't be blank")
+			if (this.requiredValue) {
+				this.showError("File can't be blank")
+			} else {
+				this.setSubmitting(true)
+			}
 			return
 		}
 

@@ -1,0 +1,27 @@
+<% if content.file.attached? %>
+  <% file_url = rails_blob_path(content.file, disposition: "inline") %>
+  <% case content.file.content_type %>
+  <% when "application/pdf" %>
+    <iframe
+      src="<%= file_url %>"
+      class="content-preview-pdf border rounded"
+      title="PDF preview of <%= content.display_title %>">
+    </iframe>
+  <% when "audio/mpeg" %>
+    <div class="d-flex justify-content-center py-5">
+      <audio class="content-preview-audio w-100" controls preload="metadata">
+        <source src="<%= file_url %>" type="audio/mpeg">
+        Your browser does not support MP3 audio playback.
+      </audio>
+    </div>
+  <% when "video/mp4" %>
+    <video class="content-preview-video w-100 bg-black rounded" controls preload="metadata">
+      <source src="<%= file_url %>" type="video/mp4">
+      Your browser does not support MP4 video playback.
+    </video>
+  <% else %>
+    <p class="alert alert-warning mb-0" role="alert">This file type cannot be previewed.</p>
+  <% end %>
+<% else %>
+  <p class="alert alert-warning mb-0" role="alert">This content does not have a file to preview.</p>
+<% end %>

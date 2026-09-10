@@ -28,6 +28,27 @@ class ContentPolicyTest < Minitest::Test
     assert ContentPolicy.new(user(:volunteer), Content).create?
   end
 
+  def test_show_and_update
+    refute ContentPolicy.new(user(:guest), Content).show?
+    assert ContentPolicy.new(user(:organization), Content).show?
+    refute ContentPolicy.new(user(:organization), Content).update?
+    assert ContentPolicy.new(user(:volunteer), Content).update?
+  end
+
+  def test_file_replacement_uses_delete_permission
+    %i[guest organization volunteer intern].each do |role|
+      policy = ContentPolicy.new(user(role), Content)
+      refute policy.destroy?
+      refute policy.replace_file?
+    end
+
+    %i[intern_plus admin].each do |role|
+      policy = ContentPolicy.new(user(role), Content)
+      assert policy.destroy?
+      assert policy.replace_file?
+    end
+  end
+
   def test_metadata_input_actions
     organization_policy = ContentPolicy.new(user(:organization), Content)
     volunteer_policy = ContentPolicy.new(user(:volunteer), Content)
@@ -47,6 +68,10 @@ class ContentPolicyTest < Minitest::Test
       [ :title, :display_title, :description, :year_of_publication, :additional_notes, :file, { metadatum_ids: [] } ],
       ContentPolicy.new(user(:volunteer), Content).permitted_attributes
     )
+
+    persisted_content = Struct.new(:new_record?).new(false)
+    refute_includes ContentPolicy.new(user(:volunteer), persisted_content).permitted_attributes, :file
+    assert_includes ContentPolicy.new(user(:intern_plus), persisted_content).permitted_attributes, :file
   end
 
   private

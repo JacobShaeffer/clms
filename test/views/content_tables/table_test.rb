@@ -112,6 +112,22 @@ class ContentTables::TableTest < ActionView::TestCase
     assert_select "tbody input[data-content-table-selection-target='row'][aria-label='Select #{@record.title}']"
   end
 
+  test "configured actions render as the last permanent column" do
+    column = ContentTables::Column.new(
+      key: "custom",
+      label: "Custom",
+      group: :custom,
+      cell: ->(record) { record.title }
+    )
+
+    render_table(definition_for(column:, actions_partial: "content_tables_test/custom_actions"))
+
+    assert_select "thead tr th:last-child.content-table-actions", text: "Actions"
+    assert_select "tbody tr td:last-child.content-table-actions" do
+      assert_select "a[aria-label='Preview #{@record.title}']"
+    end
+  end
+
   test "the full component namespaces form controls and renders default group labels" do
     column = ContentTables::Column.new(
       key: "custom",

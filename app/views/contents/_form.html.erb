@@ -1,10 +1,14 @@
+<% can_choose_file = !content.persisted? || policy(content).replace_file? %>
+<% file_validation_url = content.persisted? ? validate_file_content_path(content) : validate_file_contents_path %>
+
 <%= form_with(
 	model: content,
 	data: {
 		turbo_frame: local_assigns[:modal] ? "modal" : "_top",
 		controller: "content-file-upload",
 		action: "submit->content-file-upload#prepareSubmission",
-		content_file_upload_url_value: validate_file_contents_path
+		content_file_upload_url_value: file_validation_url,
+		content_file_upload_required_value: !content.persisted?
 	}
 ) do |form| %>
 	<% if content.errors.any? %>
@@ -38,26 +42,28 @@
 		<%= form.number_field :year_of_publication, class: "form-control" %>
 	</div>
 
-	<div class="mb-3">
-		<%= form.label :file, "File", class: "form-label" %>
-		<%= form.file_field :file,
-			class: "form-control",
-			accept: "application/pdf,audio/mpeg,video/mp4,.pdf,.mp3,.mp4",
-			data: {
-				action: "change->content-file-upload#upload",
-				content_file_upload_target: "input"
-			} %>
-		<% if content.file.attached? && content.errors[:file].empty? %>
-			<%= hidden_field_tag "content[file]", content.file.blob.signed_id,
-				data: { content_file_upload_target: "blob" } %>
-		<% end %>
-		<div
-			class="form-text<%= " text-success" if content.file.attached? && content.errors[:file].empty? %>"
-			role="status"
-			aria-live="polite"
-			data-content-file-upload-target="status"
-		><%= "Uploaded and validated: #{content.file.filename}" if content.file.attached? && content.errors[:file].empty? %></div>
-	</div>
+	<% if can_choose_file %>
+		<div class="mb-3">
+			<%= form.label :file, content.persisted? ? "Choose New File" : "File", class: "form-label" %>
+			<%= form.file_field :file,
+				class: "form-control",
+				accept: "application/pdf,audio/mpeg,video/mp4,.pdf,.mp3,.mp4",
+				data: {
+					action: "change->content-file-upload#upload",
+					content_file_upload_target: "input"
+				} %>
+			<% if content.file.attached? && content.errors[:file].empty? %>
+				<%= hidden_field_tag "content[file]", content.file.blob.signed_id,
+					data: { content_file_upload_target: "blob" } %>
+			<% end %>
+			<div
+				class="form-text<%= " text-success" if content.file.attached? && content.errors[:file].empty? %>"
+				role="status"
+				aria-live="polite"
+				data-content-file-upload-target="status"
+			><% if content.file.attached? && content.errors[:file].empty? %><%= content.persisted? ? "Current file: #{content.file.filename}" : "Uploaded and validated: #{content.file.filename}" %><% end %></div>
+		</div>
+	<% end %>
 
 	<div class="mb-3">
 		<label class="form-label">Metadata</label>

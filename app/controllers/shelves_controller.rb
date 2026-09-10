@@ -146,6 +146,7 @@ class ShelvesController < ApplicationController
     @table_state = table.state
     @pagy = table.pagy
     @contents = table.records
+    @navigation_token = table.navigation_token
   end
 
   def paginate_contents(relation:, page:, per_page:)
@@ -157,7 +158,8 @@ class ShelvesController < ApplicationController
       definition: @table_definition,
       state: @table_state,
       records: @contents,
-      pagy: @pagy
+      pagy: @pagy,
+      navigation_token: @navigation_token
     }
   end
 

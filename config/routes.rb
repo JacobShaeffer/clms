@@ -29,7 +29,7 @@ Rails.application.routes.draw do
   end
   devise_for :users
 
-  resources :contents, only: %i[ index new create ] do
+  resources :contents, only: %i[ index show new create edit update ] do
     collection do
       post :validate_file
       get :table
@@ -38,6 +38,10 @@ Rails.application.routes.draw do
       get :search
       post :add_new_metadatum
       get :add_existing_metadatum
+    end
+
+    member do
+      post :validate_file
     end
   end
 

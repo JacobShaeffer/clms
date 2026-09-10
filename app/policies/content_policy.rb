@@ -27,6 +27,18 @@ class ContentPolicy < ApplicationPolicy
     at_least?(:volunteer)
   end
 
+  def update?
+    create?
+  end
+
+  def destroy?
+    at_least?(:intern_plus)
+  end
+
+  def replace_file?
+    destroy?
+  end
+
   def add_new_metadatum?
     create?
   end
@@ -36,7 +48,10 @@ class ContentPolicy < ApplicationPolicy
   end
 
   def permitted_attributes
-    [ :title, :display_title, :description, :year_of_publication, :additional_notes, :file, { metadatum_ids: [] } ]
+    attributes = [ :title, :display_title, :description, :year_of_publication, :additional_notes ]
+    attributes << :file if record == Content || record.new_record? || replace_file?
+    attributes << { metadatum_ids: [] }
+    attributes
   end
 
   class Scope < ApplicationPolicy::Scope

@@ -66,7 +66,8 @@ module ContentTables
         search_enabled:,
         filters_enabled:,
         selectable:,
-        selection_form_id:
+        selection_form_id:,
+        actions_partial: "contents/table_actions"
       )
     end
 

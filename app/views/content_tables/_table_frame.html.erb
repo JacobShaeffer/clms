@@ -1,3 +1,9 @@
 <%= turbo_frame_tag definition.frame_id, data: { turbo_prefetch: false } do %>
-  <%= render "content_tables/table", definition:, state:, records:, pagy: %>
+  <%= render "content_tables/table",
+    definition:,
+    state:,
+    records:,
+    pagy:,
+    navigation_token: local_assigns[:navigation_token]
+  %>
 <% end %>

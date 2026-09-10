@@ -294,6 +294,7 @@ class LibrariesController < ApplicationController
     @table_state = table.state
     @pagy = table.pagy
     @contents = table.records
+    @navigation_token = table.navigation_token
   end
 
   def base_content_source
@@ -316,7 +317,8 @@ class LibrariesController < ApplicationController
       definition: @table_definition,
       state: @table_state,
       records: @contents,
-      pagy: @pagy
+      pagy: @pagy,
+      navigation_token: @navigation_token
     }
   end
 

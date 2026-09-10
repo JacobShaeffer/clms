@@ -1,0 +1,29 @@
+<%= render layout: "shared/modal", locals: {
+  title: content.display_title,
+  dialog_class: "modal-nearly-fullscreen",
+  title_id: dom_id(content, :preview_title)
+} do %>
+  <%= render "contents/preview", content: %>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if previous_content %>
+      <%= link_to "Previous",
+        content_path(previous_content, navigation: navigation_token),
+        class: "btn btn-outline-primary",
+        data: { turbo_frame: "modal", turbo_prefetch: false } %>
+    <% else %>
+      <button type="button" class="btn btn-outline-primary" disabled>Previous</button>
+    <% end %>
+
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+    <% if next_content %>
+      <%= link_to "Next",
+        content_path(next_content, navigation: navigation_token),
+        class: "btn btn-outline-primary",
+        data: { turbo_frame: "modal", turbo_prefetch: false } %>
+    <% else %>
+      <button type="button" class="btn btn-outline-primary" disabled>Next</button>
+    <% end %>
+  </div>
+<% end %>

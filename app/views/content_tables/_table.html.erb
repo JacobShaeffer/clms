@@ -50,24 +50,33 @@
         <% else %>
           <th>Columns</th>
         <% end %>
+        <% if definition.actions? %>
+          <th scope="col" class="content-table-actions" aria-sort="none">Actions</th>
+        <% end %>
       </tr>
     </thead>
     <tbody>
-      <% if selected_columns.empty? %>
-        <tr>
-          <td colspan="<%= 1 + (definition.selectable? ? 1 : 0) %>" class="text-center">No columns selected.</td>
-        </tr>
-      <% elsif records.any? %>
+      <% if records.any? %>
         <% records.each do |record| %>
           <% if definition.row_partial.present? %>
-            <%= render definition.row_partial, definition:, record:, selected_columns: %>
+            <%= render definition.row_partial,
+              definition:,
+              record:,
+              selected_columns:,
+              navigation_token: local_assigns[:navigation_token]
+            %>
           <% else %>
-            <%= render "content_tables/row", definition:, record:, selected_columns: %>
+            <%= render "content_tables/row",
+              definition:,
+              record:,
+              selected_columns:,
+              navigation_token: local_assigns[:navigation_token]
+            %>
           <% end %>
         <% end %>
       <% else %>
         <tr>
-          <td colspan="<%= selected_columns.size + (definition.selectable? ? 1 : 0) %>" class="text-center"><%= definition.empty_message %></td>
+          <td colspan="<%= [ selected_columns.size, 1 ].max + (definition.selectable? ? 1 : 0) + (definition.actions? ? 1 : 0) %>" class="text-center"><%= definition.empty_message %></td>
         </tr>
       <% end %>
     </tbody>

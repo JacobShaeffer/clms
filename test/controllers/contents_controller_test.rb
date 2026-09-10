@@ -185,6 +185,113 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       assert_select "select.form-select[name='per_page']"
     end
     assert_select "turbo-frame#contents_table .row.align-items-center > .col-auto.ms-auto form.d-flex.align-items-center"
+    assert_select "thead tr th:last-child.content-table-actions", text: "Actions"
+    assert_select "tbody tr .content-table-actions" do
+      assert_select "a[aria-label^='Preview '][data-turbo-frame='modal']", minimum: 1
+      assert_select "a[aria-label^='Edit '][data-turbo-frame='modal']", minimum: 1
+    end
+  end
+
+  test "organization users see previews but not edit actions" do
+    @user.update!(role: :organization)
+
+    get contents_url
+
+    assert_response :success
+    assert_select "thead tr th:last-child.content-table-actions", text: "Actions"
+    assert_select "a[aria-label^='Preview ']", count: 2
+    assert_select "a[aria-label^='Edit ']", count: 0
+  end
+
+  test "show renders PDF audio and video previews in the modal" do
+    audio = create_content!(
+      title: "Audio preview",
+      display_title: "Audio display",
+      description: "Audio description",
+      filename: "audio-preview.mp3",
+      content_type: "audio/mpeg",
+      bytes: "audio preview bytes"
+    )
+    video = create_content!(
+      title: "Video preview",
+      display_title: "Video display",
+      description: "Video description",
+      filename: "video-preview.mp4",
+      content_type: "video/mp4",
+      bytes: "video preview bytes"
+    )
+
+    get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+    assert_response :success
+    assert_select "turbo-frame#modal .modal-title", text: @matching_content.display_title
+    assert_select "iframe.content-preview-pdf[src*='/rails/active_storage/blobs/']", count: 1
+
+    get content_url(audio), headers: TURBO_FRAME_HEADERS
+    assert_select "audio.content-preview-audio[controls] source[type='audio/mpeg'][src*='/rails/active_storage/blobs/']", count: 1
+
+    get content_url(video), headers: TURBO_FRAME_HEADERS
+    assert_select "video.content-preview-video[controls] source[type='video/mp4'][src*='/rails/active_storage/blobs/']", count: 1
+  end
+
+  test "preview navigation follows the current ordered page and stops at its boundaries" do
+    @matching_content.update!(title: "Alpha preview")
+    @other_content.update!(title: "Bravo preview")
+
+    get table_contents_url, params: {
+      q: "preview",
+      sort_column: "title",
+      sort_state: "default"
+    }
+
+    preview_links = css_select("tbody a[aria-label^='Preview ']")
+    assert_equal 2, preview_links.size
+
+    get preview_links.first["href"], headers: TURBO_FRAME_HEADERS
+    assert_select ".modal-title", text: @matching_content.display_title
+    assert_select "button[disabled]", text: "Previous"
+    next_link = css_select("a").find { |link| link.text.strip == "Next" }
+    assert next_link
+
+    get next_link["href"], headers: TURBO_FRAME_HEADERS
+    assert_select ".modal-title", text: @other_content.display_title
+    assert_select "a", text: "Previous"
+    assert_select "button[disabled]", text: "Next"
+  end
+
+  test "preview navigation does not cross a Pagy page" do
+    create_paginated_contents!(9)
+
+    get table_contents_url, params: { page: 2 }
+
+    preview_link = css_select("tbody a[aria-label^='Preview ']").first
+    assert preview_link
+    assert_select "tbody tr", count: 1
+
+    get preview_link["href"], headers: TURBO_FRAME_HEADERS
+    assert_select "button[disabled]", text: "Previous"
+    assert_select "button[disabled]", text: "Next"
+  end
+
+  test "preview ignores navigation signed for another user or changed by the client" do
+    token = ContentTables::PageNavigation.token_for(
+      user: @user,
+      records: [ @matching_content, @other_content ]
+    )
+
+    get content_url(@matching_content, navigation: "#{token}changed"), headers: TURBO_FRAME_HEADERS
+    assert_select "button[disabled]", text: "Previous"
+    assert_select "button[disabled]", text: "Next"
+
+    other_user = User.create!(
+      name: "Preview User",
+      email: "preview-user@example.com",
+      password: "password",
+      role: :organization
+    )
+    sign_in other_user
+    get content_url(@matching_content, navigation: token), headers: TURBO_FRAME_HEADERS
+    assert_select "button[disabled]", text: "Previous"
+    assert_select "button[disabled]", text: "Next"
   end
 
   test "new renders a Bootstrap content form" do
@@ -201,6 +308,110 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       assert_select "input.btn.btn-primary[type='submit'][data-content-file-upload-target='submit']"
       assert_select "a.btn.btn-secondary[href='#{contents_path}']", text: "Cancel"
     end
+  end
+
+  test "edit prefills content and metadata while hiding the file picker below delete level" do
+    @matching_content.metadata << @science
+
+    get edit_content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "turbo-frame#modal .modal-title", text: "Edit content"
+    assert_select "form[action='#{content_path(@matching_content)}'][data-turbo-frame='modal']" do
+      assert_select "input[name='content[title]'][value='#{@matching_content.title}']"
+      assert_select "textarea[name='content[description]']", text: @matching_content.description
+      assert_select "#metadatum_badge_#{@history.id}", text: @history.name
+      assert_select "#metadatum_badge_#{@science.id}", text: @science.name
+      assert_select "input[type='file'][name='content[file]']", count: 0
+    end
+  end
+
+  test "intern plus edit shows an optional Choose New File picker" do
+    @user.update!(role: :intern_plus)
+
+    get edit_content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "label[for='content_file']", text: "Choose New File"
+    assert_select "input#content_file[type='file'][name='content[file]']"
+    assert_select "[data-content-file-upload-required-value='false']"
+    assert_select "[data-content-file-upload-target='status']", text: /Current file:/
+  end
+
+  test "update changes content fields and keeps the current file when no file is submitted" do
+    original_blob = @matching_content.file.blob
+
+    patch content_url(@matching_content), params: {
+      content: {
+        title: "Updated title",
+        display_title: "Updated display",
+        description: "Updated description",
+        metadatum_ids: [ @science.id ]
+      }
+    }
+
+    assert_redirected_to contents_path
+    @matching_content.reload
+    assert_equal "Updated title", @matching_content.title
+    assert_equal [ @science.id ], @matching_content.metadatum_ids
+    assert_equal original_blob, @matching_content.file.blob
+  end
+
+  test "invalid modal update rerenders the edit modal with errors" do
+    patch content_url(@matching_content),
+      params: { content: { title: "", description: "" } },
+      headers: TURBO_STREAM_HEADERS
+
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[action='replace'][target='modal'] template turbo-frame#modal" do
+      assert_select ".modal-title", text: "Edit content"
+      assert_select ".alert.alert-danger", text: /prevented this content from being saved/
+    end
+  end
+
+  test "file validation and replacement require delete-level permission" do
+    assert_no_difference("ActiveStorage::Blob.count") do
+      post validate_file_content_url(@matching_content), params: {
+        file: Rack::Test::UploadedFile.new(
+          StringIO.new("replacement bytes"),
+          "application/pdf",
+          original_filename: "replacement.pdf"
+        )
+      }, as: :multipart
+    end
+    assert_redirected_to root_path
+
+    original_blob = @matching_content.file.blob
+    patch content_url(@matching_content), params: {
+      content: { file: @other_content.file.blob.signed_id }
+    }
+    assert_redirected_to root_path
+    assert_equal original_blob, @matching_content.reload.file.blob
+  end
+
+  test "intern plus can validate and replace an existing file" do
+    @user.update!(role: :intern_plus)
+    original_blob = @matching_content.file.blob
+
+    post validate_file_content_url(@matching_content), params: {
+      file: Rack::Test::UploadedFile.new(
+        StringIO.new("replacement file bytes"),
+        "application/pdf",
+        original_filename: "replacement.pdf"
+      )
+    }, as: :multipart
+
+    assert_response :success
+    signed_id = response.parsed_body.fetch("signed_id")
+    assert_equal original_blob, @matching_content.reload.file.blob
+
+    patch content_url(@matching_content), params: {
+      content: { file: signed_id }
+    }
+
+    assert_redirected_to contents_path
+    assert_equal "replacement.pdf", @matching_content.reload.file.filename.to_s
+    refute_equal original_blob, @matching_content.file.blob
   end
 
   test "new renders a form targeting the modal when requested in the modal frame" do
@@ -786,7 +997,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :success
-    assert_select "thead th", count: expected_headers.size + 1
+    assert_select "thead th", count: expected_headers.size + 2
     expected_headers.each do |label, sort_key|
       assert_sort_header label,
         sort_key: sort_key,
@@ -1203,7 +1414,15 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  def create_content!(title:, display_title:, description:, user: @user)
+  def create_content!(
+    title:,
+    display_title:,
+    description:,
+    user: @user,
+    filename: "#{title.parameterize}.pdf",
+    content_type: "application/pdf",
+    bytes: "file contents for #{title}"
+  )
     content = user.contents.build(
       title: title,
       display_title: display_title,
@@ -1212,9 +1431,9 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       additional_notes: 1
     )
     content.file.attach(
-      io: StringIO.new("file contents for #{title}"),
-      filename: "#{title.parameterize}.pdf",
-      content_type: "application/pdf"
+      io: StringIO.new(bytes),
+      filename:,
+      content_type:
     )
     content.save!
     content

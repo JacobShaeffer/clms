@@ -78,6 +78,12 @@
   <% end %>
 </div>
 
-<%= render "content_tables/table_frame", definition:, state:, records:, pagy: %>
+<%= render "content_tables/table_frame",
+  definition:,
+  state:,
+  records:,
+  pagy:,
+  navigation_token: local_assigns[:navigation_token]
+%>
 </div>
 </div>

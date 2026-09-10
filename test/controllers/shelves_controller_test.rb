@@ -173,6 +173,8 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table thead input[data-content-table-selection-target='page']"
     assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table tbody input[data-content-table-selection-target='row']"
     assert_select "th", text: "Shelves"
+    assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table thead th:last-child.content-table-actions", text: "Actions"
+    assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table a[aria-label='Preview #{contents(:one).title}'][data-turbo-frame='modal']"
     assert_select "tbody td", text: "History Document"
     assert_select "tbody td", text: "History, Reference"
     assert_select "tbody td", text: "Unrelated Document", count: 0

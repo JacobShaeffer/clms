@@ -68,3 +68,30 @@
 .shelf-selection-menu {
   min-width: 18rem;
 }
+
+.content-table-actions {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  min-width: 6.5rem;
+  white-space: nowrap;
+  background-color: var(--bs-body-bg);
+}
+
+thead .content-table-actions {
+  z-index: 2;
+}
+
+.content-preview-pdf {
+  width: 100%;
+  height: calc(100vh - 13rem);
+  min-height: 24rem;
+}
+
+.content-preview-audio {
+  max-width: 48rem;
+}
+
+.content-preview-video {
+  max-height: calc(100vh - 13rem);
+}

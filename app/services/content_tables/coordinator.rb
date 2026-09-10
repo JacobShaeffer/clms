@@ -1,6 +1,6 @@
 module ContentTables
   class Coordinator
-    attr_reader :definition, :state, :pagy, :records
+    attr_reader :definition, :state, :pagy, :records, :navigation_token
 
     def self.call(user:, definition:, params:, paginator:)
       new(user:, definition:, params:, paginator:).call
@@ -25,6 +25,7 @@ module ContentTables
         @pagy, @records = paginate(relation)
       end
 
+      @navigation_token = PageNavigation.token_for(user:, records:) if definition.actions?
       state.persist!
       self
     end

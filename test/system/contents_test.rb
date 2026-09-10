@@ -165,6 +165,47 @@ class ContentsTest < ApplicationSystemTestCase
     assert_current_path contents_path
   end
 
+  test "previews the next and previous content on the current page" do
+    first = create_preview_content!("Preview row one", 2.days.ago)
+    second = create_preview_content!("Preview row two", 1.day.ago)
+
+    visit contents_path
+    fill_in "Search", with: "Preview row"
+    assert_selector "tbody tr", count: 2
+    find("a[aria-label='Preview #{second.title}']").click
+
+    within "turbo-frame#modal" do
+      assert_text second.display_title
+      assert_button "Previous", disabled: true
+      click_on "Next"
+      assert_text first.display_title
+      assert_button "Next", disabled: true
+      click_on "Previous"
+      assert_text second.display_title
+    end
+  end
+
+  test "edits content and replaces its file from the modal" do
+    @user.update!(role: :intern_plus)
+    content = create_preview_content!("Editable preview row", 1.day.ago)
+
+    visit contents_path
+    fill_in "Search", with: content.title
+    find("a[aria-label='Edit #{content.title}']").click
+
+    within "turbo-frame#modal" do
+      assert_field "Title", with: content.title
+      fill_in "Display title", with: "Updated preview display"
+      attach_file "Choose New File", file_fixture("document.pdf")
+      assert_text "Uploaded and validated: document.pdf"
+      click_button "Update Content"
+    end
+
+    assert_text "Content was successfully updated."
+    assert_equal "Updated preview display", content.reload.display_title
+    assert_equal "document.pdf", content.file.filename.to_s
+  end
+
   private
 
   def create_selection_content!(index)
@@ -180,6 +221,22 @@ class ContentsTest < ApplicationSystemTestCase
     )
     content.save!
     content.update_column(:created_at, (10 - index).days.ago)
+    content
+  end
+
+  def create_preview_content!(title, created_at)
+    content = @user.contents.build(
+      title:,
+      display_title: "#{title} display",
+      description: "Content used to test previews"
+    )
+    content.file.attach(
+      io: StringIO.new("preview bytes for #{title}"),
+      filename: "#{title.parameterize}.pdf",
+      content_type: "application/pdf"
+    )
+    content.save!
+    content.update_column(:created_at, created_at)
     content
   end
 end
