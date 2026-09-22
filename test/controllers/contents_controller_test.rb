@@ -169,7 +169,17 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".offcanvas-body section:last-of-type button.collapsed[data-bs-toggle='collapse'][data-bs-target='#contents-advanced-filters-fields'][aria-expanded='false']", text: "Advanced Filters"
     assert_select ".offcanvas-body section:last-of-type #contents-advanced-filters-fields.collapse:not(.show)"
     assert_select ".offcanvas-body input.form-control[name='filters[title][value]']"
-    assert_select ".offcanvas-body input.form-control[name='filters[metadata_type:#{@metadata_type.id}][value]']"
+    metadata_filter_id = "contents-filter-metadata-type-#{@metadata_type.id}"
+    assert_select "##{metadata_filter_id}[data-controller='content-multi-select']" \
+      "[data-content-multi-select-selection-context-value='filter']" \
+      "[data-content-multi-select-allow-create-value='false']"
+    assert_select "##{metadata_filter_id}-search[placeholder='Search']"
+    assert_select "##{metadata_filter_id} .content-multi-select-dropdown.d-none" \
+      "[data-content-multi-select-target='dropdown']" do
+      assert_select "##{metadata_filter_id}-list.content-multi-select-list.list-group" \
+        "[data-content-multi-select-target='list']"
+    end
+    assert_select "input[name='filters[metadata_type:#{@metadata_type.id}][metadatum_ids][]']", count: 0
     assert_select ".offcanvas-body section:last-of-type" do
       assert_select "input.form-control[name='filters[created_at][from]']"
       assert_select "input.form-control[name='filters[created_at][to]']"
@@ -320,8 +330,8 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{content_path(@matching_content)}'][data-turbo-frame='modal']" do
       assert_select "input[name='content[title]'][value='#{@matching_content.title}']"
       assert_select "textarea[name='content[description]']", text: @matching_content.description
-      assert_select "#metadatum_badge_#{@history.id}", text: @history.name
-      assert_select "#metadatum_badge_#{@science.id}", text: @science.name
+      assert_select "#content-form-metadata-type-#{@metadata_type.id}-metadatum-#{@history.id}-badge", text: @history.name
+      assert_select "#content-form-metadata-type-#{@metadata_type.id}-metadatum-#{@science.id}-badge", text: @science.name
       assert_select "input[type='file'][name='content[file]']", count: 0
     end
   end
@@ -566,16 +576,21 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_content
-    assert_select "#metadatum_badge_#{@history.id}", text: @history.name
-    assert_select "input#content_metadatum_ids_#{@history.id}[checked][value='#{@history.id}']"
-    assert_select "#metadatum_badge_#{@science.id}", count: 0
+    component_id = "content-form-metadata-type-#{@metadata_type.id}"
+    assert_select "##{component_id}-metadatum-#{@history.id}-badge", text: @history.name
+    assert_select "input##{component_id}-metadatum-#{@history.id}[checked][value='#{@history.id}']"
+    assert_select "##{component_id}-metadatum-#{@science.id}-badge", count: 0
   end
 
   test "metadata search returns matching values and marks selected values active" do
+    component_id = "test-content-metadata-type-#{@metadata_type.id}"
     get search_contents_url,
       params: {
-        target: "metadataInput_#{@metadata_type.id}_list",
+        target: "#{component_id}-list",
         metadata_type_id: @metadata_type.id,
+        component_id:,
+        selection_context: "content",
+        allow_create: "1",
         search: "Hist",
         selected_ids: @history.id.to_s,
         metadatum_count: 10
@@ -584,18 +599,62 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal "text/vnd.turbo-stream.html", response.media_type
-    assert_select "turbo-stream[action='update'][target='metadataInput_#{@metadata_type.id}_list']"
-    assert_select "button#selector_for\\=#{@history.id}.active", text: @history.name
+    assert_select "turbo-stream[action='update'][target='#{component_id}-list']"
+    assert_select "button##{component_id}-selector-#{@history.id}.active", text: @history.name
     assert_select "button", text: @science.name, count: 0
     assert_select "button.list-group-item-success", text: /Add.*Hist/
   end
 
+  test "permitted table users can search filter metadata without a creation action" do
+    @history.update!(under_review: true)
+    component_id = "contents-filter-metadata-type-#{@metadata_type.id}"
+
+    %i[organization volunteer intern intern_plus admin].each do |role|
+      @user.update!(role:)
+      get search_contents_url,
+        params: {
+          target: "#{component_id}-list",
+          metadata_type_id: @metadata_type.id,
+          component_id:,
+          selection_context: "filter",
+          allow_create: "0",
+          search: "Hist",
+          selected_ids: "",
+          metadatum_count: 10
+        },
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      assert_response :success
+      assert_select "button##{component_id}-selector-#{@history.id}", text: @history.name
+      assert_select "button.list-group-item-success", count: 0
+    end
+
+    @user.update!(role: :organization)
+    get add_existing_metadatum_contents_url,
+      params: {
+        target: "#{component_id}-badges",
+        metadata_type_id: @metadata_type.id,
+        metadatum_id: @history.id,
+        component_id:,
+        selection_context: "filter"
+      },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    assert_response :success
+    assert_select "turbo-stream[action='append'][target='#{component_id}-badges']"
+    assert_select "input[name='filters[metadata_type:#{@metadata_type.id}][metadatum_ids][]']" \
+      "[value='#{@history.id}'][checked]"
+  end
+
   test "authorized users can add and select a new metadatum" do
+    component_id = "content-form-metadata-type-#{@metadata_type.id}"
     assert_difference "Metadatum.count", 1 do
       post add_new_metadatum_contents_url,
         params: {
-          target: "metadataBadge_#{@metadata_type.id}_container",
+          target: "#{component_id}-badges",
           metadata_type_id: @metadata_type.id,
+          component_id:,
+          selection_context: "content",
           name: "  Geography  "
         },
         headers: { "Accept" => "text/vnd.turbo-stream.html" }
@@ -604,8 +663,8 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     metadatum = Metadatum.find_by!(name: "Geography")
     assert metadatum.under_review?
-    assert_select "turbo-stream[action='append'][target='metadataBadge_#{@metadata_type.id}_container']"
-    assert_select "#metadatum_badge_#{metadatum.id}", text: metadatum.name
+    assert_select "turbo-stream[action='append'][target='#{component_id}-badges']"
+    assert_select "##{component_id}-metadatum-#{metadatum.id}-badge", text: metadatum.name
   end
 
   test "table action renders only the contents table frame" do
@@ -662,7 +721,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
   test "metadata filters persist in the table preference" do
     get table_contents_url, params: {
       filters: {
-        "metadata_type:#{@metadata_type.id}" => { "value" => "history" }
+        "metadata_type:#{@metadata_type.id}" => { "metadatum_ids" => [ @history.id ] }
       }
     }
     get table_contents_url, params: { per_page: 20 }
@@ -670,6 +729,50 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes @response.body, @matching_content.title
     refute_includes @response.body, @other_content.title
+
+    get contents_url
+
+    component_id = "contents-filter-metadata-type-#{@metadata_type.id}"
+    assert_select "##{component_id}-metadatum-#{@history.id}-badge", text: @history.name
+    assert_select "input##{component_id}-metadatum-#{@history.id}" \
+      "[name='filters[metadata_type:#{@metadata_type.id}][metadatum_ids][]']" \
+      "[value='#{@history.id}'][checked]"
+    assert_equal(
+      { "metadata_type:#{@metadata_type.id}" => { "metadatum_ids" => [ @history.id ] } },
+      content_table_state.fetch("filters")
+    )
+  end
+
+  test "legacy text metadata filters are removed while other saved state is preserved" do
+    metadata_key = "metadata_type:#{@metadata_type.id}"
+    ContentTablePreference.create!(
+      user: @user,
+      table_key: CONTENTS_TABLE_KEY,
+      state: {
+        "q" => "River",
+        "filters" => {
+          metadata_key => { "value" => "History" },
+          "description" => { "value" => "Hydrology" }
+        },
+        "columns_present" => true,
+        "columns" => [ "title", metadata_key ],
+        "per_page" => 20,
+        "sort_column" => "title",
+        "sort_direction" => "asc",
+        "page" => 1
+      }
+    )
+
+    get contents_url
+
+    assert_response :success
+    state = content_table_state
+    refute state.fetch("filters").key?(metadata_key)
+    assert_equal({ "value" => "Hydrology" }, state.dig("filters", "description"))
+    assert_equal "River", state.fetch("q")
+    assert_equal 20, state.fetch("per_page")
+    assert_equal [ "title", metadata_key ], state.fetch("columns")
+    assert_equal [ "title", "asc" ], state.values_at("sort_column", "sort_direction")
   end
 
   test "clear filters preserves search per page and columns" do
@@ -1281,7 +1384,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "th[aria-sort='ascending'], th[aria-sort='descending']", count: 1
 
     get table_contents_url, params: {
-      filters: { language_key => { "value" => "English" } }
+      filters: { language_key => { "metadatum_ids" => [ english.id ] } }
     }
 
     assert_equal [ @matching_content.title ], content_column_values("Title")

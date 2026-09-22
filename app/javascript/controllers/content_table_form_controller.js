@@ -33,6 +33,10 @@ export default class extends Controller {
       }
     })
 
+    this.element.querySelectorAll("[data-controller~='content-multi-select']").forEach((element) => {
+      element.dispatchEvent(new CustomEvent("content-multi-select:clear"))
+    })
+
     this.element.requestSubmit(event.currentTarget)
   }
 

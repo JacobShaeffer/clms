@@ -1,0 +1,46 @@
+<% component_id = "#{dom_prefix}-metadata-type-#{metadata_type.id}" %>
+<% search_input_id = "#{component_id}-search" %>
+<% badge_container_id = "#{component_id}-badges" %>
+<% list_id = "#{component_id}-list" %>
+
+<div
+  class="field mb-3"
+  id="<%= component_id %>"
+  data-controller="content-multi-select"
+  data-action="content-multi-select:clear->content-multi-select#clear"
+  data-content-multi-select-type-value="<%= metadata_type.id %>"
+  data-content-multi-select-count-value="10"
+  data-content-multi-select-component-id-value="<%= component_id %>"
+  data-content-multi-select-selection-context-value="<%= selection_context %>"
+  data-content-multi-select-allow-create-value="<%= allow_create %>">
+  <label class="form-label-sm" for="<%= search_input_id %>"><%= metadata_type.name %></label>
+  <div
+    class="form-control"
+    data-action="click->content-multi-select#onSearchInputClick">
+    <div id="<%= badge_container_id %>" data-content-multi-select-target="badgeContainer">
+      <% selected_metadata.each do |metadatum| %>
+        <%= render "contents/selected_metadatum",
+          metadatum:,
+          component_id:,
+          input_name: %>
+      <% end %>
+    </div>
+    <input
+      class="auto-complete border-0"
+      placeholder="Search"
+      id="<%= search_input_id %>"
+      data-content-multi-select-target="searchInput"
+      data-action="focusin->content-multi-select#onSearchFocusIn focusout->content-multi-select#onSearchFocusOut input->content-multi-select#onSearchInput"
+      autocomplete="off"
+      size="35">
+  </div>
+  <div
+    class="content-multi-select-dropdown d-none"
+    data-content-multi-select-target="dropdown">
+    <div
+      class="content-multi-select-list list-group"
+      id="<%= list_id %>"
+      data-content-multi-select-target="list">
+    </div>
+  </div>
+</div>

@@ -1,3 +1,6 @@
 <%= turbo_stream.append @target do %>
-  <%= render "contents/selected_metadatum", metadatum: @metadatum %>
+  <%= render "contents/selected_metadatum",
+    metadatum: @metadatum,
+    component_id: @component_id,
+    input_name: @input_name %>
 <% end %>

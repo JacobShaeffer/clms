@@ -2,7 +2,8 @@
   <% @metadata.each do |metadatum| %>
     <%= render "contents/list_group_item",
       metadatum: metadatum,
-      selected: @selected_ids.include?(metadatum.id.to_s) %>
+      selected: @selected_ids.include?(metadatum.id.to_s),
+      component_id: @component_id %>
   <% end %>
 
   <% if @can_add_metadatum %>

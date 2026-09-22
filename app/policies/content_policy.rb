@@ -44,7 +44,7 @@ class ContentPolicy < ApplicationPolicy
   end
 
   def add_existing_metadatum?
-    create?
+    index?
   end
 
   def permitted_attributes

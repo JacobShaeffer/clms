@@ -70,40 +70,13 @@
 		<div class="form-control">
 			<% selected_metadata_by_type_id = content.metadata.group_by(&:metadata_type_id) %>
 			<% @metadata_types.each do |metadata_type| %>
-				<div
-					class="field mb-3"
-					id="multiSelectFor=<%= metadata_type.id %>"
-					data-controller="content-multi-select"
-					data-content-multi-select-type-value="<%= metadata_type.id %>"
-					data-content-multi-select-count-value="10"
-				>
-					<label class="form-label-sm" for="metadataInput_<%= metadata_type.id %>"><%= metadata_type.name %></label>
-					<div
-						class="form-control"
-						id="metadataInput_<%= metadata_type.id %>_container"
-						data-action="click->content-multi-select#onSearchInputClick"
-					>
-						<div id="metadataBadge_<%= metadata_type.id %>_container">
-							<%= render partial: "contents/selected_metadatum",
-								collection: selected_metadata_by_type_id.fetch(metadata_type.id, []),
-								as: :metadatum %>
-						</div>
-						<input
-							class="auto-complete border-0"
-							placeholder="Search"
-							id="metadataInput_<%= metadata_type.id %>"
-							data-content-multi-select-target="searchInput"
-							data-action="focusin->content-multi-select#onSearchFocusIn focusout->content-multi-select#onSearchFocusOut input->content-multi-select#onSearchInput"
-							autocomplete="off"
-							size="35"
-						>
-					</div>
-					<div
-						class="list-group d-none"
-						id="metadataInput_<%= metadata_type.id %>_list"
-						data-content-multi-select-target="list"
-					></div>
-				</div>
+				<%= render "contents/metadata_multi_select",
+					metadata_type:,
+					selected_metadata: selected_metadata_by_type_id.fetch(metadata_type.id, []),
+					input_name: "content[metadatum_ids][]",
+					dom_prefix: "content-form",
+					selection_context: "content",
+					allow_create: true %>
 			<% end %>
 		</div>
 	</div>

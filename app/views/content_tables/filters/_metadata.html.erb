@@ -1,0 +1,12 @@
+<% metadata_type = column.filter.metadata_type %>
+
+<div class="col-12 col-md-6">
+  <%= render "contents/metadata_multi_select",
+    metadata_type:,
+    selected_metadata: column.filter.selected_metadata(values),
+    input_name: "filters[#{column.key}][metadatum_ids][]",
+    dom_prefix: definition.dom_id("filter"),
+    selection_context: "filter",
+    allow_create: false
+  %>
+</div>

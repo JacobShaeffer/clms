@@ -58,7 +58,7 @@ class ContentPolicyTest < Minitest::Test
     assert organization_policy.add_to_shelves?
     assert organization_policy.search?
     refute organization_policy.add_new_metadatum?
-    refute organization_policy.add_existing_metadatum?
+    assert organization_policy.add_existing_metadatum?
     assert volunteer_policy.add_new_metadatum?
     assert volunteer_policy.add_existing_metadatum?
   end

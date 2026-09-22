@@ -80,4 +80,40 @@ class ContentTables::FiltersTest < ActiveSupport::TestCase
     assert_equal({ "value" => "anything" }, received.second)
     assert_same column, received.third
   end
+
+  test "metadata normalizes unique positive IDs from the correct type" do
+    metadata_type = metadata_types(:one)
+    valid = Metadatum.find_by!(metadata_type:)
+    wrong_type = Metadatum.find_by!(metadata_type: metadata_types(:two))
+    filter = ContentTables::Filters::Metadata.new(metadata_type:)
+
+    assert_equal(
+      { "metadatum_ids" => [ valid.id ] },
+      filter.normalize(
+        "metadatum_ids" => [ valid.id.to_s, valid.id, "0", "-1", "invalid", wrong_type.id ]
+      )
+    )
+    assert_equal({}, filter.normalize("value" => valid.name))
+  end
+
+  test "metadata matches content containing any selected value" do
+    metadata_type = metadata_types(:one)
+    first_value = Metadatum.find_by!(metadata_type:)
+    second_value = Metadatum.create!(
+      name: "Second value",
+      metadata_type:,
+      user: users(:one),
+      under_review: true
+    )
+    contents(:two).metadata << second_value
+    filter = ContentTables::Filters::Metadata.new(metadata_type:)
+
+    result = filter.apply(
+      relation: Content.all,
+      values: { "metadatum_ids" => [ first_value.id, second_value.id ] },
+      column: nil
+    )
+
+    assert_equal [ contents(:one).id, contents(:two).id ].sort, result.ids.sort
+  end
 end

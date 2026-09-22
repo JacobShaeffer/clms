@@ -71,6 +71,7 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
 
   test "metadata columns filter sort and render values" do
     subject_type = metadata_types(:one)
+    history = Metadatum.find_by!(metadata_type: subject_type, name: "History")
     alpha = Metadatum.create!(
       name: "Alpha",
       metadata_type: subject_type,
@@ -80,13 +81,49 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
     @second.metadata << alpha
     subject_key = "metadata_type:#{subject_type.id}"
 
-    assert_equal [ @first.id ], relation_for(filters: { subject_key => { "value" => "history" } }).ids
+    assert_instance_of ContentTables::Filters::Metadata, @definition.column(subject_key).filter
+    assert_equal [ @first.id ], relation_for(
+      filters: { subject_key => { "metadatum_ids" => [ history.id ] } }
+    ).ids
     assert_equal [ @second.id, @first.id ], relation_for(
       selected_column_keys: [ subject_key ],
       sort_column: subject_key,
       sort_direction: "asc"
     ).ids
     assert_equal "History", @definition.column(subject_key).value(@first.reload)
+  end
+
+  test "metadata filters use OR within a type and AND between types" do
+    subject_type = metadata_types(:one)
+    language_type = metadata_types(:two)
+    history = Metadatum.find_by!(metadata_type: subject_type, name: "History")
+    french = Metadatum.create!(
+      name: "French",
+      metadata_type: language_type,
+      user: users(:one),
+      under_review: false
+    )
+    science = Metadatum.create!(
+      name: "Science",
+      metadata_type: subject_type,
+      user: users(:one),
+      under_review: true
+    )
+    @second.metadata << science
+    @first.metadata << french
+
+    subject_key = "metadata_type:#{subject_type.id}"
+    language_key = "metadata_type:#{language_type.id}"
+
+    assert_equal [ @second.id, @first.id ].sort, relation_for(
+      filters: { subject_key => { "metadatum_ids" => [ history.id, science.id ] } }
+    ).ids.sort
+    assert_equal [ @first.id ], relation_for(
+      filters: {
+        subject_key => { "metadatum_ids" => [ history.id, science.id ] },
+        language_key => { "metadatum_ids" => [ french.id ] }
+      }
+    ).ids
   end
 
   test "fixed sorting retains case-insensitive null-last current behavior" do

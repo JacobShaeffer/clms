@@ -206,6 +206,127 @@ class ContentsTest < ApplicationSystemTestCase
     assert_equal "document.pdf", content.file.filename.to_s
   end
 
+  test "selects removes applies and clears a metadata filter" do
+    metadata_type = metadata_types(:one)
+    metadatum = Metadatum.find_by!(metadata_type:)
+    matching_content = contents(:one)
+    other_content = contents(:two)
+    metadata_type.update!(name: "Subject")
+    metadatum.update!(name: "History")
+    matching_content.update_column(:title, "History content")
+    other_content.update_column(:title, "Other content")
+    component_id = "contents-filter-metadata-type-#{metadata_type.id}"
+
+    visit contents_path
+    click_button "Filters"
+
+    within "##{component_id}" do
+      fill_in "Subject", with: "Hist"
+      assert_selector ".content-multi-select-dropdown.is-open"
+      assert_button "History"
+      assert_no_selector "button.list-group-item-success"
+      click_button "History"
+      assert_selector "##{component_id}-metadatum-#{metadatum.id}-badge", text: "History"
+      assert_selector "##{component_id}-selector-#{metadatum.id}.active", text: "History"
+
+      find("##{component_id}-metadatum-#{metadatum.id}-badge").click
+      assert_no_selector "##{component_id}-metadatum-#{metadatum.id}-badge", visible: true
+      assert_no_selector "input[value='#{metadatum.id}']:checked", visible: :all
+
+      fill_in "Subject", with: "Hist"
+      assert_button "History"
+      click_button "History"
+      assert_selector "input[value='#{metadatum.id}']:checked", visible: :all
+    end
+
+    submitted_filters = page.evaluate_script(<<~JAVASCRIPT)
+      Array.from(new FormData(document.querySelector("#contents-advanced-filters form")).entries())
+    JAVASCRIPT
+    assert_includes submitted_filters, [
+      "filters[metadata_type:#{metadata_type.id}][metadatum_ids][]",
+      metadatum.id.to_s
+    ]
+    within "#contents-advanced-filters" do
+      find("input[type='submit'][value='Apply Filters']").click
+    end
+
+    within "turbo-frame#contents_table" do
+      assert_selector "tbody tr", count: 1
+      assert_text matching_content.title
+      assert_no_text other_content.title
+    end
+
+    within "#contents-advanced-filters" do
+      click_button "Clear Filters"
+      assert_no_selector "##{component_id}-metadatum-#{metadatum.id}-badge", visible: true
+      assert_field "Subject", with: ""
+      assert_no_selector "##{component_id}-list > *", visible: :all
+    end
+
+    within "turbo-frame#contents_table" do
+      assert_text matching_content.title
+      assert_text other_content.title
+    end
+  end
+
+  test "animates the metadata dropdown and cancels closing when focus returns" do
+    metadata_type = metadata_types(:one)
+    component_id = "contents-filter-metadata-type-#{metadata_type.id}"
+    search_id = "#{component_id}-search"
+
+    visit contents_path
+    click_button "Filters"
+
+    within "##{component_id}" do
+      find("##{search_id}").click
+      assert_selector ".content-multi-select-dropdown.is-open"
+    end
+
+    closing_state = page.evaluate_async_script(<<~JAVASCRIPT)
+      const done = arguments[0]
+      const component = document.getElementById("#{component_id}")
+      const input = document.getElementById("#{search_id}")
+      const dropdown = component.querySelector("[data-content-multi-select-target='dropdown']")
+
+      const observer = new MutationObserver(() => {
+        if (dropdown.classList.contains("is-open")) return
+
+        observer.disconnect()
+        const remainedRendered = !dropdown.classList.contains("d-none")
+        const onTransitionEnd = (event) => {
+          if (event.propertyName !== "opacity") return
+
+          dropdown.removeEventListener("transitionend", onTransitionEnd)
+          done([remainedRendered, dropdown.classList.contains("d-none")])
+        }
+        dropdown.addEventListener("transitionend", onTransitionEnd)
+      })
+
+      observer.observe(dropdown, { attributes: true, attributeFilter: ["class"] })
+      input.blur()
+    JAVASCRIPT
+    assert_equal [ true, true ], closing_state
+
+    within "##{component_id}" do
+      find("##{search_id}").click
+      assert_selector ".content-multi-select-dropdown.is-open"
+    end
+
+    reopened_state = page.evaluate_async_script(<<~JAVASCRIPT)
+      const done = arguments[0]
+      const component = document.getElementById("#{component_id}")
+      const input = document.getElementById("#{search_id}")
+      const dropdown = component.querySelector("[data-content-multi-select-target='dropdown']")
+
+      input.blur()
+      window.setTimeout(() => input.focus(), 75)
+      window.setTimeout(() => {
+        done([dropdown.classList.contains("is-open"), dropdown.classList.contains("d-none")])
+      }, 400)
+    JAVASCRIPT
+    assert_equal [ true, false ], reopened_state
+  end
+
   private
 
   def create_selection_content!(index)

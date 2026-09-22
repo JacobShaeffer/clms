@@ -188,15 +188,7 @@ module ContentTables
       metadata_types.map do |metadata_type|
         metadata_type_id = metadata_type.id
         key = metadata_column_key(metadata_type_id)
-        filter = Filters::Text.new(apply: lambda do |relation:, values:, **|
-          query = ActiveRecord::Base.sanitize_sql_like(values.fetch("value"))
-          matching_content_ids = Content.joins(:metadata)
-            .where(metadata: { metadata_type_id: })
-            .where("metadata.name ILIKE ?", "%#{query}%")
-            .select(:id)
-
-          relation.where(id: matching_content_ids)
-        end)
+        filter = Filters::Metadata.new(metadata_type:)
         sort_expression = metadata_sort_expression(metadata_type_id)
 
         Column.new(

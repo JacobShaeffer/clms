@@ -58,6 +58,8 @@ class ContentsController < ApplicationController
     @target = params[:target]
     @selected_ids = params[:selected_ids].to_s.split(",")
     @metadata_type = policy_scope(MetadataType).find(params[:metadata_type_id])
+    @selection_context = metadata_selection_context
+    @component_id = metadata_component_id
     @metadatum_count = params[:metadatum_count].to_i.clamp(1, MAX_METADATA_SEARCH_RESULTS)
     @search_query = params[:search].to_s.strip
 
@@ -74,7 +76,11 @@ class ContentsController < ApplicationController
     exact_match_exists = policy_scope(@metadata_type.metadata)
       .where("LOWER(metadata.name) = LOWER(?)", @search_query)
       .exists?
-    @can_add_metadatum = @search_query.present? && policy(new_metadatum).create? && !exact_match_exists
+    @can_add_metadatum = @selection_context == "content" &&
+      params.fetch(:allow_create, "1") == "1" &&
+      @search_query.present? &&
+      policy(new_metadatum).create? &&
+      !exact_match_exists
 
     respond_to do |format|
       format.turbo_stream
@@ -85,6 +91,9 @@ class ContentsController < ApplicationController
     authorize Content
     @metadata_type = policy_scope(MetadataType).find(params[:metadata_type_id])
     @target = params[:target]
+    @selection_context = "content"
+    @component_id = metadata_component_id
+    @input_name = metadata_input_name
     @metadatum = @metadata_type.metadata.build(
       name: params[:name].to_s.strip,
       user: current_user,
@@ -105,6 +114,9 @@ class ContentsController < ApplicationController
     authorize Content
     @target = params[:target]
     @metadata_type = policy_scope(MetadataType).find(params[:metadata_type_id])
+    @selection_context = metadata_selection_context
+    @component_id = metadata_component_id
+    @input_name = metadata_input_name
     @metadatum = policy_scope(@metadata_type.metadata).find(params[:metadatum_id])
     authorize @metadatum, :show?
 
@@ -304,6 +316,25 @@ class ContentsController < ApplicationController
       .index_by(&:id)
 
     [ neighboring_contents[previous_id], neighboring_contents[next_id] ]
+  end
+
+  def metadata_selection_context
+    params[:selection_context] == "filter" ? "filter" : "content"
+  end
+
+  def metadata_component_id
+    requested_id = params[:component_id]
+    return requested_id if requested_id.is_a?(String) && requested_id.match?(/\A[a-zA-Z0-9_-]+\z/)
+
+    "#{@selection_context}-metadata-type-#{@metadata_type.id}"
+  end
+
+  def metadata_input_name
+    if @selection_context == "filter"
+      "filters[metadata_type:#{@metadata_type.id}][metadatum_ids][]"
+    else
+      "content[metadatum_ids][]"
+    end
   end
 
   def modal_frame_request?
