@@ -1,0 +1,45 @@
+<% if @library_change_state.pending_changes.any? %>
+  <details class="mb-3" open>
+    <summary class="fw-semibold">
+      Pending changes (<%= @library_change_state.pending_changes.length %>)
+    </summary>
+    <div class="d-grid gap-3 mt-2" id="library-pending-changes">
+      <% @library_change_state.change_groups.each_with_index do |group, group_index| %>
+        <section class="border rounded" aria-label="Pending change group <%= group_index + 1 %>">
+          <div class="small fw-semibold text-body-secondary px-3 pt-2">
+            <%= group.dependency_chain ? "Dependency chain" : "Independent batch" %>
+          </div>
+          <% group.batches.each do |batch| %>
+            <div class="small text-body-secondary px-3 pt-2">
+              Batch · <%= pluralize(batch.changes.length, "change") %>
+            </div>
+            <div class="list-group list-group-flush">
+              <% batch.changes.each do |change| %>
+                <div class="list-group-item d-flex flex-wrap align-items-center gap-2" id="<%= dom_id(change) %>">
+                  <div class="me-auto">
+                    <span class="badge text-bg-secondary"><%= change.action_type.humanize %></span>
+                    <span><%= change.display_label %></span>
+                    <small class="text-body-secondary">
+                      by <%= change.user.name %> <%= time_ago_in_words(change.created_at) %> ago
+                    </small>
+                    <% if change.approval_blocker %>
+                      <div class="small text-body-secondary">
+                        Approval waits for <%= change.approval_blocker.display_label %>.
+                      </div>
+                    <% end %>
+                    <% if change.undo_blocker %>
+                      <div class="small text-body-secondary">
+                        Undo waits for <%= change.undo_blocker.display_label %>.
+                      </div>
+                    <% end %>
+                  </div>
+                  <%= render "libraries/change_controls", change: %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </section>
+      <% end %>
+    </div>
+  </details>
+<% end %>

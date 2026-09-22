@@ -58,6 +58,26 @@ class LibraryFolderOperations::SelectionTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects a selected subtree containing a folder pending removal" do
+    @nested.update!(pending_removal_change: pending_change!(:remove_folder))
+
+    error = assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
+      build_selection(folder_ids: [ @selected.id ], content_ids: [])
+    end
+
+    assert_equal "A selected folder contains items pending removal.", error.message
+  end
+
+  test "rejects a selected subtree containing content pending removal" do
+    @nested_placement.update!(pending_removal_change: pending_change!(:remove_content))
+
+    error = assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
+      build_selection(folder_ids: [ @selected.id ], content_ids: [])
+    end
+
+    assert_equal "A selected folder contains items pending removal.", error.message
+  end
+
   private
 
   def build_selection(folder_ids:, content_ids:)
@@ -76,6 +96,15 @@ class LibraryFolderOperations::SelectionTest < ActiveSupport::TestCase
       parent_folder:,
       user: users(:one),
       logo: (parent_folder ? nil : library_assets(:one))
+    )
+  end
+
+  def pending_change!(action_type)
+    @library.current_version.library_changes.create!(
+      user: users(:one),
+      action_type:,
+      batch_key: SecureRandom.uuid,
+      details: { test: true }
     )
   end
 end

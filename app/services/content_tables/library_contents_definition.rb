@@ -73,6 +73,7 @@ module ContentTables
 
     def library_folders_by_content_id
       @library_folders_by_content_id ||= library_version.library_folder_contents
+        .active
         .includes(:library_folder)
         .group_by(&:content_id)
         .transform_values do |placements|
@@ -86,6 +87,7 @@ module ContentTables
       filter = Filters::Text.new(apply: lambda do |relation:, values:, **|
         query = ActiveRecord::Base.sanitize_sql_like(values.fetch("value"))
         matching_content_ids = LibraryFolderContent
+          .active
           .where(library_version_id: library_version.id)
           .joins(:library_folder)
           .where(LibraryFolder.arel_table[:name].matches("%#{query}%"))
@@ -118,6 +120,7 @@ module ContentTables
         .on(folders[:id].eq(placements[:library_folder_id]))
         .where(placements[:content_id].eq(contents[:id]))
         .where(placements[:library_version_id].eq(library_version.id))
+        .where(placements[:pending_removal_change_id].eq(nil))
 
       Arel::Nodes::Grouping.new(subquery.ast)
     end

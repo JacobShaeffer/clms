@@ -101,6 +101,31 @@ class LibraryVersionsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "pending changes block version creation with a clear error" do
+    folder = @library.current_version.library_folders.create!(
+      library: @library,
+      name: "Pending folder",
+      user: @admin,
+      logo: library_assets(:one)
+    )
+    LibraryFolderOperations::PlaceContents.call(
+      library: @library,
+      folder_id: folder.id,
+      content_ids: [ contents(:one).id ],
+      user: @admin
+    )
+
+    assert_no_difference("LibraryVersion.count") do
+      post library_library_versions_url(@library),
+        params: { library_version: { version_number: "2.0" } },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_select ".alert.alert-danger[role='alert']",
+      text: /Resolve all pending library changes before creating a new version/
+  end
+
   test "non-admin cannot open or create a version" do
     @admin.update!(role: :intern_plus)
 

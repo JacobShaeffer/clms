@@ -15,6 +15,11 @@ class User < ApplicationRecord
   has_many :libraries
   has_many :library_versions
   has_many :library_folders
+  has_many :library_changes
+  has_many :resolved_library_changes,
+    class_name: "LibraryChange",
+    foreign_key: :resolved_by_id,
+    inverse_of: :resolved_by
 
   # define user roles
   ROLES = { guest: 0, organization: 1, volunteer: 2, intern: 3, intern_plus: 4, admin: 99 }

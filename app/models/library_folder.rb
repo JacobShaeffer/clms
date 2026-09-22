@@ -4,6 +4,10 @@ class LibraryFolder < ApplicationRecord
   belongs_to :parent_folder, class_name: "LibraryFolder", optional: true
   belongs_to :user
   belongs_to :logo, class_name: "LibraryAsset", optional: true
+  belongs_to :pending_removal_change,
+    class_name: "LibraryChange",
+    inverse_of: :pending_removed_folders,
+    optional: true
 
   has_many :child_folders,
     class_name: "LibraryFolder",
@@ -14,6 +18,7 @@ class LibraryFolder < ApplicationRecord
   has_many :contents, through: :library_folder_contents
 
   scope :roots, -> { where(parent_folder_id: nil) }
+  scope :active, -> { where(pending_removal_change_id: nil) }
 
   validates :name, presence: true
   validates :logo, presence: true, if: :root_folder?
@@ -25,9 +30,24 @@ class LibraryFolder < ApplicationRecord
   validate :library_version_is_editable
   validate :parent_folder_is_not_self
   validate :parent_folder_is_not_descendant
+  validate :parent_folder_is_active
+  validate :pending_removal_matches_version
+  validate :pending_removed_record_is_read_only, on: :update
 
   before_validation :assign_snapshot_ownership
   before_destroy :prevent_locked_version_destruction, prepend: true
+  before_destroy :prevent_unapproved_pending_removal, prepend: true
+
+  def pending_removal?
+    pending_removal_change_id.present?
+  end
+
+  def destroy_for_approved_removal!
+    @approved_removal = true
+    destroy!
+  ensure
+    @approved_removal = false unless destroyed?
+  end
 
   private
 
@@ -83,6 +103,35 @@ class LibraryFolder < ApplicationRecord
 
     errors.add(:base, "Locked library versions cannot be changed")
     throw :abort
+  end
+
+  def prevent_unapproved_pending_removal
+    return if pending_removal_change_id_in_database.blank? || @approved_removal
+
+    errors.add(:base, "Folders pending removal can only be deleted by approval")
+    throw :abort
+  end
+
+  def pending_removal_matches_version
+    return if pending_removal_change.blank?
+    return if pending_removal_change.library_version_id == library_version_id &&
+      pending_removal_change.pending? && pending_removal_change.remove_folder?
+
+    errors.add(:pending_removal_change, "must be a pending folder removal in the same version")
+  end
+
+  def pending_removed_record_is_read_only
+    return if pending_removal_change_id_in_database.blank?
+    return unless has_changes_to_save?
+
+    errors.add(:base, "Folders pending removal cannot be changed")
+  end
+
+  def parent_folder_is_active
+    return if parent_folder_id.blank?
+    return if self.class.where(id: parent_folder_id, pending_removal_change_id: nil).exists?
+
+    errors.add(:parent_folder, "cannot be pending removal")
   end
 
   def parent_folder_is_not_self

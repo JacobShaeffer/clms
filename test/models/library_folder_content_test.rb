@@ -83,6 +83,37 @@ class LibraryFolderContentTest < ActiveSupport::TestCase
     assert_includes @first_folder.errors[:base], "Cannot delete record because dependent library folder contents exist"
   end
 
+  test "placements pending removal are read only" do
+    placement = LibraryFolderContent.create!(library_folder: @first_folder, content: contents(:one))
+    change = @library.current_version.library_changes.create!(
+      user: users(:one),
+      action_type: :remove_content,
+      batch_key: SecureRandom.uuid,
+      details: { placement_id: placement.id }
+    )
+    placement.update!(pending_removal_change: change)
+
+    assert_not placement.update(pending_removal_change: nil)
+    assert_includes placement.errors[:base], "Content pending removal cannot be changed"
+    assert_not placement.destroy
+    assert_includes placement.errors[:base],
+      "Content pending removal can only be deleted by approval"
+  end
+
+  test "content cannot be placed in a folder pending removal" do
+    change = @library.current_version.library_changes.create!(
+      user: users(:one),
+      action_type: :remove_folder,
+      batch_key: SecureRandom.uuid,
+      details: { folder_id: @first_folder.id }
+    )
+    @first_folder.update!(pending_removal_change: change)
+
+    placement = @first_folder.library_folder_contents.build(content: contents(:one))
+    assert_not placement.valid?
+    assert_includes placement.errors[:library_folder], "cannot be pending removal"
+  end
+
   private
 
   def create_folder!(name)

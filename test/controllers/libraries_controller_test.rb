@@ -405,6 +405,36 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "tbody", text: /#{contents(:one).title}/
   end
 
+  test "pending removals remain browsable but are excluded from active library tables and tooltips" do
+    users(:one).update!(role: :intern_plus)
+    placement = LibraryFolderContent.create!(
+      library_folder: @child_folder,
+      content: contents(:one)
+    )
+    LibraryFolderOperations::Remove.call(
+      library: @library,
+      source_folder_id: @root_folder.id,
+      folder_ids: [ @child_folder.id ],
+      content_ids: [],
+      user: users(:one)
+    )
+
+    get library_url(@library, tab: "library")
+    assert_select "tbody", text: /#{Regexp.escape(contents(:one).title)}/, count: 0
+
+    get library_url(@library, tab: "all")
+    row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"
+    assert_select "tr##{row_id} [data-controller='tooltip']", count: 0
+
+    get library_url(@library, folder_id: @child_folder.id)
+    assert_select "##{ActionView::RecordIdentifier.dom_id(placement.content, :browser)}" do
+      assert_select ".badge", text: "Parent Folder Removed"
+      assert_select "input[type='checkbox']", count: 0
+    end
+    assert_select "a", text: "New Folder", count: 0
+    assert_select "input[type='submit'][value='Add to Active Folder']", count: 0
+  end
+
   test "library content and folder tooltips exclude placements from locked versions" do
     LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
     locked_version = @library.current_version

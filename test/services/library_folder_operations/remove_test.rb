@@ -12,27 +12,31 @@ class LibraryFolderOperations::RemoveTest < ActiveSupport::TestCase
     @outside_placement = LibraryFolderContent.create!(library_folder: @sibling, content: contents(:two))
   end
 
-  test "removes direct placements and recursive folder trees without deleting content" do
+  test "marks direct placements and recursive folder trees for removal without deleting content" do
     assert_no_difference("Content.count") do
       LibraryFolderOperations::Remove.call(
         library: @library,
+        user: users(:one),
         source_folder_id: @source.id,
         folder_ids: [ @selected.id ],
         content_ids: [ contents(:one).id ]
       )
     end
 
-    refute LibraryFolderContent.exists?(@direct_placement.id)
-    refute LibraryFolderContent.exists?(@nested_placement.id)
-    refute LibraryFolder.exists?(@selected.id)
-    refute LibraryFolder.exists?(@nested.id)
+    assert_predicate @direct_placement.reload, :pending_removal?
+    assert_predicate @nested_placement.reload, :pending_removal?
+    assert_predicate @selected.reload, :pending_removal?
+    assert_predicate @nested.reload, :pending_removal?
     assert LibraryFolder.exists?(@source.id)
     assert LibraryFolder.exists?(@sibling.id)
     assert LibraryFolderContent.exists?(@outside_placement.id)
     assert Content.exists?(contents(:one).id)
     assert Content.exists?(contents(:two).id)
-    refute @library.current_version.library_version_contents.exists?(content: contents(:one))
+    assert @library.current_version.library_version_contents.exists?(content: contents(:one))
     assert @library.current_version.library_version_contents.exists?(content: contents(:two))
+    assert_equal 2, @library.current_version.library_changes.remove_content.or(
+      @library.current_version.library_changes.remove_folder
+    ).count
   end
 
   test "rejects removal when the current version is locked" do
@@ -42,6 +46,7 @@ class LibraryFolderOperations::RemoveTest < ActiveSupport::TestCase
       assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
         LibraryFolderOperations::Remove.call(
           library: @library,
+          user: users(:one),
           source_folder_id: @source.id,
           folder_ids: [ @selected.id ],
           content_ids: [ contents(:one).id ]

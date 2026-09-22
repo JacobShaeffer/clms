@@ -87,7 +87,7 @@ class LibraryFoldersController < ApplicationController
   def set_parent_folder
     return if params[:parent_folder_id].blank?
 
-    @parent_folder = @library_version.library_folders.find(scalar_id!(:parent_folder_id))
+    @parent_folder = @library_version.library_folders.active.find(scalar_id!(:parent_folder_id))
   end
 
   def set_picker_context
@@ -137,24 +137,54 @@ class LibraryFoldersController < ApplicationController
     else
       folders.select { |folder| folder.parent_folder_id.nil? }
     end
-    @browser_contents = if @current_folder
-      @current_folder.contents.with_attached_file.order(Content.arel_table[:title].lower, :id).to_a
+    @browser_placements = if @current_folder
+      @current_folder.library_folder_contents
+        .includes(content: { file_attachment: :blob })
+        .joins(:content)
+        .order(Content.arel_table[:title].lower, LibraryFolderContent.arel_table[:id])
+        .to_a
     else
       []
     end
+    @browser_contents = @browser_placements.map(&:content)
     @file_changed_content_ids = @library_version
       .file_changed_content_ids(@browser_contents)
       .index_with(true)
+    @library_change_state = LibraryChanges::BrowserState.new(library_version: @library_version)
   end
 
   def save_current_version_folder
+    saved = false
     @library.with_lock do
       @library.reload
       raise ActiveRecord::RecordNotFound, "Library version is no longer current" unless
         @library.current_version_id == @library_version.id
 
-      @library_folder.save
+      if @library_folder.save
+        LibraryChanges::Recorder.call(
+          library_version: @library_version,
+          user: current_user,
+          action_type: :add_folder,
+          details: {
+            folder_id: @library_folder.id,
+            parent_folder_id: @library_folder.parent_folder_id,
+            logo_id: @library_folder.logo_id
+          },
+          targets: [ {
+            target_kind: :folder,
+            target_id: @library_folder.id,
+            folder_id: @library_folder.id,
+            resource_key: LibraryChanges::Recorder.folder_key(@library_folder),
+            effect: :new,
+            direct: true,
+            label: @library_folder.name
+          } ],
+          required_folder_ids: [ @library_folder.parent_folder_id ].compact
+        )
+        saved = true
+      end
     end
+    saved
   end
 
   def library_folder_params

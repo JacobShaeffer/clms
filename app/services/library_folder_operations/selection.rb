@@ -15,7 +15,7 @@ module LibraryFolderOperations
       raise InvalidSelection, "The library does not have a current version." unless @library_version
 
       VersionGuard.ensure_current!(library:, library_version: @library_version)
-      @all_folders = @library_version.library_folders.order(:name, :id).to_a
+      @all_folders = @library_version.library_folders.active.order(:name, :id).to_a
       @folders_by_id = @all_folders.index_by(&:id)
       @children_by_parent_id = @all_folders.group_by(&:parent_folder_id)
       @source_folder = resolve_optional_folder(source_folder_id, "source folder")
@@ -25,6 +25,7 @@ module LibraryFolderOperations
       raise InvalidSelection, "Select at least one folder or content item." if @folder_ids.empty? && @content_ids.empty?
 
       @selected_folders = resolve_selected_folders
+      ensure_selected_subtrees_are_active!
       @direct_content_placements = resolve_direct_content_placements
       @subtree_folders = build_subtree_folders
       @subtree_folder_ids = @subtree_folders.map(&:id).to_set
@@ -108,6 +109,7 @@ module LibraryFolderOperations
       raise InvalidSelection, "Content cannot be selected from the library root." unless source_folder
 
       placements = LibraryFolderContent
+        .active
         .where(
           library_version_id: library_version.id,
           library_folder_id: source_folder.id,
@@ -120,6 +122,36 @@ module LibraryFolderOperations
       end
 
       placements.sort_by { |placement| content_sort_key(placement.content) }
+    end
+
+    def ensure_selected_subtrees_are_active!
+      return if selected_folders.empty?
+
+      folder_rows = library_version.library_folders
+        .pluck(:id, :parent_folder_id, :pending_removal_change_id)
+      parent_by_id = folder_rows.to_h { |id, parent_id, _change_id| [ id, parent_id ] }
+      pending_folder_ids = folder_rows.filter_map do |id, _parent_id, change_id|
+        id if change_id.present?
+      end
+      pending_folder_ids.concat(
+        library_version.library_folder_contents
+          .where.not(pending_removal_change_id: nil)
+          .distinct
+          .pluck(:library_folder_id)
+      )
+      selected_ids = selected_folders.map(&:id).to_set
+      affected = pending_folder_ids.any? do |folder_id|
+        current_id = folder_id
+        visited_ids = Set.new
+        while current_id && visited_ids.add?(current_id)
+          break true if selected_ids.include?(current_id)
+
+          current_id = parent_by_id[current_id]
+        end
+      end
+      return unless affected
+
+      raise InvalidSelection, "A selected folder contains items pending removal."
     end
 
     def build_subtree_folders
@@ -143,6 +175,7 @@ module LibraryFolderOperations
       return {} if @subtree_folders.empty?
 
       LibraryFolderContent
+        .active
         .where(
           library_version_id: library_version.id,
           library_folder_id: @subtree_folders.map(&:id)

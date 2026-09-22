@@ -223,6 +223,21 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "rejects a parent folder pending removal" do
+    LibraryFolderOperations::Remove.call(
+      library: @library,
+      source_folder_id: nil,
+      folder_ids: [ @root_folder.id ],
+      content_ids: [],
+      user: @user
+    )
+
+    get new_library_library_folder_url(@library, parent_folder_id: @root_folder.id),
+      headers: TURBO_FRAME_HEADERS
+
+    assert_response :not_found
+  end
+
   test "rejects a new folder request for a non-current version" do
     historical_version = @library.current_version
     LibraryVersions::Create.call(library: @library, version_number: "2.0", user: @user)

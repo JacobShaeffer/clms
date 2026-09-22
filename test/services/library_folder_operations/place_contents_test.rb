@@ -17,6 +17,7 @@ class LibraryFolderOperations::PlaceContentsTest < ActiveSupport::TestCase
       assert_difference("LibraryFolderContent.count", 2) do
         @result = LibraryFolderOperations::PlaceContents.call(
           library: @library,
+          user: users(:one),
           folder_id: @folder.id,
           content_ids: [ contents(:one).id, contents(:two).id ]
         )
@@ -37,6 +38,7 @@ class LibraryFolderOperations::PlaceContentsTest < ActiveSupport::TestCase
   test "reports existing placements and adds only missing content" do
     LibraryFolderOperations::PlaceContents.call(
       library: @library,
+      user: users(:one),
       folder_id: @folder.id,
       content_ids: [ contents(:one).id ]
     )
@@ -45,6 +47,7 @@ class LibraryFolderOperations::PlaceContentsTest < ActiveSupport::TestCase
       assert_difference("LibraryFolderContent.count", 1) do
         @result = LibraryFolderOperations::PlaceContents.call(
           library: @library,
+          user: users(:one),
           folder_id: @folder.id,
           content_ids: [ contents(:one).id, contents(:two).id ]
         )
@@ -61,23 +64,41 @@ class LibraryFolderOperations::PlaceContentsTest < ActiveSupport::TestCase
   test "reports when every placement already exists" do
     LibraryFolderOperations::PlaceContents.call(
       library: @library,
+      user: users(:one),
       folder_id: @folder.id,
       content_ids: [ contents(:one).id ]
     )
 
-    assert_no_difference("LibraryVersionContent.count") do
-      assert_no_difference("LibraryFolderContent.count") do
-        @result = LibraryFolderOperations::PlaceContents.call(
-          library: @library,
-          folder_id: @folder.id,
-          content_ids: [ contents(:one).id ]
-        )
+    assert_no_difference("LibraryChange.count") do
+      assert_no_difference("LibraryVersionContent.count") do
+        assert_no_difference("LibraryFolderContent.count") do
+          @result = LibraryFolderOperations::PlaceContents.call(
+            library: @library,
+            user: users(:one),
+            folder_id: @folder.id,
+            content_ids: [ contents(:one).id ]
+          )
+        end
       end
     end
 
     assert_equal :already_present, @result.status
     assert @result.none_added?
     assert @result.some_skipped?
+  end
+
+  test "rolls back placements and manifests when recording fails" do
+    assert_raises(ActiveRecord::RecordInvalid) do
+      LibraryFolderOperations::PlaceContents.call(
+        library: @library,
+        user: nil,
+        folder_id: @folder.id,
+        content_ids: [ contents(:one).id ]
+      )
+    end
+
+    refute @folder.library_folder_contents.exists?(content: contents(:one))
+    refute @library_version.library_version_contents.exists?(content: contents(:one))
   end
 
   test "rejects a destination outside the current version" do
@@ -93,6 +114,7 @@ class LibraryFolderOperations::PlaceContentsTest < ActiveSupport::TestCase
       assert_raises(ActiveRecord::RecordNotFound) do
         LibraryFolderOperations::PlaceContents.call(
           library: @library,
+          user: users(:one),
           folder_id: other_folder.id,
           content_ids: [ contents(:one).id ]
         )
@@ -107,6 +129,7 @@ class LibraryFolderOperations::PlaceContentsTest < ActiveSupport::TestCase
       assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
         LibraryFolderOperations::PlaceContents.call(
           library: @library,
+          user: users(:one),
           folder_id: @folder.id,
           content_ids: [ contents(:one).id ]
         )

@@ -1,4 +1,4 @@
-<% add_to_folder_actions = if policy(@library).add_to_active_folder?
+<% add_to_folder_actions = if policy(@library).add_to_active_folder? && !@current_folder&.pending_removal?
   {
     partial: "libraries/add_to_active_folder_form",
     locals: {

@@ -205,6 +205,7 @@ class LibrariesTest < ApplicationSystemTestCase
   end
 
   test "confirms and removes selected content and recursive folders" do
+    users(:one).update!(role: :admin)
     library = Library.create!(name: "Removal Library", user: users(:one))
     source = create_folder!(library, "Source")
     selected_folder = create_folder!(library, "Selected", parent_folder: source)
@@ -239,6 +240,24 @@ class LibrariesTest < ApplicationSystemTestCase
     end
 
     assert_no_selector "turbo-frame#modal .modal"
+    content_change = library.current_version.library_changes.remove_content.last
+    folder_change = library.current_version.library_changes.remove_folder.last
+    folder_browser_selector = "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}"
+    within folder_browser_selector do
+      assert_text selected_folder.name
+      assert_text contents(:one).title
+      assert_selector "##{ActionView::RecordIdentifier.dom_id(selected_folder, :browser)} .badge", text: "Removed"
+      assert_selector "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)} .badge", text: "Removed"
+      assert_no_selector "input[aria-label='Select folder #{selected_folder.name}']"
+      assert_no_selector "input[aria-label='Select content #{contents(:one).title}']"
+    end
+    find("#{folder_browser_selector} ##{ActionView::RecordIdentifier.dom_id(content_change)} a",
+      text: "Approve").click
+    assert_selector "#{folder_browser_selector} ##{ActionView::RecordIdentifier.dom_id(folder_change)} a",
+      text: "Approve"
+    find("#{folder_browser_selector} ##{ActionView::RecordIdentifier.dom_id(folder_change)} a",
+      text: "Approve").click
+
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
       assert_no_text selected_folder.name
       assert_no_text contents(:one).title
@@ -246,6 +265,55 @@ class LibrariesTest < ApplicationSystemTestCase
     assert Content.exists?(contents(:one).id)
     refute LibraryFolder.exists?(selected_folder.id)
     refute LibraryFolder.exists?(nested_folder.id)
+  end
+
+  test "approves dependent changes from the pending changes panel" do
+    users(:one).update!(role: :admin)
+    library = Library.create!(name: "Approval Library", user: users(:one))
+    root = create_folder!(library, "Root")
+    child = library.current_version.library_folders.create!(
+      library:,
+      name: "Pending Child",
+      parent_folder: root,
+      user: users(:one)
+    )
+    folder_change = LibraryChanges::Recorder.call(
+      library_version: library.current_version,
+      user: users(:one),
+      action_type: :add_folder,
+      details: { folder_id: child.id, parent_folder_id: root.id, logo_id: nil },
+      targets: [ {
+        target_kind: :folder,
+        target_id: child.id,
+        folder_id: child.id,
+        resource_key: LibraryChanges::Recorder.folder_key(child),
+        effect: :new,
+        direct: true,
+        label: child.name
+      } ],
+      required_folder_ids: [ root.id ]
+    )
+    LibraryFolderOperations::PlaceContents.call(
+      library:,
+      folder_id: child.id,
+      content_ids: [ contents(:one).id ],
+      user: users(:one)
+    )
+    content_change = library.current_version.library_changes.add_content.last
+
+    visit library_path(library, folder_id: child.id)
+
+    within "##{ActionView::RecordIdentifier.dom_id(content_change)}" do
+      assert_selector ".btn.disabled", text: "Approve"
+      assert_text "Approval waits for #{folder_change.display_label}."
+    end
+    find("##{ActionView::RecordIdentifier.dom_id(folder_change)} a", text: "Approve").click
+    assert_selector "##{ActionView::RecordIdentifier.dom_id(content_change)} a", text: "Approve"
+    find("##{ActionView::RecordIdentifier.dom_id(content_change)} a", text: "Approve").click
+
+    assert_no_selector "#library-pending-changes"
+    assert_predicate folder_change.reload, :approved?
+    assert_predicate content_change.reload, :approved?
   end
 
   test "moves selected content and folder trees to one destination" do
@@ -343,7 +411,9 @@ class LibrariesTest < ApplicationSystemTestCase
 
     assert_no_selector "turbo-frame#modal .modal"
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      assert_selector ".badge", text: "New"
       click_on "Guides"
+      assert_selector ".breadcrumb-item.active .badge", text: "New"
       click_on "New Folder"
     end
 
@@ -356,6 +426,8 @@ class LibrariesTest < ApplicationSystemTestCase
     assert_no_selector "turbo-frame#modal .modal"
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
       assert_link "First Aid"
+      assert_selector "##{ActionView::RecordIdentifier.dom_id(library.library_folders.find_by!(name: "First Aid"), :browser)} .badge",
+        text: "New"
     end
 
     child = library.library_folders.find_by!(name: "First Aid")

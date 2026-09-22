@@ -97,7 +97,8 @@ class LibrariesController < ApplicationController
     placement_result = LibraryFolderOperations::PlaceContents.call(
       library: @library,
       folder_id: @current_folder.id,
-      content_ids:
+      content_ids:,
+      user: current_user
     )
     message = add_to_active_folder_message(placement_result)
 
@@ -207,14 +208,20 @@ class LibrariesController < ApplicationController
     else
       folders.select { |folder| folder.parent_folder_id.nil? }
     end
-    @browser_contents = if @current_folder
-      @current_folder.contents.with_attached_file.order(Content.arel_table[:title].lower, :id).to_a
+    @browser_placements = if @current_folder
+      @current_folder.library_folder_contents
+        .includes(content: { file_attachment: :blob })
+        .joins(:content)
+        .order(Content.arel_table[:title].lower, LibraryFolderContent.arel_table[:id])
+        .to_a
     else
       []
     end
+    @browser_contents = @browser_placements.map(&:content)
     @file_changed_content_ids = @library_version
       .file_changed_content_ids(@browser_contents)
       .index_with(true)
+    @library_change_state = LibraryChanges::BrowserState.new(library_version: @library_version)
   end
 
   def load_active_shelves
@@ -240,7 +247,7 @@ class LibrariesController < ApplicationController
   end
 
   def load_library_contents_table
-    content_ids = @library_version.library_folder_contents.select(:content_id)
+    content_ids = @library_version.library_folder_contents.active.select(:content_id)
     load_contents_table(
       source: base_content_source.where(id: content_ids),
       state_key: ContentTables::LibraryContentsDefinition.library_content_state_key(@library),

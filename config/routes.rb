@@ -2,6 +2,12 @@ Rails.application.routes.draw do
   resources :libraries, only: %i[ index show new create ] do
     resources :library_folders, only: %i[ new create ]
     resources :library_versions, only: %i[ new create ]
+    resources :changes, controller: "library_changes", only: [] do
+      member do
+        patch :approve
+        patch :undo
+      end
+    end
     resource :folder_selection, controller: "library_folder_selections", only: [] do
       get :remove_confirmation
       delete :remove

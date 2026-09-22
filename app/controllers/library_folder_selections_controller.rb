@@ -14,9 +14,13 @@ class LibraryFolderSelectionsController < ApplicationController
   end
 
   def remove
-    LibraryFolderOperations::Remove.call(library: @library, **selection_attributes)
+    LibraryFolderOperations::Remove.call(
+      library: @library,
+      user: current_user,
+      **selection_attributes
+    )
 
-    render_success("Selected items were removed.")
+    render_success("Selected items were marked for removal.")
   end
 
   def move
@@ -27,7 +31,8 @@ class LibraryFolderSelectionsController < ApplicationController
     LibraryFolderOperations::Move.call(
       library: @library,
       **selection_attributes,
-      destination_folder_id: params[:destination_folder_id]
+      destination_folder_id: params[:destination_folder_id],
+      user: current_user
     )
 
     render_success("Selected items were moved.")

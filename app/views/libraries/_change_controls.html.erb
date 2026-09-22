@@ -1,0 +1,34 @@
+<% context = {
+  folder_id: @current_folder&.id,
+  tab: @active_tab,
+  shelf_id: @selected_shelf&.id
+}.compact %>
+<div class="d-flex flex-wrap gap-1 <%= "ms-auto" if local_assigns[:inline] %>">
+  <% if policy(change).approve? %>
+    <% if change.approvable? %>
+      <%= link_to "Approve",
+        approve_library_change_path(@library, change, context),
+        class: "btn btn-sm btn-success",
+        data: { turbo_method: :patch, turbo_frame: "_top" } %>
+    <% else %>
+      <span
+        class="btn btn-sm btn-success disabled"
+        aria-disabled="true"
+        title="Approve <%= change.approval_blocker.display_label %> first">Approve</span>
+    <% end %>
+  <% end %>
+
+  <% if policy(change).undo? %>
+    <% if change.undoable? %>
+      <%= link_to "Undo",
+        undo_library_change_path(@library, change, context),
+        class: "btn btn-sm btn-outline-danger",
+        data: { turbo_method: :patch, turbo_frame: "_top" } %>
+    <% else %>
+      <span
+        class="btn btn-sm btn-outline-danger disabled"
+        aria-disabled="true"
+        title="Undo <%= change.undo_blocker.display_label %> first">Undo</span>
+    <% end %>
+  <% end %>
+</div>

@@ -42,6 +42,10 @@ module LibraryVersions
         new_version.errors.add(:base, "Current library version is locked")
         raise ActiveRecord::RecordInvalid, new_version
       end
+      if previous_version&.pending_changes?
+        new_version.errors.add(:base, "Resolve all pending library changes before creating a new version")
+        raise ActiveRecord::RecordInvalid, new_version
+      end
 
       raise ActiveRecord::RecordInvalid, new_version unless new_version.valid?
     end

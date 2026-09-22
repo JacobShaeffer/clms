@@ -13,6 +13,7 @@ class LibraryFolderOperations::MoveTest < ActiveSupport::TestCase
   test "moves direct content and top-level folders while descendants follow" do
     LibraryFolderOperations::Move.call(
       library: @library,
+      user: users(:one),
       source_folder_id: @source.id,
       folder_ids: [ @selected.id ],
       content_ids: [ contents(:one).id ],
@@ -37,6 +38,7 @@ class LibraryFolderOperations::MoveTest < ActiveSupport::TestCase
     assert_difference("LibraryFolderContent.count", -1) do
       LibraryFolderOperations::Move.call(
         library: @library,
+        user: users(:one),
         source_folder_id: @source.id,
         folder_ids: [],
         content_ids: [ contents(:one).id ],
@@ -53,6 +55,7 @@ class LibraryFolderOperations::MoveTest < ActiveSupport::TestCase
 
     LibraryFolderOperations::Move.call(
       library: @library,
+      user: users(:one),
       source_folder_id: nil,
       folder_ids: [ root.id ],
       content_ids: [],
@@ -67,6 +70,7 @@ class LibraryFolderOperations::MoveTest < ActiveSupport::TestCase
     assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
       LibraryFolderOperations::Move.call(
         library: @library,
+        user: users(:one),
         source_folder_id: @source.id,
         folder_ids: [ @selected.id ],
         content_ids: [],
@@ -76,6 +80,7 @@ class LibraryFolderOperations::MoveTest < ActiveSupport::TestCase
     assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
       LibraryFolderOperations::Move.call(
         library: @library,
+        user: users(:one),
         source_folder_id: @source.id,
         folder_ids: [ @selected.id ],
         content_ids: [],
@@ -93,6 +98,7 @@ class LibraryFolderOperations::MoveTest < ActiveSupport::TestCase
       assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
         LibraryFolderOperations::Move.call(
           library: @library,
+          user: users(:one),
           source_folder_id: @source.id,
           folder_ids: [ @selected.id ],
           content_ids: [ contents(:one).id ],

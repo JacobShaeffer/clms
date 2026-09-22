@@ -43,15 +43,17 @@ class LibraryFolderOperations::DuplicateTest < ActiveSupport::TestCase
   test "skips an existing direct destination placement" do
     LibraryFolderContent.create!(library_folder: @destination, content: contents(:one))
 
-    assert_no_difference("LibraryFolderContent.count") do
-      LibraryFolderOperations::Duplicate.call(
-        library: @library,
-        source_folder_id: @source.id,
-        folder_ids: [],
-        content_ids: [ contents(:one).id ],
-        destination_folder_id: @destination.id,
-        user: users(:one)
-      )
+    assert_no_difference("LibraryChange.count") do
+      assert_no_difference("LibraryFolderContent.count") do
+        LibraryFolderOperations::Duplicate.call(
+          library: @library,
+          source_folder_id: @source.id,
+          folder_ids: [],
+          content_ids: [ contents(:one).id ],
+          destination_folder_id: @destination.id,
+          user: users(:one)
+        )
+      end
     end
   end
 

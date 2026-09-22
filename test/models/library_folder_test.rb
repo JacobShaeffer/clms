@@ -102,6 +102,32 @@ class LibraryFolderTest < ActiveSupport::TestCase
     assert_includes new_folder.errors[:base], "Locked library versions cannot be changed"
   end
 
+  test "folders pending removal are read only and cannot receive new children" do
+    folder = create_folder!(name: "Health")
+    change = @library.current_version.library_changes.create!(
+      user: users(:one),
+      action_type: :remove_folder,
+      batch_key: SecureRandom.uuid,
+      details: { folder_id: folder.id }
+    )
+    folder.update!(pending_removal_change: change)
+
+    assert_not folder.update(name: "Changed")
+    assert_includes folder.errors[:base], "Folders pending removal cannot be changed"
+    assert_not folder.destroy
+    assert_includes folder.errors[:base],
+      "Folders pending removal can only be deleted by approval"
+
+    child = @library.current_version.library_folders.build(
+      library: @library,
+      name: "New child",
+      parent_folder: folder,
+      user: users(:one)
+    )
+    assert_not child.valid?
+    assert_includes child.errors[:parent_folder], "cannot be pending removal"
+  end
+
   private
 
   def create_folder!(name:, parent_folder: nil)

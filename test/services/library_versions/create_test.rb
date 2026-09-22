@@ -92,6 +92,53 @@ class LibraryVersions::CreateTest < ActiveSupport::TestCase
     assert_equal 1, @library.library_versions.count
   end
 
+  test "pending changes prevent the current version from being locked" do
+    LibraryFolderOperations::PlaceContents.call(
+      library: @library,
+      folder_id: @root.id,
+      content_ids: [ contents(:one).id ],
+      user: users(:one)
+    )
+
+    error = assert_raises(ActiveRecord::RecordInvalid) do
+      LibraryVersions::Create.call(
+        library: @library,
+        version_number: "2.0",
+        user: users(:one)
+      )
+    end
+
+    assert_includes error.record.errors[:base],
+      "Resolve all pending library changes before creating a new version"
+    assert_predicate @version.reload, :editable?
+    assert_equal @version, @library.reload.current_version
+  end
+
+  test "resolved audit records stay with the locked version and are not cloned" do
+    admin = users(:two)
+    admin.update!(role: :admin)
+    LibraryFolderOperations::PlaceContents.call(
+      library: @library,
+      folder_id: @root.id,
+      content_ids: [ contents(:one).id ],
+      user: users(:one)
+    )
+    change = @version.library_changes.last
+    LibraryChanges::Approve.call(change:, user: admin)
+
+    new_version = LibraryVersions::Create.call(
+      library: @library,
+      version_number: "2.0",
+      user: admin
+    )
+
+    assert_predicate @version.reload, :locked?
+    assert_equal [ change ], @version.library_changes.to_a
+    assert_empty new_version.library_changes
+    assert_predicate change.reload, :approved?
+    assert_not change.update(details: { changed: true })
+  end
+
   private
 
   def create_folder!(name, parent_folder: nil)
