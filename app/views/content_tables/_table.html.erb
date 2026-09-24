@@ -88,8 +88,11 @@
     <% if pagy.pages > 1 %>
       <%== pagy.series_nav(
         :bootstrap,
-        path: definition.update_path,
-        querify: ->(query) { query.select! { |key, _value| key.to_s == "page" } }
+        path: definition.pagination_path,
+        querify: lambda do |query|
+          page_params = query.select { |key, _value| key.to_s == "page" }
+          query.replace(definition.pagination_params.merge(page_params))
+        end
       ) %>
     <% end %>
   </div>

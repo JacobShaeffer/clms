@@ -120,6 +120,14 @@ module ContentTables
       "#{update_path}#{update_path.include?("?") ? "&" : "?"}#{query}"
     end
 
+    def pagination_path
+      update_path.split("?", 2).first
+    end
+
+    def pagination_params
+      Rack::Utils.parse_nested_query(update_path.split("?", 2).second.to_s)
+    end
+
     def relation_for(state)
       relation = source.respond_to?(:call) ? source.call : source
       relation = quick_search.call(relation:, query: state.q) if state.q.present?

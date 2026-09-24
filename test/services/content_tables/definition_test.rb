@@ -64,6 +64,8 @@ class ContentTables::DefinitionTest < ActiveSupport::TestCase
 
     definition_with_query = build_definition(update_path: "/archive/table?scope=all")
     assert_equal "/archive/table?scope=all&page=2", definition_with_query.update_url(page: 2)
+    assert_equal "/archive/table", definition_with_query.pagination_path
+    assert_equal({ "scope" => "all" }, definition_with_query.pagination_params)
   end
 
   test "supplies labels for groups that omit them" do

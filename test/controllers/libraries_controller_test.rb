@@ -516,6 +516,31 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "shelf table pagination keeps the shelf id separate from the page" do
+    shelf = users(:one).shelves.create!(name: "Paginated Shelf")
+    11.times do |index|
+      shelf.contents << create_content_with_file!(bytes: "shelf pagination #{index}")
+    end
+    ActiveShelf.activate!(user: users(:one), shelf:)
+
+    get shelf_contents_table_library_url(@library, shelf_id: shelf.id)
+
+    assert_response :success
+    page_two_link = css_select("nav.pagy-bootstrap a.page-link[href]").find do |link|
+      link.text.strip == "2"
+    end
+    assert page_two_link
+    assert_equal(
+      { "shelf_id" => shelf.id.to_s, "page" => "2" },
+      Rack::Utils.parse_nested_query(URI.parse(page_two_link["href"]).query)
+    )
+
+    get page_two_link["href"]
+
+    assert_response :success
+    assert_select "nav.pagy-bootstrap a[aria-current='page']", text: "2"
+  end
+
   test "library table preferences are isolated and reset per tab" do
     get all_contents_table_library_url(@library, q: "First")
     get library_contents_table_library_url(@library, q: "Second")
