@@ -2,21 +2,11 @@ class LibraryChangesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_library_and_change
 
-  rescue_from LibraryChanges::InvalidResolution, with: :render_invalid_resolution
-
-  def approve
-    authorize @change
-    safe_folder_id = safe_folder_id_after_resolution(:approve)
-    LibraryChanges::Approve.call(change: @change, user: current_user)
-
-    redirect_to library_path(@library, **page_context(folder_id: safe_folder_id)),
-      notice: "Library change was approved.",
-      status: :see_other
-  end
+  rescue_from LibraryChanges::InvalidUndo, with: :render_invalid_undo
 
   def undo
     authorize @change
-    safe_folder_id = safe_folder_id_after_resolution(:undo)
+    safe_folder_id = safe_folder_id_after_undo
     LibraryChanges::Undo.call(change: @change, user: current_user)
 
     redirect_to library_path(@library, **page_context(folder_id: safe_folder_id)),
@@ -31,23 +21,21 @@ class LibraryChangesController < ApplicationController
     @change = @library.current_version.library_changes.find(params.expect(:id))
   end
 
-  def safe_folder_id_after_resolution(resolution)
+  def safe_folder_id_after_undo
     requested_id = scalar_id(params[:folder_id])
     requested_numeric_id = Integer(requested_id, exception: false)
     return requested_id unless requested_numeric_id
 
-    deleted_folder_ids, surviving_parent_id = deleted_folders_and_parent(resolution)
+    deleted_folder_ids, surviving_parent_id = deleted_folders_and_parent
     return requested_id unless deleted_folder_ids.include?(requested_numeric_id)
 
     surviving_parent_id
   end
 
-  def deleted_folders_and_parent(resolution)
-    if resolution == :approve && @change.remove_folder?
-      [ Array(@change.details["folder_ids"]).map(&:to_i), @change.details["source_parent_folder_id"] ]
-    elsif resolution == :undo && @change.add_folder?
+  def deleted_folders_and_parent
+    if @change.add_folder?
       [ [ @change.details["folder_id"].to_i ], @change.details["parent_folder_id"] ]
-    elsif resolution == :undo && @change.duplicate_folder?
+    elsif @change.duplicate_folder?
       [ Array(@change.details["folder_ids"]).map(&:to_i), @change.details["destination_folder_id"] ]
     else
       [ [], nil ]
@@ -74,7 +62,7 @@ class LibraryChangesController < ApplicationController
     raise ActiveRecord::RecordNotFound, "Invalid page context"
   end
 
-  def render_invalid_resolution(error)
+  def render_invalid_undo(error)
     redirect_to library_path(@library, **page_context(folder_id: scalar_id(params[:folder_id]))),
       alert: error.message,
       status: :see_other

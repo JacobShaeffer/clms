@@ -145,19 +145,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_122000) do
     t.datetime "created_at", null: false
     t.jsonb "details", default: {}, null: false
     t.bigint "library_version_id", null: false
-    t.datetime "resolved_at"
-    t.bigint "resolved_by_id"
-    t.string "status", default: "pending", null: false
+    t.datetime "undone_at"
+    t.bigint "undone_by_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["batch_key"], name: "index_library_changes_on_batch_key"
-    t.index ["library_version_id", "status", "id"], name: "index_library_changes_on_version_status_id"
+    t.index ["library_version_id", "undone_at", "id"], name: "index_library_changes_on_version_undone_at_id"
     t.index ["library_version_id"], name: "index_library_changes_on_library_version_id"
-    t.index ["resolved_by_id"], name: "index_library_changes_on_resolved_by_id"
+    t.index ["undone_by_id"], name: "index_library_changes_on_undone_by_id"
     t.index ["user_id"], name: "index_library_changes_on_user_id"
     t.check_constraint "action_type::text = ANY (ARRAY['add_folder'::character varying, 'add_content'::character varying, 'move_folder'::character varying, 'move_content'::character varying, 'remove_folder'::character varying, 'remove_content'::character varying, 'duplicate_folder'::character varying, 'duplicate_content'::character varying]::text[])", name: "library_changes_action_type"
-    t.check_constraint "status::text = 'pending'::text AND resolved_at IS NULL AND resolved_by_id IS NULL OR status::text <> 'pending'::text AND resolved_at IS NOT NULL AND resolved_by_id IS NOT NULL", name: "library_changes_resolution"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'undone'::character varying]::text[])", name: "library_changes_status"
+    t.check_constraint "undone_at IS NULL AND undone_by_id IS NULL OR undone_at IS NOT NULL AND undone_by_id IS NOT NULL", name: "library_changes_undo_state"
   end
 
   create_table "library_folder_contents", force: :cascade do |t|
@@ -165,13 +163,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_122000) do
     t.datetime "created_at", null: false
     t.bigint "library_folder_id", null: false
     t.bigint "library_version_id", null: false
-    t.bigint "pending_removal_change_id"
     t.datetime "updated_at", null: false
     t.index ["content_id"], name: "index_library_folder_contents_on_content_id"
     t.index ["library_folder_id", "content_id"], name: "idx_on_library_folder_id_content_id_f0777ce9d7", unique: true
     t.index ["library_folder_id"], name: "index_library_folder_contents_on_library_folder_id"
     t.index ["library_version_id"], name: "index_library_folder_contents_on_library_version_id"
-    t.index ["pending_removal_change_id"], name: "index_library_folder_contents_on_pending_removal_change_id"
   end
 
   create_table "library_folders", force: :cascade do |t|
@@ -181,7 +177,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_122000) do
     t.bigint "logo_id"
     t.string "name", null: false
     t.bigint "parent_folder_id"
-    t.bigint "pending_removal_change_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["id", "library_version_id"], name: "index_library_folders_on_id_and_library_version_id", unique: true
@@ -189,7 +184,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_122000) do
     t.index ["library_version_id"], name: "index_library_folders_on_library_version_id"
     t.index ["logo_id"], name: "index_library_folders_on_logo_id"
     t.index ["parent_folder_id"], name: "index_library_folders_on_parent_folder_id"
-    t.index ["pending_removal_change_id"], name: "index_library_folders_on_pending_removal_change_id"
     t.index ["user_id"], name: "index_library_folders_on_user_id"
     t.check_constraint "parent_folder_id IS NULL AND logo_id IS NOT NULL OR parent_folder_id IS NOT NULL AND logo_id IS NULL", name: "library_folders_root_only_logo"
   end
@@ -296,16 +290,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_122000) do
   add_foreign_key "library_change_targets", "library_changes"
   add_foreign_key "library_changes", "library_versions"
   add_foreign_key "library_changes", "users"
-  add_foreign_key "library_changes", "users", column: "resolved_by_id"
+  add_foreign_key "library_changes", "users", column: "undone_by_id"
   add_foreign_key "library_folder_contents", "contents"
-  add_foreign_key "library_folder_contents", "library_changes", column: "pending_removal_change_id"
   add_foreign_key "library_folder_contents", "library_folders"
   add_foreign_key "library_folder_contents", "library_folders", column: ["library_folder_id", "library_version_id"], primary_key: ["id", "library_version_id"], name: "fk_folder_contents_folder_version"
   add_foreign_key "library_folder_contents", "library_version_contents", column: ["library_version_id", "content_id"], primary_key: ["library_version_id", "content_id"], name: "fk_folder_contents_manifest"
   add_foreign_key "library_folder_contents", "library_versions"
   add_foreign_key "library_folders", "libraries"
   add_foreign_key "library_folders", "library_assets", column: "logo_id"
-  add_foreign_key "library_folders", "library_changes", column: "pending_removal_change_id"
   add_foreign_key "library_folders", "library_folders", column: "parent_folder_id"
   add_foreign_key "library_folders", "library_folders", column: ["parent_folder_id", "library_version_id"], primary_key: ["id", "library_version_id"], name: "fk_library_folders_parent_version"
   add_foreign_key "library_folders", "library_versions"

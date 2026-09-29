@@ -30,9 +30,9 @@ class LibraryChangeDependency < ApplicationRecord
 
   def dependent_change_accepts_dependencies
     return if library_change.blank?
-    return if library_change.pending? && library_change.library_version.editable?
+    return if !library_change.undone? && library_change.library_version.editable?
 
-    errors.add(:library_change, "must be pending in an editable version")
+    errors.add(:library_change, "must not be undone and must belong to an editable version")
   end
 
   def prevent_mutation

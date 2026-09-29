@@ -20,7 +20,7 @@ class LibraryFolderSelectionsController < ApplicationController
       **selection_attributes
     )
 
-    render_success("Selected items were marked for removal.")
+    render_success("Selected items were removed.")
   end
 
   def move

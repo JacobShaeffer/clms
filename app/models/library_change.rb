@@ -9,11 +9,9 @@ class LibraryChange < ApplicationRecord
     duplicate_folder: "duplicate_folder",
     duplicate_content: "duplicate_content"
   }.freeze
-  STATUSES = { pending: "pending", approved: "approved", undone: "undone" }.freeze
-
   belongs_to :library_version
   belongs_to :user
-  belongs_to :resolved_by, class_name: "User", optional: true
+  belongs_to :undone_by, class_name: "User", optional: true
 
   has_many :library_change_targets, dependent: :restrict_with_error
   has_many :dependency_links,
@@ -27,44 +25,29 @@ class LibraryChange < ApplicationRecord
     dependent: :restrict_with_error,
     inverse_of: :prerequisite_change
   has_many :dependents, through: :dependent_links, source: :library_change
-  has_many :pending_removed_folders,
-    class_name: "LibraryFolder",
-    foreign_key: :pending_removal_change_id,
-    inverse_of: :pending_removal_change,
-    dependent: :restrict_with_error
-  has_many :pending_removed_placements,
-    class_name: "LibraryFolderContent",
-    foreign_key: :pending_removal_change_id,
-    inverse_of: :pending_removal_change,
-    dependent: :restrict_with_error
-
   enum :action_type, ACTION_TYPES, validate: true
-  enum :status, STATUSES, validate: true
 
   validates :batch_key, presence: true
   validates :details, presence: true
-  validate :resolution_is_complete
-  validate :resolved_change_is_immutable, on: :update
+  validate :undo_state_is_complete
+  validate :audit_record_changes_only_when_undone, on: :update
   validate :library_version_is_editable, on: %i[create update]
 
   before_destroy :prevent_destruction, prepend: true
 
   scope :ordered, -> { order(:created_at, :id) }
-
-  def approval_blocker
-    prerequisites.where.not(status: :approved).ordered.first
-  end
+  scope :not_undone, -> { where(undone_at: nil) }
 
   def undo_blocker
-    dependents.pending.ordered.first
-  end
-
-  def approvable?
-    pending? && approval_blocker.nil?
+    dependents.not_undone.ordered.first
   end
 
   def undoable?
-    pending? && undo_blocker.nil?
+    !undone? && undo_blocker.nil?
+  end
+
+  def undone?
+    undone_at.present?
   end
 
   def direct_target
@@ -77,21 +60,23 @@ class LibraryChange < ApplicationRecord
 
   private
 
-  def resolution_is_complete
-    if pending?
-      errors.add(:resolved_at, "must be blank while pending") if resolved_at.present?
-      errors.add(:resolved_by, "must be blank while pending") if resolved_by.present?
-    else
-      errors.add(:resolved_at, "must be present") if resolved_at.blank?
-      errors.add(:resolved_by, "must be present") if resolved_by.blank?
-    end
+  def undo_state_is_complete
+    return if undone_at.present? == undone_by.present?
+
+    errors.add(:base, "Undo time and user must both be present or both be blank")
   end
 
-  def resolved_change_is_immutable
-    return if status_in_database == "pending"
-    return unless has_changes_to_save?
+  def audit_record_changes_only_when_undone
+    changed_attributes = changes_to_save.keys
+    return if changed_attributes.empty?
 
-    errors.add(:base, "Resolved library changes cannot be modified")
+    if undone_at_in_database.present?
+      errors.add(:base, "Undone library changes cannot be modified")
+      return
+    end
+    return if (changed_attributes - %w[undone_at undone_by_id]).empty?
+
+    errors.add(:base, "Library change audit records can only be marked undone")
   end
 
   def library_version_is_editable

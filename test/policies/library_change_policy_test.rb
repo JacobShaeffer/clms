@@ -15,13 +15,6 @@ class LibraryChangePolicyTest < ActiveSupport::TestCase
     )
   end
 
-  test "admins can approve including their own changes" do
-    assert LibraryChangePolicy.new(@admin, @change).approve?
-    @change.update_column(:user_id, @admin.id)
-    assert LibraryChangePolicy.new(@admin, @change.reload).approve?
-    refute LibraryChangePolicy.new(@author, @change).approve?
-  end
-
   test "authors and admins can undo" do
     assert LibraryChangePolicy.new(@author, @change).undo?
     assert LibraryChangePolicy.new(@admin, @change).undo?

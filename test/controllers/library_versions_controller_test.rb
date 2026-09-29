@@ -101,7 +101,7 @@ class LibraryVersionsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "pending changes block version creation with a clear error" do
+  test "undoable changes do not block version creation" do
     folder = @library.current_version.library_folders.create!(
       library: @library,
       name: "Pending folder",
@@ -115,15 +115,14 @@ class LibraryVersionsControllerTest < ActionDispatch::IntegrationTest
       user: @admin
     )
 
-    assert_no_difference("LibraryVersion.count") do
+    assert_difference("LibraryVersion.count", 1) do
       post library_library_versions_url(@library),
         params: { library_version: { version_number: "2.0" } },
         headers: TURBO_STREAM_HEADERS
     end
 
-    assert_response :unprocessable_content
-    assert_select ".alert.alert-danger[role='alert']",
-      text: /Resolve all pending library changes before creating a new version/
+    assert_redirected_to library_url(@library)
+    assert_equal "2.0", @library.reload.current_version.version_number
   end
 
   test "non-admin cannot open or create a version" do

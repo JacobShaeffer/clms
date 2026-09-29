@@ -92,7 +92,7 @@ class LibraryVersions::CreateTest < ActiveSupport::TestCase
     assert_equal 1, @library.library_versions.count
   end
 
-  test "pending changes prevent the current version from being locked" do
+  test "undoable changes do not prevent the current version from being locked" do
     LibraryFolderOperations::PlaceContents.call(
       library: @library,
       folder_id: @root.id,
@@ -100,23 +100,21 @@ class LibraryVersions::CreateTest < ActiveSupport::TestCase
       user: users(:one)
     )
 
-    error = assert_raises(ActiveRecord::RecordInvalid) do
-      LibraryVersions::Create.call(
-        library: @library,
-        version_number: "2.0",
-        user: users(:one)
-      )
-    end
+    change = @version.library_changes.last
+    new_version = LibraryVersions::Create.call(
+      library: @library,
+      version_number: "2.0",
+      user: users(:one)
+    )
 
-    assert_includes error.record.errors[:base],
-      "Resolve all pending library changes before creating a new version"
-    assert_predicate @version.reload, :editable?
-    assert_equal @version, @library.reload.current_version
+    assert_predicate @version.reload, :locked?
+    assert new_version.library_folder_contents.exists?(content: contents(:one))
+    assert_equal [ change ], @version.library_changes.to_a
+    assert_empty new_version.library_changes
+    refute_predicate change, :undone?
   end
 
-  test "resolved audit records stay with the locked version and are not cloned" do
-    admin = users(:two)
-    admin.update!(role: :admin)
+  test "audit records stay with the locked version and are not cloned" do
     LibraryFolderOperations::PlaceContents.call(
       library: @library,
       folder_id: @root.id,
@@ -124,18 +122,16 @@ class LibraryVersions::CreateTest < ActiveSupport::TestCase
       user: users(:one)
     )
     change = @version.library_changes.last
-    LibraryChanges::Approve.call(change:, user: admin)
 
     new_version = LibraryVersions::Create.call(
       library: @library,
       version_number: "2.0",
-      user: admin
+      user: users(:two)
     )
 
     assert_predicate @version.reload, :locked?
     assert_equal [ change ], @version.library_changes.to_a
     assert_empty new_version.library_changes
-    assert_predicate change.reload, :approved?
     assert_not change.update(details: { changed: true })
   end
 

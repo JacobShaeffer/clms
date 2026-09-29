@@ -16,12 +16,12 @@ module LibraryChanges
         ensure_resolvable!(library)
         blocker = change.undo_blocker
         if blocker
-          raise InvalidResolution,
+          raise InvalidUndo,
             "Undo #{blocker.display_label} before undoing this change."
         end
 
         undo_change!
-        change.update!(status: :undone, resolved_by: user, resolved_at: Time.current)
+        change.update!(undone_by: user, undone_at: Time.current)
       end
       change
     end
@@ -34,10 +34,10 @@ module LibraryChanges
       author_can_manage = change.user_id == user&.id &&
         LibraryFolderPolicy.new(user, LibraryFolder).manage?
       allowed = user&.admin? || author_can_manage
-      raise InvalidResolution, "You cannot undo this library change." unless allowed
-      raise InvalidResolution, "This change has already been resolved." unless change.pending?
+      raise InvalidUndo, "You cannot undo this library change." unless allowed
+      raise InvalidUndo, "This library change has already been undone." if change.undone?
       unless library.current_version_id == change.library_version_id && change.library_version.editable?
-        raise InvalidResolution, "Only changes in the editable current version can be undone."
+        raise InvalidUndo, "Only changes in the editable current version can be undone."
       end
     end
 
@@ -85,21 +85,14 @@ module LibraryChanges
     end
 
     def undo_removed_folder!
-      LibraryFolder.where(
-        id: Array(detail("folder_ids")),
-        pending_removal_change_id: change.id
-      ).update_all(pending_removal_change_id: nil, updated_at: Time.current)
-      LibraryFolderContent.where(
-        id: Array(detail("placement_ids")),
-        pending_removal_change_id: change.id
-      ).update_all(pending_removal_change_id: nil, updated_at: Time.current)
+      Array(detail("folder_snapshots")).each do |snapshot|
+        LibraryFolder.create!(snapshot.slice(*folder_snapshot_attributes))
+      end
+      restore_placements!(detail("placement_snapshots"))
     end
 
     def undo_removed_content!
-      LibraryFolderContent.where(
-        id: detail("placement_id"),
-        pending_removal_change_id: change.id
-      ).update_all(pending_removal_change_id: nil, updated_at: Time.current)
+      restore_placements!([ detail("placement_snapshot") ])
     end
 
     def undo_duplicated_folder!
@@ -118,6 +111,20 @@ module LibraryChanges
         library_folder_id: folder_id,
         content_id:
       )
+    end
+
+    def restore_placements!(snapshots)
+      Array(snapshots).each do |snapshot|
+        LibraryFolderContent.create!(snapshot.slice(*placement_snapshot_attributes))
+      end
+    end
+
+    def folder_snapshot_attributes
+      %w[id library_id library_version_id parent_folder_id user_id logo_id name created_at updated_at]
+    end
+
+    def placement_snapshot_attributes
+      %w[id library_folder_id content_id library_version_id created_at updated_at]
     end
 
     def detail(key)

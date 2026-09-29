@@ -223,7 +223,7 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "rejects a parent folder pending removal" do
+  test "rejects a parent folder that was removed" do
     LibraryFolderOperations::Remove.call(
       library: @library,
       source_folder_id: nil,

@@ -12,7 +12,12 @@ class LibraryFolderOperations::RemoveTest < ActiveSupport::TestCase
     @outside_placement = LibraryFolderContent.create!(library_folder: @sibling, content: contents(:two))
   end
 
-  test "marks direct placements and recursive folder trees for removal without deleting content" do
+  test "immediately deletes direct placements and recursive folder trees without deleting content" do
+    selected_id = @selected.id
+    nested_id = @nested.id
+    direct_placement_id = @direct_placement.id
+    nested_placement_id = @nested_placement.id
+
     assert_no_difference("Content.count") do
       LibraryFolderOperations::Remove.call(
         library: @library,
@@ -23,20 +28,27 @@ class LibraryFolderOperations::RemoveTest < ActiveSupport::TestCase
       )
     end
 
-    assert_predicate @direct_placement.reload, :pending_removal?
-    assert_predicate @nested_placement.reload, :pending_removal?
-    assert_predicate @selected.reload, :pending_removal?
-    assert_predicate @nested.reload, :pending_removal?
+    refute LibraryFolderContent.exists?(direct_placement_id)
+    refute LibraryFolderContent.exists?(nested_placement_id)
+    refute LibraryFolder.exists?(selected_id)
+    refute LibraryFolder.exists?(nested_id)
     assert LibraryFolder.exists?(@source.id)
     assert LibraryFolder.exists?(@sibling.id)
     assert LibraryFolderContent.exists?(@outside_placement.id)
     assert Content.exists?(contents(:one).id)
     assert Content.exists?(contents(:two).id)
-    assert @library.current_version.library_version_contents.exists?(content: contents(:one))
+    refute @library.current_version.library_version_contents.exists?(content: contents(:one))
     assert @library.current_version.library_version_contents.exists?(content: contents(:two))
     assert_equal 2, @library.current_version.library_changes.remove_content.or(
       @library.current_version.library_changes.remove_folder
     ).count
+
+    content_change = @library.current_version.library_changes.remove_content.last
+    folder_change = @library.current_version.library_changes.remove_folder.last
+    assert_equal direct_placement_id,
+      content_change.details.fetch("placement_snapshot").fetch("id")
+    assert_equal [ selected_id, nested_id ],
+      folder_change.details.fetch("folder_snapshots").pluck("id")
   end
 
   test "rejects removal when the current version is locked" do

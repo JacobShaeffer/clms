@@ -35,7 +35,7 @@ module LibraryFolderOperations
 
       def duplicate_direct_content!(selection:, destination:, library_version:, user:, batch_key:)
         selection.direct_content_placements.each do |source_placement|
-          next if destination.library_folder_contents.active.exists?(content_id: source_placement.content_id)
+          next if destination.library_folder_contents.exists?(content_id: source_placement.content_id)
 
           placement = PlaceContents.place_for_version!(
             library_version:,

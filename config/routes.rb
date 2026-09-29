@@ -4,7 +4,6 @@ Rails.application.routes.draw do
     resources :library_versions, only: %i[ new create ]
     resources :changes, controller: "library_changes", only: [] do
       member do
-        patch :approve
         patch :undo
       end
     end

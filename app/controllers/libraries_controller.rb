@@ -247,7 +247,7 @@ class LibrariesController < ApplicationController
   end
 
   def load_library_contents_table
-    content_ids = @library_version.library_folder_contents.active.select(:content_id)
+    content_ids = @library_version.library_folder_contents.select(:content_id)
     load_contents_table(
       source: base_content_source.where(id: content_ids),
       state_key: ContentTables::LibraryContentsDefinition.library_content_state_key(@library),

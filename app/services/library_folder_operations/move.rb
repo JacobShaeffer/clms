@@ -30,7 +30,7 @@ module LibraryFolderOperations
       def move_content!(placement:, destination:, library_version:, user:, batch_key:)
         source_folder_id = placement.library_folder_id
         content = placement.content
-        destination_placement = destination.library_folder_contents.active.find_by(content_id: content.id)
+        destination_placement = destination.library_folder_contents.find_by(content_id: content.id)
         destination_created = destination_placement.nil?
         if destination_created
           destination_placement = PlaceContents.place_for_version!(

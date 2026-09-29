@@ -131,18 +131,17 @@ class LibraryFolderSelectionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-stream[action='refresh']"
   end
 
-  test "remove marks the selected tree and placement pending and refreshes the page" do
+  test "remove deletes the selected tree and placement and refreshes the page" do
     assert_no_difference("Content.count") do
       delete remove_library_folder_selection_url(@library),
         params: selection_params,
         headers: TURBO_STREAM_HEADERS
     end
 
-    assert_predicate @selected_folder.reload, :pending_removal?
-    assert_predicate @nested.reload, :pending_removal?
-    direct_placement = @source.library_folder_contents.find_by!(content: contents(:one))
-    assert_predicate direct_placement, :pending_removal?
-    assert_equal 2, @library.current_version.library_changes.pending.count
+    refute LibraryFolder.exists?(@selected_folder.id)
+    refute LibraryFolder.exists?(@nested.id)
+    refute @source.library_folder_contents.exists?(content: contents(:one))
+    assert_equal 2, @library.current_version.library_changes.not_undone.count
     assert_select "turbo-stream[action='refresh']"
   end
 

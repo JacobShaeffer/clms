@@ -7,12 +7,18 @@ class LibraryChangeTest < ActiveSupport::TestCase
     @version = @library.current_version
   end
 
-  test "resolved changes are immutable" do
+  test "applied and undone changes are immutable" do
     change = create_change!
-    change.update!(status: :approved, resolved_by: @user, resolved_at: Time.current)
 
     assert_not change.update(details: { changed: true })
-    assert_includes change.errors[:base], "Resolved library changes cannot be modified"
+    assert_includes change.errors[:base], "Library change audit records can only be marked undone"
+
+    change.reload
+    change.update!(undone_by: @user, undone_at: Time.current)
+
+    assert_predicate change, :undone?
+    assert_not change.update(undone_at: 1.minute.from_now)
+    assert_includes change.errors[:base], "Undone library changes cannot be modified"
   end
 
   test "dependencies must be older and in the same version" do
@@ -67,6 +73,14 @@ class LibraryChangeTest < ActiveSupport::TestCase
     assert_includes change.errors[:base], "Locked library version changes cannot be modified"
   end
 
+  test "database requires undo time and user together" do
+    change = create_change!
+
+    assert_raises(ActiveRecord::StatementInvalid) do
+      change.update_columns(undone_at: Time.current)
+    end
+  end
+
   test "changes targets and dependencies are retained as immutable audit records" do
     prerequisite = create_change!
     change = create_change!
@@ -81,8 +95,6 @@ class LibraryChangeTest < ActiveSupport::TestCase
       label: "Snapshot",
       details: { path: "/Snapshot" }
     )
-
-    change.update!(status: :approved, resolved_by: @user, resolved_at: Time.current)
 
     assert_not change.destroy
     assert_includes change.errors[:base], "Library change audit records cannot be deleted"

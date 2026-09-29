@@ -17,18 +17,7 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "an admin approves an eligible change" do
-    change = add_content_change
-    sign_in @admin
-
-    patch approve_library_change_url(@library, change), params: { folder_id: @folder.id, tab: "all" }
-
-    assert_redirected_to library_url(@library, folder_id: @folder.id, tab: "all")
-    assert_predicate change.reload, :approved?
-    assert_equal @admin, change.resolved_by
-  end
-
-  test "the author undoes a pending change" do
+  test "the author undoes a change" do
     change = add_content_change
     sign_in @author
 
@@ -36,20 +25,20 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to library_url(@library, folder_id: @folder.id)
     assert_predicate change.reload, :undone?
+    assert_equal @author, change.undone_by
     refute @folder.library_folder_contents.exists?(content: contents(:one))
   end
 
-  test "a non-admin cannot approve" do
-    change = add_content_change
-    sign_in @author
-
-    patch approve_library_change_url(@library, change)
-
-    assert_redirected_to root_url
-    assert_predicate change.reload, :pending?
+  test "approval route is absent" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "/libraries/#{@library.id}/changes/1/approve",
+        method: :patch
+      )
+    end
   end
 
-  test "a blocked resolution redirects with an explanation" do
+  test "a blocked undo redirects with an explanation" do
     first = add_content_change
     LibraryFolderOperations::Remove.call(
       library: @library,
@@ -59,36 +48,13 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
       user: @author
     )
     second = @library.current_version.library_changes.remove_content.last
-    sign_in @admin
+    sign_in @author
 
-    patch approve_library_change_url(@library, second)
+    patch undo_library_change_url(@library, first)
 
     assert_redirected_to library_url(@library)
-    assert_match(/Approve #{Regexp.escape(first.display_label)} before/, flash[:alert])
-    assert_predicate second.reload, :pending?
-  end
-
-  test "approving removal while viewing the folder returns to its surviving parent" do
-    child = @library.current_version.library_folders.create!(
-      library: @library,
-      name: "Child",
-      parent_folder: @folder,
-      user: @author
-    )
-    LibraryFolderOperations::Remove.call(
-      library: @library,
-      source_folder_id: @folder.id,
-      folder_ids: [ child.id ],
-      content_ids: [],
-      user: @author
-    )
-    change = @library.current_version.library_changes.remove_folder.last
-    sign_in @admin
-
-    patch approve_library_change_url(@library, change), params: { folder_id: child.id }
-
-    assert_redirected_to library_url(@library, folder_id: @folder.id)
-    refute LibraryFolder.exists?(child.id)
+    assert_match(/Undo #{Regexp.escape(second.display_label)} before/, flash[:alert])
+    refute_predicate first.reload, :undone?
   end
 
   test "undoing a new folder while viewing it returns to its parent" do

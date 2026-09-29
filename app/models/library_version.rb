@@ -38,10 +38,6 @@ class LibraryVersion < ApplicationRecord
     !locked?
   end
 
-  def pending_changes?
-    library_changes.pending.exists?
-  end
-
   def ensure_content_manifest!(content)
     if locked? || locked_in_database?
       raise ActiveRecord::ReadOnlyRecord, "Library version is locked"

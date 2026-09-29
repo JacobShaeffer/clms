@@ -65,15 +65,15 @@ module LibraryChanges
 
     def resolved_prerequisite_ids
       ids = dependency_change_ids.map(&:to_i)
-      ids.concat(latest_pending_change_ids_for_resources(dependency_resource_keys))
-      ids.concat(pending_folder_creations.pluck(:id))
+      ids.concat(latest_change_ids_for_resources(dependency_resource_keys))
+      ids.concat(folder_creations.pluck(:id))
       ids.select(&:positive?).uniq
     end
 
-    def latest_pending_change_ids_for_resources(keys)
+    def latest_change_ids_for_resources(keys)
       return [] if keys.blank?
 
-      rows = library_version.library_changes.pending
+      rows = library_version.library_changes.not_undone
         .joins(:library_change_targets)
         .where(library_change_targets: { resource_key: keys })
         .pluck("library_change_targets.resource_key", "library_changes.id")
@@ -82,10 +82,10 @@ module LibraryChanges
       end
     end
 
-    def pending_folder_creations
+    def folder_creations
       return library_version.library_changes.none if required_folder_ids.blank?
 
-      library_version.library_changes.pending
+      library_version.library_changes.not_undone
         .joins(:library_change_targets)
         .where(
           library_change_targets: {

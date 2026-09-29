@@ -87,7 +87,7 @@ class LibraryFoldersController < ApplicationController
   def set_parent_folder
     return if params[:parent_folder_id].blank?
 
-    @parent_folder = @library_version.library_folders.active.find(scalar_id!(:parent_folder_id))
+    @parent_folder = @library_version.library_folders.find(scalar_id!(:parent_folder_id))
   end
 
   def set_picker_context
