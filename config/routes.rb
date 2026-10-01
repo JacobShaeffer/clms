@@ -34,8 +34,9 @@ Rails.application.routes.draw do
   end
   devise_for :users
 
-  resources :contents, only: %i[ index show new create edit update ] do
+  resources :contents, only: %i[ index show new create edit update destroy ] do
     collection do
+      get :trash, action: :trash_index
       post :validate_file
       get :table
       delete :reset_table
@@ -46,6 +47,9 @@ Rails.application.routes.draw do
     end
 
     member do
+      get :trash_confirmation
+      patch :trash
+      patch :restore
       post :validate_file
     end
   end

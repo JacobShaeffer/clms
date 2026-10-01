@@ -185,6 +185,49 @@ class ContentsTest < ApplicationSystemTestCase
     end
   end
 
+  test "trashes restores and permanently deletes content" do
+    @user.update!(role: :intern_plus)
+    content = create_preview_content!("Trash workflow row", Time.current)
+
+    visit contents_path
+    find("a[aria-label='Preview #{content.title}']").click
+
+    within "turbo-frame#modal" do
+      click_link "Trash"
+      assert_text "Move #{content.display_title} to Trash?"
+      fill_in "Comment (optional)", with: "Needs administrator review"
+      click_button "Move to Trash"
+    end
+
+    assert_text "Content was moved to Trash."
+    assert_no_selector "a[aria-label='Preview #{content.title}']"
+    assert_equal "Needs administrator review", content.reload.trash_comment
+
+    @user.update!(role: :admin)
+    visit trash_contents_path
+
+    assert_text content.title
+    assert_text "Needs administrator review"
+    within "##{ActionView::RecordIdentifier.dom_id(content, :trash)}" do
+      click_button "Restore"
+    end
+
+    assert_text "Content was restored."
+    refute content.reload.trashed?
+    assert_nil content.trash_comment
+
+    content.trash!(comment: "Delete permanently")
+    visit trash_contents_path
+    within "##{ActionView::RecordIdentifier.dom_id(content, :trash)}" do
+      accept_confirm("Permanently delete #{content.title}? This cannot be undone.") do
+        click_button "Delete permanently"
+      end
+    end
+
+    assert_text "Content was permanently deleted."
+    refute Content.exists?(content.id)
+  end
+
   test "edits content and replaces its file from the modal" do
     @user.update!(role: :intern_plus)
     content = create_preview_content!("Editable preview row", 1.day.ago)

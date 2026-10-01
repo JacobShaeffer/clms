@@ -81,7 +81,7 @@ module LibraryFolderOperations
         )
         source_folder_ids = subtree_folder_ids(selection, source_folder)
         source_keys = source_folder_ids.map { |id| LibraryChanges::Recorder.folder_key(id) }
-        selection.subtree_content_placements
+        selection.active_subtree_content_placements
           .select { |placement| source_folder_ids.include?(placement.library_folder_id) }
           .each do |placement|
             source_keys << LibraryChanges::Recorder.content_key(
@@ -134,7 +134,7 @@ module LibraryFolderOperations
         result = PlaceContents.place_for_version!(
           library_version:,
           folder: copied_folder,
-          content_ids: selection.placements_for(source_folder).map(&:content_id)
+          content_ids: selection.active_placements_for(source_folder).map(&:content_id)
         )
         copied_placements.concat(result.added_placements)
         selection.children_for(source_folder).each do |child|

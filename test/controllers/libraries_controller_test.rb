@@ -682,6 +682,17 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_url
   end
 
+  test "trashed content is hidden from library tables and folder browsers" do
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    contents(:one).trash!(comment: "Hidden from library")
+
+    get library_url(@library, folder_id: @root_folder.id)
+
+    assert_response :success
+    assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}", count: 0
+    assert_select "tbody input[name='content_ids[]'][value='#{contents(:one).id}']", count: 0
+  end
+
   private
 
   def create_folder!(library, name:, parent_folder: nil)

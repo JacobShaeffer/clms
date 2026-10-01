@@ -4,13 +4,21 @@ class ContentsController < ApplicationController
   ADD_TO_SHELVES_STATUS_ID = "contents-add-to-shelves-status"
 
   before_action :authenticate_user!
-  before_action :set_content, only: %i[show edit update]
+  before_action :set_content, only: %i[show edit update trash_confirmation trash]
+  before_action :set_trashed_content, only: %i[restore destroy]
   before_action :load_metadata_types, only: %i[new create edit update]
 
   def index
     authorize Content
     load_active_shelves
     load_contents_table
+  end
+
+  def trash_index
+    authorize Content, :trash_index?
+    @trashed_contents = Content.trashed
+      .includes(:user)
+      .order(trashed_at: :desc, id: :desc)
   end
 
   def table
@@ -146,6 +154,44 @@ class ContentsController < ApplicationController
     end
   end
 
+  def trash_confirmation
+    authorize @content, :trash_confirmation?
+
+    render partial: "contents/trash_confirmation_modal", locals: {
+      content: @content,
+      navigation_token: params[:navigation]
+    }
+  end
+
+  def trash
+    authorize @content, :trash?
+    @content.trash!(comment: params.dig(:content, :trash_comment))
+
+    respond_to do |format|
+      format.turbo_stream do
+        flash[:notice] = "Content was moved to Trash."
+        render turbo_stream: turbo_stream.refresh(request_id: nil)
+      end
+      format.html do
+        redirect_to contents_path, notice: "Content was moved to Trash.", status: :see_other
+      end
+    end
+  end
+
+  def restore
+    authorize @content, :restore?
+    @content.restore!
+
+    redirect_to trash_contents_path, notice: "Content was restored.", status: :see_other
+  end
+
+  def destroy
+    authorize @content
+    Contents::PermanentlyDelete.call(content: @content)
+
+    redirect_to trash_contents_path, notice: "Content was permanently deleted.", status: :see_other
+  end
+
   def edit
     authorize @content
 
@@ -270,6 +316,10 @@ class ContentsController < ApplicationController
 
   def set_content
     @content = policy_scope(Content).with_attached_file.find(params.expect(:id))
+  end
+
+  def set_trashed_content
+    @content = Content.trashed.with_attached_file.find(params.expect(:id))
   end
 
   def content_params

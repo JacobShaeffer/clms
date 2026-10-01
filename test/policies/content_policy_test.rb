@@ -1,9 +1,9 @@
 require "test_helper"
 
 class ContentPolicyTest < Minitest::Test
-  FakeScope = Struct.new(:all_result, :none_result) do
-    def all
-      all_result
+  FakeScope = Struct.new(:active_result, :none_result) do
+    def active
+      active_result
     end
 
     def none
@@ -35,18 +35,42 @@ class ContentPolicyTest < Minitest::Test
     assert ContentPolicy.new(user(:volunteer), Content).update?
   end
 
-  def test_file_replacement_uses_delete_permission
+  def test_file_replacement_and_permanent_deletion_have_separate_permissions
     %i[guest organization volunteer intern].each do |role|
       policy = ContentPolicy.new(user(role), Content)
       refute policy.destroy?
       refute policy.replace_file?
     end
 
-    %i[intern_plus admin].each do |role|
+    intern_plus_policy = ContentPolicy.new(user(:intern_plus), Content)
+    refute intern_plus_policy.destroy?
+    assert intern_plus_policy.replace_file?
+
+    admin_policy = ContentPolicy.new(user(:admin), Content)
+    assert admin_policy.destroy?
+    assert admin_policy.replace_file?
+  end
+
+  def test_trash_permissions
+    %i[guest organization volunteer intern].each do |role|
       policy = ContentPolicy.new(user(role), Content)
-      assert policy.destroy?
-      assert policy.replace_file?
+      refute policy.trash?
+      refute policy.trash_confirmation?
+      refute policy.trash_index?
+      refute policy.restore?
     end
+
+    intern_plus_policy = ContentPolicy.new(user(:intern_plus), Content)
+    assert intern_plus_policy.trash?
+    assert intern_plus_policy.trash_confirmation?
+    refute intern_plus_policy.trash_index?
+    refute intern_plus_policy.restore?
+
+    admin_policy = ContentPolicy.new(user(:admin), Content)
+    assert admin_policy.trash?
+    assert admin_policy.trash_confirmation?
+    assert admin_policy.trash_index?
+    assert admin_policy.restore?
   end
 
   def test_metadata_input_actions

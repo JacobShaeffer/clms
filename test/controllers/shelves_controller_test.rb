@@ -255,4 +255,13 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to new_user_session_url
   end
+
+  test "trashed content is hidden from shelves" do
+    contents(:one).trash!(comment: "Hidden from shelf")
+
+    get shelves_url(selected_shelf_id: @shelf.id)
+
+    assert_response :success
+    assert_select "tbody input[name='content_ids[]'][value='#{contents(:one).id}']", count: 0
+  end
 end

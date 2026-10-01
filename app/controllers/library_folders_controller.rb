@@ -141,6 +141,7 @@ class LibraryFoldersController < ApplicationController
       @current_folder.library_folder_contents
         .includes(content: { file_attachment: :blob })
         .joins(:content)
+        .merge(Content.active)
         .order(Content.arel_table[:title].lower, LibraryFolderContent.arel_table[:id])
         .to_a
     else

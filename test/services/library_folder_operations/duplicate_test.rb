@@ -106,6 +106,27 @@ class LibraryFolderOperations::DuplicateTest < ActiveSupport::TestCase
     end
   end
 
+  test "omits trashed content when duplicating a folder" do
+    contents(:two).trash!
+
+    assert_difference("LibraryFolder.count", 2) do
+      assert_no_difference("LibraryFolderContent.count") do
+        LibraryFolderOperations::Duplicate.call(
+          library: @library,
+          source_folder_id: @source.id,
+          folder_ids: [ @selected.id ],
+          content_ids: [],
+          destination_folder_id: @destination.id,
+          user: users(:one)
+        )
+      end
+    end
+
+    copied_selected = @destination.child_folders.find_by!(name: @selected.name)
+    copied_nested = copied_selected.child_folders.find_by!(name: @nested.name)
+    assert_empty copied_nested.library_folder_contents
+  end
+
   private
 
   def create_folder!(name, parent_folder: nil)

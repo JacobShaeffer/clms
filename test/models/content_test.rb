@@ -62,6 +62,56 @@ class ContentTest < ActiveSupport::TestCase
     assert_includes duplicate.errors[:file], "A file with the same filename already exists with title: First filename"
   end
 
+  test "trash and restore preserve content while normalizing the comment" do
+    content = build_content(title: "Trash lifecycle", filename: "trash-lifecycle.pdf")
+    content.save!
+
+    content.trash!(comment: "  Needs review  ")
+
+    assert content.trashed?
+    assert_equal "Needs review", content.trash_comment
+    assert_includes Content.trashed, content
+    refute_includes Content.active, content
+    assert content.file.attached?
+
+    content.restore!
+
+    refute content.trashed?
+    assert_nil content.trash_comment
+    assert_includes Content.active, content
+  end
+
+  test "a whitespace-only trash comment is stored as nil" do
+    content = build_content(title: "Blank trash comment", filename: "blank-trash-comment.pdf")
+    content.save!
+
+    content.trash!(comment: "  \n  ")
+
+    assert_nil content.trash_comment
+  end
+
+  test "duplicates identify matching content in Trash" do
+    existing = build_content(
+      title: "Trashed duplicate",
+      filename: "trashed-duplicate.pdf",
+      bytes: "trashed bytes"
+    )
+    existing.save!
+    existing.trash!
+
+    duplicate = build_content(
+      title: "TRASHED DUPLICATE",
+      filename: "TRASHED-DUPLICATE.PDF",
+      bytes: "trashed bytes"
+    )
+
+    refute duplicate.valid?
+    assert_includes duplicate.errors[:title], "is already used by content in Trash: Trashed duplicate"
+    assert_includes duplicate.errors[:file], "File already exists in Trash with title: Trashed duplicate"
+    assert_includes duplicate.errors[:file],
+      "A file with the same filename exists in Trash with title: Trashed duplicate"
+  end
+
   private
 
   def build_content(title: "Valid content", filename: "content.pdf", content_type: "application/pdf", bytes: SecureRandom.hex(8))

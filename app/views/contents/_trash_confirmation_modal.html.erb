@@ -1,0 +1,26 @@
+<%= render layout: "shared/modal", locals: {
+  title: "Move #{content.display_title} to Trash?",
+  title_id: dom_id(content, :trash_confirmation_title)
+} do %>
+  <p>
+    This content will disappear from content lists, shelves, and libraries until an administrator restores it.
+  </p>
+
+  <%= form_with url: trash_content_path(content), method: :patch, data: { turbo_frame: "modal" } do %>
+    <div class="mb-3">
+      <%= label_tag "content_trash_comment", "Comment (optional)", class: "form-label" %>
+      <%= text_area_tag "content[trash_comment]", nil,
+        id: "content_trash_comment",
+        class: "form-control",
+        rows: 4 %>
+    </div>
+
+    <div class="modal-footer px-0 pb-0">
+      <%= link_to "Cancel",
+        content_path(content, navigation: navigation_token),
+        class: "btn btn-secondary",
+        data: { turbo_frame: "modal", turbo_prefetch: false } %>
+      <%= submit_tag "Move to Trash", class: "btn btn-danger" %>
+    </div>
+  <% end %>
+<% end %>

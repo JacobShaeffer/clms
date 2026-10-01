@@ -47,6 +47,10 @@ module LibraryFolderOperations
       @placements_by_folder_id.values.flatten
     end
 
+    def active_subtree_content_placements
+      subtree_content_placements.reject { |placement| placement.content.trashed? }
+    end
+
     def children_for(folder)
       children_for_parent(folder.id)
     end
@@ -57,6 +61,10 @@ module LibraryFolderOperations
 
     def placements_for(folder)
       Array(@placements_by_folder_id[folder.id])
+    end
+
+    def active_placements_for(folder)
+      placements_for(folder).reject { |placement| placement.content.trashed? }
     end
 
     def removal_tree
@@ -113,6 +121,8 @@ module LibraryFolderOperations
           library_folder_id: source_folder.id,
           content_id: content_ids
         )
+        .joins(:content)
+        .merge(Content.active)
         .includes(:content)
         .to_a
       if placements.length != content_ids.length
@@ -158,7 +168,7 @@ module LibraryFolderOperations
     def tree_node(folder)
       TreeNode.new(
         folder:,
-        contents: placements_for(folder).map(&:content),
+        contents: active_placements_for(folder).map(&:content),
         children: children_for(folder).map { |child| tree_node(child) }
       )
     end

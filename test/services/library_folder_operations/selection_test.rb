@@ -58,6 +58,22 @@ class LibraryFolderOperations::SelectionTest < ActiveSupport::TestCase
     end
   end
 
+  test "hides trashed placements but keeps them available for folder cleanup" do
+    contents(:one).trash!(comment: "Hidden direct")
+    contents(:two).trash!(comment: "Hidden")
+
+    selection = build_selection(folder_ids: [ @selected.id ], content_ids: [])
+
+    assert_equal [ @nested_placement ], selection.subtree_content_placements
+    assert_empty selection.active_subtree_content_placements
+    assert_empty selection.active_placements_for(@nested)
+    assert_empty selection.removal_tree.first.children.first.contents
+
+    assert_raises(LibraryFolderOperations::Selection::InvalidSelection) do
+      build_selection(folder_ids: [], content_ids: [ contents(:one).id ])
+    end
+  end
+
   private
 
   def build_selection(folder_ids:, content_ids:)

@@ -23,6 +23,22 @@ class ContentPolicy < ApplicationPolicy
     non_guest?
   end
 
+  def trash_index?
+    user&.admin?
+  end
+
+  def trash_confirmation?
+    trash?
+  end
+
+  def trash?
+    at_least?(:intern_plus)
+  end
+
+  def restore?
+    user&.admin?
+  end
+
   def create?
     at_least?(:volunteer)
   end
@@ -32,11 +48,11 @@ class ContentPolicy < ApplicationPolicy
   end
 
   def destroy?
-    at_least?(:intern_plus)
+    user&.admin?
   end
 
   def replace_file?
-    destroy?
+    at_least?(:intern_plus)
   end
 
   def add_new_metadatum?
@@ -58,7 +74,7 @@ class ContentPolicy < ApplicationPolicy
     def resolve
       return scope.none unless non_guest?
 
-      scope.all
+      scope.active
     end
   end
 end

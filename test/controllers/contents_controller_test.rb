@@ -1440,6 +1440,105 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_sort_header "Added by", sort_key: "added_by", aria_sort: "descending", current_direction: "desc"
   end
 
+  test "intern plus can open the trash confirmation and trash with a comment" do
+    @user.update!(role: :intern_plus)
+
+    get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "a.btn-outline-danger[href='#{trash_confirmation_content_path(@matching_content)}']",
+      text: "Trash"
+
+    get trash_confirmation_content_url(@matching_content, navigation: "token"), headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "turbo-frame#modal .modal-title", text: /Move #{@matching_content.display_title} to Trash/
+    assert_select "form[action='#{trash_content_path(@matching_content)}']" do
+      assert_select "textarea[name='content[trash_comment]']"
+      assert_select "input[type='submit'][value='Move to Trash']"
+    end
+    assert_select "a[href='#{content_path(@matching_content, navigation: "token")}']", text: "Cancel"
+
+    patch trash_content_url(@matching_content),
+      params: { content: { trash_comment: "  Duplicate scan  " } },
+      headers: TURBO_STREAM_HEADERS
+
+    assert_response :success
+    assert_select "turbo-stream[action='refresh']"
+    assert @matching_content.reload.trashed?
+    assert_equal "Duplicate scan", @matching_content.trash_comment
+  end
+
+  test "users below intern plus cannot see or use trash actions" do
+    get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "a", text: "Trash", count: 0
+
+    get trash_confirmation_content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+    assert_redirected_to root_url
+
+    sign_in @user
+    patch trash_content_url(@matching_content), params: { content: { trash_comment: "No" } }
+    assert_redirected_to root_url
+    refute @matching_content.reload.trashed?
+  end
+
+  test "trashed content is hidden from normal listings and previews" do
+    @matching_content.trash!(comment: "Hidden")
+
+    get contents_url
+
+    assert_response :success
+    refute_includes response.body, @matching_content.title
+    assert_includes response.body, @other_content.title
+
+    get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+    assert_response :not_found
+  end
+
+  test "only admins can list restore and permanently delete trashed content" do
+    @matching_content.trash!(comment: "Administrative review")
+
+    get trash_contents_url
+    assert_redirected_to root_url
+
+    sign_in @user
+    patch restore_content_url(@matching_content)
+    assert_redirected_to root_url
+    assert @matching_content.reload.trashed?
+
+    sign_in @user
+    delete content_url(@matching_content)
+    assert_redirected_to root_url
+    assert Content.exists?(@matching_content.id)
+
+    @user.update!(role: :admin)
+    sign_in @user
+    get trash_contents_url
+
+    assert_response :success
+    assert_select "h1", text: "Trash"
+    assert_select "a.dropdown-item[href='#{trash_contents_path}']", text: "Trash"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@matching_content, :trash)}" do
+      assert_select "td", text: "Administrative review"
+      assert_select "form[action='#{restore_content_path(@matching_content)}']", text: /Restore/
+      assert_select "form[action='#{content_path(@matching_content)}']", text: /Delete permanently/
+    end
+
+    patch restore_content_url(@matching_content)
+
+    assert_redirected_to trash_contents_path
+    refute @matching_content.reload.trashed?
+    assert_nil @matching_content.trash_comment
+
+    @matching_content.trash!(comment: "Delete")
+    assert_difference("Content.count", -1) do
+      delete content_url(@matching_content)
+    end
+    assert_redirected_to trash_contents_path
+  end
+
   private
 
   def content_header(label)

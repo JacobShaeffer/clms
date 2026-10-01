@@ -17,8 +17,7 @@ class Content < ApplicationRecord
 
   has_one_attached :file
 
-  validates :title, presence: true, allow_blank: false,
-                    uniqueness: { case_sensitive: false, message: "Title must be unique" }
+  validates :title, presence: true, allow_blank: false
   validates :display_title, presence: true, allow_blank: false
   validates :description, presence: true, allow_blank: false
   validates :file, presence: true,
@@ -28,10 +27,45 @@ class Content < ApplicationRecord
                      size_range: 0..(256.megabytes)
                    }
 
+  validate :title_must_be_unique
   validate :file_checksum_must_be_unique
   validate :file_filename_must_be_unique
 
+  scope :active, -> { where(trashed_at: nil) }
+  scope :trashed, -> { where.not(trashed_at: nil) }
+
+  def trashed?
+    trashed_at.present?
+  end
+
+  def trash!(comment: nil)
+    update_columns(
+      trashed_at: Time.current,
+      trash_comment: comment.to_s.strip.presence,
+      updated_at: Time.current
+    )
+  end
+
+  def restore!
+    update_columns(trashed_at: nil, trash_comment: nil, updated_at: Time.current)
+  end
+
   private
+
+  def title_must_be_unique
+    return if title.blank?
+
+    duplicate_content = Content.where.not(id: id)
+      .find_by("LOWER(title) = ?", title.downcase)
+    return unless duplicate_content
+
+    message = if duplicate_content.trashed?
+      "is already used by content in Trash: #{duplicate_content.title}"
+    else
+      "Title must be unique"
+    end
+    errors.add(:title, message)
+  end
 
   def file_checksum_must_be_unique
     return unless file.attached?
@@ -43,7 +77,12 @@ class Content < ApplicationRecord
 
     existing_file_title = duplicate_content.title
 
-    errors.add(:file, "File already exists with title: #{existing_file_title}")
+    message = if duplicate_content.trashed?
+      "File already exists in Trash with title: #{existing_file_title}"
+    else
+      "File already exists with title: #{existing_file_title}"
+    end
+    errors.add(:file, message)
   end
 
   def file_filename_must_be_unique
@@ -56,6 +95,11 @@ class Content < ApplicationRecord
 
     existing_file_title = duplicate_content.title
 
-    errors.add(:file, "A file with the same filename already exists with title: #{existing_file_title}")
+    message = if duplicate_content.trashed?
+      "A file with the same filename exists in Trash with title: #{existing_file_title}"
+    else
+      "A file with the same filename already exists with title: #{existing_file_title}"
+    end
+    errors.add(:file, message)
   end
 end

@@ -265,4 +265,20 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to root_url
   end
+
+  test "folder refreshes do not render trashed content" do
+    LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
+    contents(:one).trash!(comment: "Hidden from folder")
+
+    post library_library_folders_url(@library),
+      params: {
+        library_folder: { name: "Visible child" },
+        parent_folder_id: @root_folder.id
+      },
+      headers: TURBO_STREAM_HEADERS
+
+    assert_response :success
+    assert_includes response.body, "Visible child"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}", count: 0
+  end
 end

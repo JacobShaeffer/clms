@@ -6,6 +6,15 @@
   <%= render "contents/preview", content: %>
 
   <div class="modal-footer px-0 pb-0">
+    <% if policy(content).trash? %>
+      <%= link_to "Trash",
+        trash_confirmation_content_path(content, navigation: navigation_token),
+        class: "btn btn-outline-danger me-auto",
+        data: { turbo_frame: "modal", turbo_prefetch: false } %>
+    <% else %>
+      <span class="me-auto"></span>
+    <% end %>
+
     <% if previous_content %>
       <%= link_to "Previous",
         content_path(previous_content, navigation: navigation_token),

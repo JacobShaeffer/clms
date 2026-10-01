@@ -17,6 +17,9 @@
             </button>
             <ul class="dropdown-menu">
               <li><a class="dropdown-item" href="<%= shelves_path %>">Shelves</a></li>
+              <% if policy(Content).trash_index? %>
+                <li><a class="dropdown-item" href="<%= trash_contents_path %>">Trash</a></li>
+              <% end %>
             </ul>
           <% end %>
         </li>

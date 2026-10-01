@@ -1,0 +1,58 @@
+<% content_for :title, "Trash" %>
+
+<div class="row mb-3">
+  <div class="col">
+    <h1>Trash</h1>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Title</th>
+        <th scope="col">Added by</th>
+        <th scope="col">Trashed</th>
+        <th scope="col">Comment</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if @trashed_contents.any? %>
+        <% @trashed_contents.each do |content| %>
+          <tr id="<%= dom_id(content, :trash) %>">
+            <td><%= content.title %></td>
+            <td><%= content.user.name.presence || content.user.email %></td>
+            <td><%= content.trashed_at.strftime("%Y-%m-%d %H:%M") %></td>
+            <td>
+              <% if content.trash_comment.present? %>
+                <%= simple_format(content.trash_comment, {}, wrapper_tag: "div") %>
+              <% else %>
+                <span class="text-muted">None</span>
+              <% end %>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap gap-2">
+                <%= button_to "Restore",
+                  restore_content_path(content),
+                  method: :patch,
+                  class: "btn btn-sm btn-outline-primary" %>
+                <%= button_to "Delete permanently",
+                  content_path(content),
+                  method: :delete,
+                  class: "btn btn-sm btn-danger",
+                  data: {
+                    turbo_confirm: "Permanently delete #{content.title}? This cannot be undone."
+                  } %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr>
+          <td colspan="5" class="text-muted text-center">Trash is empty.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

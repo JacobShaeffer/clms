@@ -136,4 +136,19 @@ class LibraryFolderOperations::PlaceContentsTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "rejects trashed content" do
+    contents(:one).trash!
+
+    assert_no_difference([ "LibraryVersionContent.count", "LibraryFolderContent.count" ]) do
+      assert_raises(ActiveRecord::RecordNotFound) do
+        LibraryFolderOperations::PlaceContents.call(
+          library: @library,
+          user: users(:one),
+          folder_id: @folder.id,
+          content_ids: [ contents(:one).id ]
+        )
+      end
+    end
+  end
 end

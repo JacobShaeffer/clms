@@ -63,7 +63,7 @@ module LibraryFolderOperations
       missing_content_ids = normalized_content_ids - existing_content_ids
 
       if missing_content_ids.any?
-        contents_by_id = Content
+        contents_by_id = Content.active
           .includes(file_attachment: :blob)
           .where(id: missing_content_ids)
           .index_by(&:id)
