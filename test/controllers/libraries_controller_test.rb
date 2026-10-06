@@ -240,10 +240,9 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame##{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}"
-    assert_select "nav[aria-label='Library folder breadcrumb'] .breadcrumb-item", count: 2
-    breadcrumb = css_select("nav[aria-label='Library folder breadcrumb']").first
-    assert_includes breadcrumb["style"], "--bs-breadcrumb-divider: url(\"data:image/svg+xml,"
-    assert_includes breadcrumb["style"], "%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z'"
+    assert_select "nav.library-folder-breadcrumb[aria-label='Library folder breadcrumb'] .breadcrumb-item", count: 2
+    assert_select "nav[aria-label='Library folder breadcrumb'][style]", count: 0
+    assert_select "nav[aria-label='Library folder breadcrumb'] svg", count: 0
     assert_select ".breadcrumb-item.active", text: @root_folder.name
     assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}", text: /#{@child_folder.name}/
     assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}", text: /#{contents(:one).title}/

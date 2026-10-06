@@ -182,6 +182,14 @@ thead .content-table-actions {
   z-index: 2;
 }
 
+.library-folder-breadcrumb {
+  --bs-breadcrumb-divider: "\F285";
+}
+
+.library-folder-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+  font-family: bootstrap-icons;
+}
+
 .content-preview-pdf {
   width: 100%;
   height: calc(100vh - 13rem);

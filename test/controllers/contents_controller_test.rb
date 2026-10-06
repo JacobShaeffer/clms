@@ -197,8 +197,9 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#contents_table .row.align-items-center > .col-auto.ms-auto form.d-flex.align-items-center"
     assert_select "thead tr th:last-child.content-table-actions", text: "Actions"
     assert_select "tbody tr .content-table-actions" do
-      assert_select "a[aria-label^='Preview '][data-turbo-frame='modal']", minimum: 1
-      assert_select "a[aria-label^='Edit '][data-turbo-frame='modal']", minimum: 1
+      assert_select "a[aria-label^='Preview '][data-turbo-frame='modal'] i.bi.bi-eye[aria-hidden='true']", minimum: 1
+      assert_select "a[aria-label^='Edit '][data-turbo-frame='modal'] i.bi.bi-pencil-square[aria-hidden='true']", minimum: 1
+      assert_select "svg", count: 0
     end
   end
 
@@ -209,7 +210,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "thead tr th:last-child.content-table-actions", text: "Actions"
-    assert_select "a[aria-label^='Preview ']", count: 2
+    assert_select "a[aria-label^='Preview '] i.bi.bi-eye", count: 2
     assert_select "a[aria-label^='Edit ']", count: 0
   end
 

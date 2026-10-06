@@ -35,10 +35,13 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "link[rel='stylesheet'][href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css'][integrity][crossorigin='anonymous']", count: 1
+    assert_select "link[rel='stylesheet'][href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css']", count: 1
     assert_select "link[rel='stylesheet'][href*='/assets/application']", count: 1
     assert_select "link[rel='stylesheet'][href*='tailwind']", count: 0
     assert_select "script[src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js'][integrity][crossorigin='anonymous']", count: 1
     assert_operator @response.body.index("bootstrap@5.3.8/dist/css/bootstrap.min.css"), :<,
+      @response.body.index("bootstrap-icons@1.13.1/font/bootstrap-icons.min.css")
+    assert_operator @response.body.index("bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"), :<,
       @response.body.index("/assets/application")
     assert_operator @response.body.index("bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"), :<,
       @response.body.index('<script type="importmap"')
