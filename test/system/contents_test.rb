@@ -1,4 +1,5 @@
 require "application_system_test_case"
+require "tempfile"
 
 class ContentsTest < ApplicationSystemTestCase
   include Devise::Test::IntegrationHelpers
@@ -175,6 +176,10 @@ class ContentsTest < ApplicationSystemTestCase
     find("a[aria-label='Preview #{second.title}']").click
 
     within "turbo-frame#modal" do
+      assert_selector ".modal-dialog.modal-fullscreen.content-view-dialog"
+      assert_field "Title", with: second.title, disabled: true
+      assert_selector ".modal-content > .modal-footer"
+      assert_no_selector ".modal-body .modal-footer"
       assert_text second.display_title
       assert_button "Previous", disabled: true
       click_on "Next"
@@ -238,8 +243,13 @@ class ContentsTest < ApplicationSystemTestCase
 
     within "turbo-frame#modal" do
       assert_field "Title", with: content.title
-      fill_in "Display title", with: "Updated preview display"
+      original_preview_url = find(".content-edit-preview iframe.content-preview-pdf")[:src]
+      fill_in "Display title",
+        with: "Updated preview display",
+        fill_options: { clear: :backspace }
       attach_file "Choose New File", file_fixture("document.pdf")
+      assert_selector ".content-edit-preview iframe.content-preview-pdf[src^='blob:']"
+      refute_equal original_preview_url, find(".content-edit-preview iframe.content-preview-pdf")[:src]
       assert_text "Uploaded and validated: document.pdf"
       click_button "Update Content"
     end
@@ -247,6 +257,73 @@ class ContentsTest < ApplicationSystemTestCase
     assert_text "Content was successfully updated."
     assert_equal "Updated preview display", content.reload.display_title
     assert_equal "document.pdf", content.file.filename.to_s
+  end
+
+  test "switches replacement previews and restores the saved preview when cleared" do
+    @user.update!(role: :intern_plus)
+    content = create_preview_content!("Changing preview row", 1.day.ago)
+
+    visit contents_path
+    fill_in "Search", with: content.title
+    find("a[aria-label='Edit #{content.title}']").click
+
+    within "turbo-frame#modal" do
+      original_preview_url = find(".content-edit-preview iframe.content-preview-pdf")[:src]
+
+      with_temporary_media_file(".mp3", "ID3\x04\x00\x00\x00\x00\x00\x00".b) do |path|
+        attach_file "Choose New File", path
+        assert_selector ".content-edit-preview audio.content-preview-audio source[type='audio/mpeg'][src^='blob:']",
+          visible: :all
+        assert_text "Uploaded and validated:"
+      end
+
+      with_temporary_media_file(".mp4", [ 0, 0, 0, 24 ].pack("C*") + "ftypisom\x00\x00\x02\x00isomiso2".b) do |path|
+        attach_file "Choose New File", path
+        assert_no_selector ".content-edit-preview audio"
+        assert_selector ".content-edit-preview video.content-preview-video source[type='video/mp4'][src^='blob:']",
+          visible: :all
+        assert_text "Uploaded and validated:"
+      end
+
+      file_input = find("#content_file", visible: :all)
+      page.execute_script(<<~JAVASCRIPT, file_input)
+        arguments[0].value = ""
+        arguments[0].dispatchEvent(new Event("change", { bubbles: true }))
+      JAVASCRIPT
+
+      assert_selector ".content-edit-preview iframe.content-preview-pdf"
+      assert_equal original_preview_url, find(".content-edit-preview iframe.content-preview-pdf")[:src]
+      assert_button "Update Content", disabled: false
+    end
+  end
+
+  test "restores the saved preview when replacement validation fails" do
+    @user.update!(role: :intern_plus)
+    content = create_preview_content!("Rejected preview row", 1.day.ago)
+    duplicate = @user.contents.build(
+      title: "Existing document",
+      display_title: "Existing document display",
+      description: "Content with the replacement file"
+    )
+    File.open(file_fixture("document.pdf")) do |file|
+      duplicate.file.attach(io: file, filename: "document.pdf", content_type: "application/pdf")
+      duplicate.save!
+    end
+
+    visit contents_path
+    fill_in "Search", with: content.title
+    find("a[aria-label='Edit #{content.title}']").click
+
+    within "turbo-frame#modal" do
+      original_preview_url = find(".content-edit-preview iframe.content-preview-pdf")[:src]
+      attach_file "Choose New File", file_fixture("document.pdf")
+
+      assert_text "File already exists with title: Existing document"
+      assert_selector ".content-edit-preview iframe.content-preview-pdf"
+      assert_equal original_preview_url, find(".content-edit-preview iframe.content-preview-pdf")[:src]
+      assert_no_selector ".content-edit-preview [src^='blob:']"
+      assert_button "Update Content", disabled: true
+    end
   end
 
   test "selects removes applies and clears a metadata filter" do
@@ -371,6 +448,15 @@ class ContentsTest < ApplicationSystemTestCase
   end
 
   private
+
+  def with_temporary_media_file(extension, bytes)
+    Tempfile.create([ "content-preview", extension ]) do |file|
+      file.binmode
+      file.write(bytes)
+      file.flush
+      yield file.path
+    end
+  end
 
   def create_selection_content!(index)
     content = @user.contents.build(

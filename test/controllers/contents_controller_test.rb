@@ -234,13 +234,35 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
     assert_response :success
     assert_select "turbo-frame#modal .modal-title", text: @matching_content.display_title
-    assert_select "iframe.content-preview-pdf[src*='/rails/active_storage/blobs/']", count: 1
+    assert_select ".modal-dialog.modal-fullscreen.content-edit-dialog.content-view-dialog"
+    assert_select ".modal-content" do
+      assert_select "> .modal-body .content-edit-layout.content-view-layout" do
+        assert_select ".content-view-details-pane fieldset.content-view-details[disabled][aria-label='Content details']" do
+          assert_select "input#content-view-title[disabled][value='#{@matching_content.title}']"
+          assert_select "input#content-view-display-title[disabled][value='#{@matching_content.display_title}']"
+          assert_select "textarea#content-view-description[disabled]", text: @matching_content.description
+          assert_select "input#content-view-year-of-publication[disabled][value='#{@matching_content.year_of_publication}']"
+          assert_select "input#content-view-filename[disabled][value='#{@matching_content.file.filename}']"
+          assert_select "div[id='multiSelectFor=#{@metadata_type.id}']" do
+            assert_select "label.form-label-sm", text: @metadata_type.name
+            assert_select "#metadataInput_#{@metadata_type.id}_container.form-control" do
+              assert_select "#metadatum_badge_span_#{@history.id}.badge.text-bg-primary", text: @history.name
+            end
+          end
+        end
+        assert_select ".content-view-preview iframe.content-preview-pdf[src*='/rails/active_storage/blobs/']", count: 1
+      end
+      assert_select "> .modal-footer", count: 1 do
+        assert_select "button[data-bs-dismiss='modal']", text: "Close"
+      end
+      assert_select ".modal-body .modal-footer", count: 0
+    end
 
     get content_url(audio), headers: TURBO_FRAME_HEADERS
-    assert_select "audio.content-preview-audio[controls] source[type='audio/mpeg'][src*='/rails/active_storage/blobs/']", count: 1
+    assert_select ".content-view-preview audio.content-preview-audio[controls] source[type='audio/mpeg'][src*='/rails/active_storage/blobs/']", count: 1
 
     get content_url(video), headers: TURBO_FRAME_HEADERS
-    assert_select "video.content-preview-video[controls] source[type='video/mp4'][src*='/rails/active_storage/blobs/']", count: 1
+    assert_select ".content-view-preview video.content-preview-video[controls] source[type='video/mp4'][src*='/rails/active_storage/blobs/']", count: 1
   end
 
   test "preview navigation follows the current ordered page and stops at its boundaries" do
@@ -327,6 +349,13 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#modal .modal-title", text: "Edit content"
+    assert_select ".modal-dialog.modal-fullscreen.content-edit-dialog"
+    assert_select ".content-edit-layout[data-controller='content-preview']" do |layouts|
+      assert_includes layouts.first["data-action"], "content-file-upload:preview->content-preview#show"
+      assert_includes layouts.first["data-action"], "content-file-upload:preview-reset->content-preview#reset"
+      assert_select ".content-edit-form"
+      assert_select ".content-edit-preview[aria-label='Content preview'][data-content-preview-target='container'] iframe.content-preview-pdf[src*='/rails/active_storage/blobs/']", count: 1
+    end
     assert_select "form[action='#{content_path(@matching_content)}'][data-turbo-frame='modal']" do
       assert_select "input[name='content[title]'][value='#{@matching_content.title}']"
       assert_select "textarea[name='content[description]']", text: @matching_content.description
@@ -334,6 +363,31 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       assert_select "#content-form-metadata-type-#{@metadata_type.id}-metadatum-#{@science.id}-badge", text: @science.name
       assert_select "input[type='file'][name='content[file]']", count: 0
     end
+  end
+
+  test "edit renders audio and video previews in the right pane" do
+    audio = create_content!(
+      title: "Editable audio",
+      display_title: "Editable audio display",
+      description: "Editable audio description",
+      filename: "editable-audio.mp3",
+      content_type: "audio/mpeg",
+      bytes: "editable audio bytes"
+    )
+    video = create_content!(
+      title: "Editable video",
+      display_title: "Editable video display",
+      description: "Editable video description",
+      filename: "editable-video.mp4",
+      content_type: "video/mp4",
+      bytes: "editable video bytes"
+    )
+
+    get edit_content_url(audio), headers: TURBO_FRAME_HEADERS
+    assert_select ".content-edit-preview audio.content-preview-audio[controls] source[type='audio/mpeg']", count: 1
+
+    get edit_content_url(video), headers: TURBO_FRAME_HEADERS
+    assert_select ".content-edit-preview video.content-preview-video[controls] source[type='video/mp4']", count: 1
   end
 
   test "intern plus edit shows an optional Choose New File picker" do

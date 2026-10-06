@@ -6,7 +6,7 @@ class ContentsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_content, only: %i[show edit update trash_confirmation trash]
   before_action :set_trashed_content, only: %i[restore destroy]
-  before_action :load_metadata_types, only: %i[new create edit update]
+  before_action :load_metadata_types, only: %i[show new create edit update]
 
   def index
     authorize Content
@@ -147,6 +147,7 @@ class ContentsController < ApplicationController
     if turbo_frame_request?
       render partial: "contents/preview_modal", locals: {
         content: @content,
+        metadata_types: @metadata_types,
         previous_content: @previous_content,
         next_content: @next_content,
         navigation_token: params[:navigation]

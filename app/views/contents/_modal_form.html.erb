@@ -1,6 +1,26 @@
 <%= render layout: "shared/modal", locals: {
   title: content.persisted? ? "Edit content" : "New content",
-  dialog_class: "modal-nearly-fullscreen"
+  dialog_class: content.persisted? ? "modal-fullscreen content-edit-dialog" : "modal-nearly-fullscreen"
 } do %>
-  <%= render "contents/form", content: content, modal: true %>
+  <% if content.persisted? %>
+    <div
+      class="content-edit-layout"
+      data-controller="content-preview"
+      data-action="content-file-upload:preview->content-preview#show content-file-upload:preview-reset->content-preview#reset"
+    >
+      <div class="content-edit-form">
+        <%= render "contents/form", content: content, modal: true %>
+      </div>
+
+      <section
+        class="content-edit-preview"
+        aria-label="Content preview"
+        data-content-preview-target="container"
+      >
+        <%= render "contents/preview", content: content %>
+      </section>
+    </div>
+  <% else %>
+    <%= render "contents/form", content: content, modal: true %>
+  <% end %>
 <% end %>

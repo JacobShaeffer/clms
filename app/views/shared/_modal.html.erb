@@ -12,6 +12,12 @@
         <div class="modal-body">
           <%= yield %>
         </div>
+
+        <% if local_assigns[:footer].present? %>
+          <div class="modal-footer">
+            <%= local_assigns[:footer] %>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>

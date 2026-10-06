@@ -24,6 +24,7 @@ export default class extends Controller {
 
 		const file = this.inputTarget.files[0]
 		if (!file) {
+			this.dispatch("preview-reset")
 			if (this.requiredValue) {
 				this.showError("File can't be blank")
 			} else {
@@ -32,6 +33,7 @@ export default class extends Controller {
 			return
 		}
 
+		this.dispatch("preview", { detail: { file } })
 		this.abortController = new AbortController()
 		this.setSubmitting(false)
 		this.showStatus(`Uploading and checking ${file.name}…`)
@@ -59,10 +61,12 @@ export default class extends Controller {
 				this.showStatus(`Uploaded and validated: ${result.filename}`, "text-success")
 				this.setSubmitting(true)
 			} else {
+				this.dispatch("preview-reset")
 				this.showError(result.errors || ["File could not be validated"])
 			}
 		} catch (error) {
 			if (error.name !== "AbortError" && requestNumber === this.requestNumber) {
+				this.dispatch("preview-reset")
 				this.showError("File upload failed. Select the file again to retry.")
 			}
 		}

@@ -1,0 +1,57 @@
+<% selected_metadata_by_type_id = content.metadata.group_by(&:metadata_type_id) %>
+
+<fieldset class="content-view-details" disabled aria-label="Content details">
+  <legend class="visually-hidden">Content details</legend>
+
+  <div class="mb-3">
+    <label class="form-label" for="content-view-title">Title</label>
+    <%= tag.input id: "content-view-title", type: "text", class: "form-control", value: content.title, disabled: true %>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="content-view-display-title">Display title</label>
+    <%= tag.input id: "content-view-display-title", type: "text", class: "form-control", value: content.display_title, disabled: true %>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="content-view-description">Description</label>
+    <textarea id="content-view-description" class="form-control" rows="4" disabled><%= content.description %></textarea>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="content-view-year-of-publication">Year of publication</label>
+    <%= tag.input id: "content-view-year-of-publication",
+      type: "number",
+      class: "form-control",
+      value: content.year_of_publication,
+      disabled: true %>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="content-view-filename">File</label>
+    <%= tag.input id: "content-view-filename",
+      type: "text",
+      class: "form-control",
+      value: content.file.attached? ? content.file.filename.to_s : "No file attached",
+      disabled: true %>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Metadata</label>
+    <div class="form-control">
+      <% metadata_types.each do |metadata_type| %>
+        <% selected_metadata = selected_metadata_by_type_id.fetch(metadata_type.id, []) %>
+        <div class="mb-3" id="multiSelectFor=<%= metadata_type.id %>">
+          <label class="form-label-sm"><%= metadata_type.name %></label>
+          <div class="form-control" id="metadataInput_<%= metadata_type.id %>_container">
+            <% selected_metadata.sort_by { |metadatum| metadatum.name.downcase }.each do |metadatum| %>
+              <span class="badge text-bg-primary" id="metadatum_badge_span_<%= metadatum.id %>">
+                <%= metadatum.name %>
+              </span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</fieldset>
