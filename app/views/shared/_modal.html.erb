@@ -1,7 +1,7 @@
 <%= turbo_frame_tag "modal" do %>
   <% modal_title_id = local_assigns.fetch(:title_id, "modal-title") %>
 
-  <div class="modal fade" tabindex="-1" aria-labelledby="<%= modal_title_id %>" aria-hidden="true" data-controller="modal">
+  <div class="modal fade" tabindex="-1" aria-labelledby="<%= modal_title_id %>" aria-hidden="true" data-controller="modal" data-modal-preserve-value="<%= local_assigns.fetch(:preserve_modal, false) %>">
     <div class="modal-dialog <%= local_assigns[:dialog_class] %>">
       <div class="modal-content">
         <div class="modal-header">

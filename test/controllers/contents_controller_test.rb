@@ -235,7 +235,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
     assert_response :success
     assert_select "turbo-frame#modal .modal-title", text: @matching_content.title
-    assert_select ".modal-dialog.modal-fullscreen.content-edit-dialog.content-view-dialog"
+    assert_select ".modal-dialog.modal-nearly-fullscreen.content-edit-dialog.content-view-dialog"
     assert_select ".modal-content" do
       assert_select "> .modal-body .content-edit-layout.content-view-layout" do
         assert_select ".content-view-details-pane fieldset.content-view-details[disabled][aria-label='Content details']" do
@@ -405,7 +405,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#modal .modal-title", text: "Edit content"
-    assert_select ".modal-dialog.modal-fullscreen.content-edit-dialog"
+    assert_select ".modal-dialog.modal-nearly-fullscreen.content-edit-dialog"
     assert_select ".content-edit-layout[data-controller='content-preview']" do |layouts|
       assert_includes layouts.first["data-action"], "content-file-upload:preview->content-preview#show"
       assert_includes layouts.first["data-action"], "content-file-upload:preview-reset->content-preview#reset"

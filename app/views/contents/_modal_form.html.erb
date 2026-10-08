@@ -1,8 +1,9 @@
 <% return_to_view = content.persisted? && params[:return_to_view] == "1" %>
 <%= render layout: "shared/modal", locals: {
   title: content.persisted? ? "Edit content" : "New content",
+  preserve_modal: true,
   close_path: return_to_view ? content_path(content, navigation: params[:navigation]) : nil,
-  dialog_class: content.persisted? ? "modal-fullscreen content-edit-dialog" : "modal-nearly-fullscreen"
+  dialog_class: content.persisted? ? "modal-nearly-fullscreen content-edit-dialog" : "modal-nearly-fullscreen"
 } do %>
   <% if content.persisted? %>
     <div

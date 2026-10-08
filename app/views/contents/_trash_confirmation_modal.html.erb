@@ -1,5 +1,6 @@
 <%= render layout: "shared/modal", locals: {
   title: "Move #{content.display_title} to Trash?",
+  preserve_modal: true,
   title_id: dom_id(content, :trash_confirmation_title)
 } do %>
   <p>

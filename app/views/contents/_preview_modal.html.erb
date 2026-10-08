@@ -37,7 +37,8 @@
 
 <%= render layout: "shared/modal", locals: {
   title: content.title,
-  dialog_class: "modal-fullscreen content-edit-dialog content-view-dialog",
+  preserve_modal: true,
+  dialog_class: "modal-nearly-fullscreen content-edit-dialog content-view-dialog",
   title_id: dom_id(content, :preview_title),
   footer: modal_footer
 } do %>

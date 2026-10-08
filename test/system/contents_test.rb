@@ -158,9 +158,11 @@ class ContentsTest < ApplicationSystemTestCase
     click_on "New content"
 
     within "turbo-frame#modal" do
+      remember_open_modal
       click_button "Create Content"
 
       assert_selector ".alert.alert-danger", text: /prevented this content from being saved/
+      assert_preserved_modal
       assert_field "Title"
     end
     assert_current_path contents_path
@@ -176,17 +178,20 @@ class ContentsTest < ApplicationSystemTestCase
     find("a[aria-label='Preview #{second.title}']").click
 
     within "turbo-frame#modal" do
-      assert_selector ".modal-dialog.modal-fullscreen.content-view-dialog"
+      assert_selector ".modal-dialog.modal-nearly-fullscreen.content-view-dialog"
       assert_field "Title", with: second.title, disabled: true
       assert_selector ".modal-content > .modal-footer"
       assert_no_selector ".modal-body .modal-footer"
       assert_selector ".modal-title", text: second.title
       assert_button "Previous", disabled: true
+      remember_open_modal
       click_on "Next"
       assert_selector ".modal-title", text: first.title
+      assert_preserved_modal
       assert_button "Next", disabled: true
       click_on "Previous"
       assert_selector ".modal-title", text: second.title
+      assert_preserved_modal
     end
   end
 
@@ -198,8 +203,18 @@ class ContentsTest < ApplicationSystemTestCase
     find("a[aria-label='Preview #{content.title}']").click
 
     within "turbo-frame#modal" do
+      remember_open_modal
       click_link "Trash"
       assert_text "Move #{content.display_title} to Trash?"
+      assert_preserved_modal
+      assert_no_selector ".modal-dialog.modal-nearly-fullscreen"
+      click_on "Cancel"
+      assert_selector ".modal-title", text: content.title
+      assert_preserved_modal
+      assert_selector ".modal-dialog.modal-nearly-fullscreen"
+      click_link "Trash"
+      assert_text "Move #{content.display_title} to Trash?"
+      assert_preserved_modal
       fill_in "Comment (optional)", with: "Needs administrator review"
       click_button "Move to Trash"
     end
@@ -244,35 +259,71 @@ class ContentsTest < ApplicationSystemTestCase
     find("a[aria-label='Preview #{following_content.title}']").click
 
     within "turbo-frame#modal" do
+      remember_open_modal
       click_on "Edit"
       assert_selector ".modal-title", text: "Edit content"
-      Selenium::WebDriver::Wait.new(timeout: Capybara.default_max_wait_time).until do
-        page.evaluate_script("window.bootstrap.Modal.getInstance(document.querySelector('#modal .modal'))?._isTransitioning === false")
-      end
+      assert_preserved_modal
+      fill_in "Title", with: "", fill_options: { clear: :backspace }
+      click_button "Update Content"
+      assert_selector ".alert.alert-danger", text: /prevented this content from being saved/
+      assert_preserved_modal
       fill_in "Title", with: "Updated view title", fill_options: { clear: :backspace }
       fill_in "Description", with: "Updated view description", fill_options: { clear: :backspace }
       click_button "Update Content"
       assert_selector ".modal-title", text: "Updated view title"
+      assert_preserved_modal
       assert_field "Title", with: "Updated view title", disabled: true
       assert_field "Description", with: "Updated view description", disabled: true
 
       click_on "Edit"
       assert_selector ".modal-title", text: "Edit content"
-      Selenium::WebDriver::Wait.new(timeout: Capybara.default_max_wait_time).until do
-        page.evaluate_script("window.bootstrap.Modal.getInstance(document.querySelector('#modal .modal'))?._isTransitioning === false")
-      end
+      assert_preserved_modal
       fill_in "Title", with: "Unsaved title", fill_options: { clear: :backspace }
       click_on "Cancel"
       assert_selector ".modal-title", text: "Updated view title"
+      assert_preserved_modal
       assert_field "Title", with: "Updated view title", disabled: true
 
       click_on "Edit"
       find(".modal-header [aria-label='Close']").click
       assert_selector ".modal-title", text: "Updated view title"
+      assert_preserved_modal
       click_on "Next"
       assert_selector ".modal-title", text: content.title
+      assert_preserved_modal
     end
     assert_equal "Updated view title", following_content.reload.title
+  end
+
+  test "dismisses and reopens content modals after transitions" do
+    @user.update!(role: :volunteer)
+    content = create_preview_content!("Dismiss preview row", Time.current)
+    visit contents_path
+
+    [ :close, :escape, :backdrop ].each do |dismissal|
+      find("a[aria-label='Preview #{content.title}']").click
+      within "turbo-frame#modal" do
+        remember_open_modal
+        click_on "Edit"
+        assert_selector ".modal-title", text: "Edit content"
+        click_on "Cancel"
+        assert_selector ".modal-title", text: content.title
+        assert_preserved_modal
+
+        case dismissal
+        when :close
+          click_button "Close", exact: true
+        when :escape
+          find(".modal").send_keys(:escape)
+        when :backdrop
+          page.driver.browser.action.move_to_location(5, 5).click.perform
+        end
+      end
+      assert page.has_no_selector?("#modal .modal"), "Content modal did not close using #{dismissal}"
+      assert_no_selector ".modal-backdrop"
+      assert_no_selector "body.modal-open"
+      assert_equal "", page.evaluate_script("document.body.style.overflow")
+    end
   end
 
   test "edits content and replaces its file from the modal" do
@@ -490,6 +541,46 @@ class ContentsTest < ApplicationSystemTestCase
   end
 
   private
+
+  def remember_open_modal
+    assert_selector "#modal .modal.show"
+    Selenium::WebDriver::Wait.new(timeout: Capybara.default_max_wait_time).until do
+      page.evaluate_script("window.bootstrap.Modal.getInstance(document.querySelector('#modal .modal'))?._isTransitioning === false")
+    end
+    page.execute_script(<<~JAVASCRIPT)
+      const element = document.querySelector("#modal .modal")
+      window.contentModalSnapshot = {
+        element,
+        dialog: element.querySelector(".modal-dialog"),
+        backdrop: document.querySelector(".modal-backdrop"),
+        instance: window.bootstrap.Modal.getInstance(element),
+        lifecycleEvents: 0
+      }
+      for (const event of ["show.bs.modal", "hide.bs.modal"]) {
+        element.addEventListener(event, () => window.contentModalSnapshot.lifecycleEvents++)
+      }
+    JAVASCRIPT
+  end
+
+  def assert_preserved_modal
+    assert page.evaluate_script(<<~JAVASCRIPT)
+      (() => {
+        const saved = window.contentModalSnapshot
+        const element = document.querySelector("#modal .modal")
+        const title = element.querySelector(".modal-title")
+        return element === saved.element &&
+          element.querySelector(".modal-dialog") === saved.dialog &&
+          window.bootstrap.Modal.getInstance(element) === saved.instance &&
+          document.querySelector(".modal-backdrop") === saved.backdrop &&
+          document.querySelectorAll(".modal-backdrop").length === 1 &&
+          saved.lifecycleEvents === 0 && element.classList.contains("show") &&
+          document.body.classList.contains("modal-open") &&
+          document.body.style.overflow === "hidden" &&
+          element.getAttribute("aria-labelledby") === title.id &&
+          document.activeElement === title
+      })()
+    JAVASCRIPT
+  end
 
   def with_temporary_media_file(extension, bytes)
     Tempfile.create([ "content-preview", extension ]) do |file|
