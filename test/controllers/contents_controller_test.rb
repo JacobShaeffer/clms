@@ -234,7 +234,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: @matching_content.display_title
+    assert_select "turbo-frame#modal .modal-title", text: @matching_content.title
     assert_select ".modal-dialog.modal-fullscreen.content-edit-dialog.content-view-dialog"
     assert_select ".modal-content" do
       assert_select "> .modal-body .content-edit-layout.content-view-layout" do
@@ -280,13 +280,13 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, preview_links.size
 
     get preview_links.first["href"], headers: TURBO_FRAME_HEADERS
-    assert_select ".modal-title", text: @matching_content.display_title
+    assert_select ".modal-title", text: @matching_content.title
     assert_select "button[disabled]", text: "Previous"
     next_link = css_select("a").find { |link| link.text.strip == "Next" }
     assert next_link
 
     get next_link["href"], headers: TURBO_FRAME_HEADERS
-    assert_select ".modal-title", text: @other_content.display_title
+    assert_select ".modal-title", text: @other_content.title
     assert_select "a", text: "Previous"
     assert_select "button[disabled]", text: "Next"
   end
@@ -325,6 +325,61 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get content_url(@matching_content, navigation: token), headers: TURBO_FRAME_HEADERS
     assert_select "button[disabled]", text: "Previous"
     assert_select "button[disabled]", text: "Next"
+  end
+
+  test "view modal offers edit according to permissions next to trash" do
+    @user.update!(role: :intern_plus)
+    get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+    assert_select ".modal-footer > div.d-flex" do
+      assert_select "a", text: "Trash"
+      assert_select "a[href='#{edit_content_path(@matching_content, return_to_view: '1')}'][data-turbo-frame='modal']", text: "Edit"
+    end
+
+    @user.update!(role: :volunteer)
+    get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+    assert_select ".modal-footer a", text: "Edit"
+    assert_select ".modal-footer a", text: "Trash", count: 0
+
+    @user.update!(role: :organization)
+    get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+    assert_select ".modal-footer a", text: "Edit", count: 0
+    get edit_content_url(@matching_content, return_to_view: "1"), headers: TURBO_FRAME_HEADERS
+    assert_redirected_to root_path
+  end
+
+  test "editing from view preserves the return path through validation and update" do
+    token = ContentTables::PageNavigation.token_for(
+      user: @user, records: [ @matching_content, @other_content ]
+    )
+    view_path = content_path(@matching_content, navigation: token)
+
+    get edit_content_url(@matching_content, return_to_view: "1", navigation: token), headers: TURBO_FRAME_HEADERS
+    assert_select "input[type='hidden'][name='return_to_view'][value='1']"
+    assert_select "input[type='hidden'][name='navigation'][value='#{token}']"
+    assert_select "a[href='#{view_path}'][data-turbo-frame='modal']", text: "Cancel"
+    assert_select ".modal-header a.btn-close[href='#{view_path}'][data-turbo-frame='modal']"
+
+    patch content_url(@matching_content), params: {
+      return_to_view: "1", navigation: token, content: { title: "" }
+    }, headers: TURBO_STREAM_HEADERS
+    assert_response :unprocessable_content
+    assert_select ".alert.alert-danger"
+    assert_select "input[name='return_to_view'][value='1']"
+    assert_select "input[name='navigation'][value='#{token}']"
+    assert_select "a[href='#{view_path}']", text: "Cancel"
+
+    patch content_url(@matching_content), params: {
+      return_to_view: "1", navigation: token,
+      content: { title: "Updated view title", description: "Updated view description" }
+    }, headers: TURBO_STREAM_HEADERS
+    assert_response :success
+    assert_equal "Updated view title", @matching_content.reload.title
+    assert_select "turbo-stream[action='refresh']", count: 0
+    assert_select "turbo-stream[action='replace'][target='modal'] template turbo-frame#modal" do
+      assert_select ".modal-title", text: "Updated view title"
+      assert_select "textarea#content-view-description[disabled]", text: "Updated view description"
+      assert_select "a[href='#{content_path(@other_content, navigation: token)}']", text: "Next"
+    end
   end
 
   test "new renders a Bootstrap content form" do

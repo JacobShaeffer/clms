@@ -142,16 +142,9 @@ class ContentsController < ApplicationController
 
   def show
     authorize @content
-    @previous_content, @next_content = preview_neighbors
 
     if turbo_frame_request?
-      render partial: "contents/preview_modal", locals: {
-        content: @content,
-        metadata_types: @metadata_types,
-        previous_content: @previous_content,
-        next_content: @next_content,
-        navigation_token: params[:navigation]
-      }
+      render partial: "contents/preview_modal", locals: preview_modal_locals
     end
   end
 
@@ -239,14 +232,24 @@ class ContentsController < ApplicationController
     respond_to do |format|
       if @content.update(content_params)
         format.turbo_stream do
-          if modal_frame_request?
+          if return_to_content_view?
+            render turbo_stream: turbo_stream.replace(
+              "modal", partial: "contents/preview_modal", locals: preview_modal_locals
+            )
+          elsif modal_frame_request?
             flash[:notice] = "Content was successfully updated."
             render turbo_stream: turbo_stream.refresh(request_id: nil)
           else
             redirect_to contents_path, notice: "Content was successfully updated.", status: :see_other
           end
         end
-        format.html { redirect_to contents_path, notice: "Content was successfully updated.", status: :see_other }
+        format.html do
+          if return_to_content_view?
+            redirect_to content_path(@content, navigation: params[:navigation]), status: :see_other
+          else
+            redirect_to contents_path, notice: "Content was successfully updated.", status: :see_other
+          end
+        end
       else
         format.turbo_stream do
           if modal_frame_request?
@@ -367,6 +370,21 @@ class ContentsController < ApplicationController
       .index_by(&:id)
 
     [ neighboring_contents[previous_id], neighboring_contents[next_id] ]
+  end
+
+  def preview_modal_locals
+    previous_content, next_content = preview_neighbors
+    {
+      content: @content,
+      metadata_types: @metadata_types,
+      previous_content:,
+      next_content:,
+      navigation_token: params[:navigation]
+    }
+  end
+
+  def return_to_content_view?
+    modal_frame_request? && params[:return_to_view] == "1"
   end
 
   def metadata_selection_context

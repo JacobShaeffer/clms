@@ -180,13 +180,13 @@ class ContentsTest < ApplicationSystemTestCase
       assert_field "Title", with: second.title, disabled: true
       assert_selector ".modal-content > .modal-footer"
       assert_no_selector ".modal-body .modal-footer"
-      assert_text second.display_title
+      assert_selector ".modal-title", text: second.title
       assert_button "Previous", disabled: true
       click_on "Next"
-      assert_text first.display_title
+      assert_selector ".modal-title", text: first.title
       assert_button "Next", disabled: true
       click_on "Previous"
-      assert_text second.display_title
+      assert_selector ".modal-title", text: second.title
     end
   end
 
@@ -231,6 +231,48 @@ class ContentsTest < ApplicationSystemTestCase
 
     assert_text "Content was permanently deleted."
     refute Content.exists?(content.id)
+  end
+
+  test "returns to the content view after updating or canceling an edit" do
+    @user.update!(role: :volunteer)
+    content = create_preview_content!("View edit row", 2.days.ago)
+    following_content = create_preview_content!("View edit next row", 1.day.ago)
+
+    visit contents_path
+    fill_in "Search", with: "View edit"
+    assert_selector "tbody tr", count: 2
+    find("a[aria-label='Preview #{following_content.title}']").click
+
+    within "turbo-frame#modal" do
+      click_on "Edit"
+      assert_selector ".modal-title", text: "Edit content"
+      Selenium::WebDriver::Wait.new(timeout: Capybara.default_max_wait_time).until do
+        page.evaluate_script("window.bootstrap.Modal.getInstance(document.querySelector('#modal .modal'))?._isTransitioning === false")
+      end
+      fill_in "Title", with: "Updated view title", fill_options: { clear: :backspace }
+      fill_in "Description", with: "Updated view description", fill_options: { clear: :backspace }
+      click_button "Update Content"
+      assert_selector ".modal-title", text: "Updated view title"
+      assert_field "Title", with: "Updated view title", disabled: true
+      assert_field "Description", with: "Updated view description", disabled: true
+
+      click_on "Edit"
+      assert_selector ".modal-title", text: "Edit content"
+      Selenium::WebDriver::Wait.new(timeout: Capybara.default_max_wait_time).until do
+        page.evaluate_script("window.bootstrap.Modal.getInstance(document.querySelector('#modal .modal'))?._isTransitioning === false")
+      end
+      fill_in "Title", with: "Unsaved title", fill_options: { clear: :backspace }
+      click_on "Cancel"
+      assert_selector ".modal-title", text: "Updated view title"
+      assert_field "Title", with: "Updated view title", disabled: true
+
+      click_on "Edit"
+      find(".modal-header [aria-label='Close']").click
+      assert_selector ".modal-title", text: "Updated view title"
+      click_on "Next"
+      assert_selector ".modal-title", text: content.title
+    end
+    assert_equal "Updated view title", following_content.reload.title
   end
 
   test "edits content and replaces its file from the modal" do

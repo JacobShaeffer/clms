@@ -1,12 +1,18 @@
 <% modal_footer = capture do %>
-  <% if policy(content).trash? %>
-    <%= link_to "Trash",
-      trash_confirmation_content_path(content, navigation: navigation_token),
-      class: "btn btn-outline-danger me-auto",
-      data: { turbo_frame: "modal", turbo_prefetch: false } %>
-  <% else %>
-    <span class="me-auto"></span>
-  <% end %>
+  <div class="d-flex gap-2 me-auto">
+    <% if policy(content).trash? %>
+      <%= link_to "Trash",
+        trash_confirmation_content_path(content, navigation: navigation_token),
+        class: "btn btn-outline-danger",
+        data: { turbo_frame: "modal", turbo_prefetch: false } %>
+    <% end %>
+    <% if policy(content).edit? %>
+      <%= link_to "Edit",
+        edit_content_path(content, return_to_view: "1", navigation: navigation_token),
+        class: "btn btn-outline-primary",
+        data: { turbo_frame: "modal", turbo_prefetch: false } %>
+    <% end %>
+  </div>
 
   <% if previous_content %>
     <%= link_to "Previous",
@@ -30,7 +36,7 @@
 <% end %>
 
 <%= render layout: "shared/modal", locals: {
-  title: content.display_title,
+  title: content.title,
   dialog_class: "modal-fullscreen content-edit-dialog content-view-dialog",
   title_id: dom_id(content, :preview_title),
   footer: modal_footer

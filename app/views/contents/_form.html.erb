@@ -11,6 +11,10 @@
 		content_file_upload_required_value: !content.persisted?
 	}
 ) do |form| %>
+	<% if local_assigns[:return_to_view] %>
+		<%= hidden_field_tag :return_to_view, "1" %>
+		<%= hidden_field_tag :navigation, params[:navigation] %>
+	<% end %>
 	<% if content.errors.any? %>
 		<div class="alert alert-danger">
 		<p class="mb-2"><%= pluralize(content.errors.count, "error") %> prevented this content from being saved:</p>
@@ -83,6 +87,11 @@
 
 	<div class="d-flex gap-2">
 		<%= form.submit class: "btn btn-primary", data: { content_file_upload_target: "submit" } %>
-		<%= link_to "Cancel", contents_path, class: "btn btn-secondary" %>
+		<% if local_assigns[:return_to_view] %>
+			<%= link_to "Cancel", content_path(content, navigation: params[:navigation]),
+				class: "btn btn-secondary", data: { turbo_frame: "modal", turbo_prefetch: false } %>
+		<% else %>
+			<%= link_to "Cancel", contents_path, class: "btn btn-secondary" %>
+		<% end %>
 	</div>
 <% end %>

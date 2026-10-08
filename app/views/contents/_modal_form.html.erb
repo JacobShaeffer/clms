@@ -1,5 +1,7 @@
+<% return_to_view = content.persisted? && params[:return_to_view] == "1" %>
 <%= render layout: "shared/modal", locals: {
   title: content.persisted? ? "Edit content" : "New content",
+  close_path: return_to_view ? content_path(content, navigation: params[:navigation]) : nil,
   dialog_class: content.persisted? ? "modal-fullscreen content-edit-dialog" : "modal-nearly-fullscreen"
 } do %>
   <% if content.persisted? %>
@@ -9,7 +11,7 @@
       data-action="content-file-upload:preview->content-preview#show content-file-upload:preview-reset->content-preview#reset"
     >
       <div class="content-edit-form">
-        <%= render "contents/form", content: content, modal: true %>
+        <%= render "contents/form", content: content, modal: true, return_to_view: %>
       </div>
 
       <section
