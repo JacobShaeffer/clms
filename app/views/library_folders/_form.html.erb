@@ -43,7 +43,7 @@
       <%= form.collection_select :logo_id,
         @library_assets,
         :id,
-        :name,
+        :display_name,
         { prompt: "Select a library asset" },
         { class: "form-select", required: true }
       %>

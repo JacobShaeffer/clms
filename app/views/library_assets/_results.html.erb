@@ -1,0 +1,8 @@
+<div id="library_assets" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
+  <% @library_assets.each do |library_asset| %>
+    <%= render "library_assets/library_asset_listing", library_asset: %>
+  <% end %>
+</div>
+<% if @library_assets.empty? %>
+  <p class="text-body-secondary mt-3" role="status">No library assets match your search and filters.</p>
+<% end %>

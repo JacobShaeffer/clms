@@ -36,6 +36,9 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2">
+      <% if policy(LibraryChange).index? %>
+        <%= link_to "Change history", library_changes_path(@library), class: "btn btn-outline-secondary" %>
+      <% end %>
       <% if policy(LibraryVersion).create? %>
         <%= link_to "New version",
           new_library_library_version_path(@library),

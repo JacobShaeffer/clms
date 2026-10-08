@@ -1,0 +1,61 @@
+<div data-library-change-details data-change-id="<%= @change.id %>" data-dependent-change-ids="<%= @dependent_changes.map(&:id).to_json %>">
+  <dl class="row mb-3">
+    <dt class="col-sm-3">Item</dt><dd class="col-sm-9"><%= @change.display_label %></dd>
+    <dt class="col-sm-3">Action</dt><dd class="col-sm-9"><%= @change.action_type.humanize %></dd>
+    <dt class="col-sm-3">Changed by</dt><dd class="col-sm-9"><%= @change.user.name %></dd>
+    <dt class="col-sm-3">When</dt><dd class="col-sm-9"><%= @change.created_at.in_time_zone("America/Phoenix").strftime("%Y-%m-%d %H:%M %Z") %></dd>
+    <dt class="col-sm-3">Version</dt><dd class="col-sm-9"><%= @change.library_version.version_number %></dd>
+    <% if @change.undone? %>
+      <dt class="col-sm-3">Undone by</dt><dd class="col-sm-9"><%= @change.undone_by.name %> · <%= @change.undone_at.in_time_zone("America/Phoenix").strftime("%Y-%m-%d %H:%M %Z") %></dd>
+    <% end %>
+  </dl>
+
+  <h2 class="h6">Affected items</h2>
+  <ul class="list-unstyled">
+    <% @history.visible_targets(@change).each do |target| %>
+      <li class="mb-1"><%= target.details["path"].presence || target.label %> <span class="text-body-secondary">· <%= target.details["context"].presence&.humanize || target.effect.humanize %></span></li>
+    <% end %>
+  </ul>
+
+  <% prerequisites = @history.prerequisites(@change).select { |change| @history.visible?(change) } %>
+  <% if prerequisites.any? %>
+    <h2 class="h6">Depends on</h2>
+    <ul>
+      <% prerequisites.each do |change| %>
+        <li><%= change.display_label %> · <%= change.action_type.humanize %></li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <% if @undo_dependents.any? && !@change.undone? %>
+    <div class="alert alert-warning" role="alert">
+      Undoing this change will also undo all <%= @undo_dependents.length %> dependent edits.
+    </div>
+    <h2 class="h6">Edits that will also be undone</h2>
+    <ul aria-label="Dependent edits to undo">
+      <% @visible_undo_dependents.each do |change| %>
+        <li><%= change.display_label %> · <%= change.action_type.humanize %></li>
+      <% end %>
+    </ul>
+    <% hidden_count = @undo_dependents.length - @visible_undo_dependents.length %>
+    <% if hidden_count.positive? %>
+      <p class="text-body-secondary"><%= pluralize(hidden_count, "additional dependent edit") %> involving content in Trash will also be undone.</p>
+    <% end %>
+  <% end %>
+
+  <% if @can_undo %>
+    <%= form_with url: undo_library_change_path(@library, @change), method: :patch, data: { turbo_frame: "_top" } do %>
+      <%= hidden_field_tag :cascade, "1" %>
+      <% @undo_dependents.each do |change| %>
+        <%= hidden_field_tag "dependent_change_ids[]", change.id, id: nil %>
+      <% end %>
+      <%= submit_tag "Undo", class: "btn btn-danger" %>
+    <% end %>
+  <% elsif @change.undone? %>
+    <p class="text-body-secondary mb-0">This change has already been undone.</p>
+  <% elsif @change.library_version.locked? %>
+    <p class="text-body-secondary mb-0">Changes in previous versions are read only.</p>
+  <% else %>
+    <p class="text-body-secondary mb-0">Only the author can undo their edits. An admin is required when the chain includes another person's edits.</p>
+  <% end %>
+</div>

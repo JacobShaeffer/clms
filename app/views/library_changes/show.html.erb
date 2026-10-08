@@ -1,0 +1,7 @@
+<% content_for :title, "Change details — #{@library.name}" %>
+<% turbo_exempts_page_from_cache %>
+<div class="my-4">
+  <%= link_to "Back to change history", library_changes_path(@library), class: "btn btn-outline-secondary mb-3" %>
+  <h1>Change details</h1>
+  <%= render "library_changes/details" %>
+</div>

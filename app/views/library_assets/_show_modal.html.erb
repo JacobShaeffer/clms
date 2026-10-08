@@ -4,7 +4,7 @@
   <div class="modal-footer px-0 pb-0">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
     <%= link_to "Edit",
-      edit_library_asset_path(library_asset),
+      edit_library_asset_path(library_asset, library_asset_filters: @asset_filter_context),
       class: "btn btn-primary",
       data: { turbo_frame: "modal" }
     %>

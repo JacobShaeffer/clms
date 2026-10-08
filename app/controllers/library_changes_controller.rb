@@ -1,69 +1,74 @@
 class LibraryChangesController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_library_and_change
+  before_action :authorize_history_access
+  before_action :set_library
+  before_action :set_change, only: %i[ show undo ]
 
   rescue_from LibraryChanges::InvalidUndo, with: :render_invalid_undo
 
+  def index
+    load_history
+    @versions = @library.library_versions.order(created_at: :desc, id: :desc)
+  end
+
+  def show
+    authorize @change
+    load_history
+    raise ActiveRecord::RecordNotFound unless @history.visible?(@change)
+
+    @dependent_changes = @history.dependent_changes(@change)
+    @undo_dependents = @dependent_changes.reject(&:undone?)
+    @visible_undo_dependents = @undo_dependents.select { |change| @history.visible?(change) }
+    @can_undo = @change.library_version_id == @library.current_version_id &&
+      @change.library_version.editable? && !@change.undone? &&
+      [ @change, *@undo_dependents ].all? { |change| policy(change).undo? }
+    render partial: "library_changes/modal" if turbo_frame_request?
+  end
+
   def undo
     authorize @change
-    safe_folder_id = safe_folder_id_after_undo
-    LibraryChanges::Undo.call(change: @change, user: current_user)
+    if params[:cascade] == "1"
+      LibraryChanges::CascadeUndo.call(
+        change: @change,
+        user: current_user,
+        confirmed_dependent_ids: params.permit(dependent_change_ids: []).fetch(:dependent_change_ids, [])
+      )
+    else
+      LibraryChanges::Undo.call(change: @change, user: current_user)
+    end
 
-    redirect_to library_path(@library, **page_context(folder_id: safe_folder_id)),
+    redirect_to library_changes_path(@library),
       notice: "Library change was undone.",
       status: :see_other
   end
 
   private
 
-  def set_library_and_change
+  def authorize_history_access
+    authorize LibraryChange, :index?
+  end
+
+  def set_library
     @library = policy_scope(Library).find(params.expect(:library_id))
-    @change = @library.current_version.library_changes.find(params.expect(:id))
   end
 
-  def safe_folder_id_after_undo
-    requested_id = scalar_id(params[:folder_id])
-    requested_numeric_id = Integer(requested_id, exception: false)
-    return requested_id unless requested_numeric_id
-
-    deleted_folder_ids, surviving_parent_id = deleted_folders_and_parent
-    return requested_id unless deleted_folder_ids.include?(requested_numeric_id)
-
-    surviving_parent_id
+  def set_change
+    @change = LibraryChange.joins(:library_version)
+      .where(library_versions: { library_id: @library.id }).find(params.expect(:id))
   end
 
-  def deleted_folders_and_parent
-    if @change.add_folder?
-      [ [ @change.details["folder_id"].to_i ], @change.details["parent_folder_id"] ]
-    elsif @change.duplicate_folder?
-      [ Array(@change.details["folder_ids"]).map(&:to_i), @change.details["destination_folder_id"] ]
-    else
-      [ [], nil ]
-    end
-  end
-
-  def page_context(folder_id:)
-    {
-      folder_id:,
-      tab: normalized_tab,
-      shelf_id: scalar_id(params[:shelf_id])
-    }.compact
-  end
-
-  def normalized_tab
-    value = params[:tab]
-    value if value.is_a?(String) && LibrariesController::CONTENT_TABS.include?(value)
-  end
-
-  def scalar_id(value)
-    return if value.blank?
-    return value if value.is_a?(String) || value.is_a?(Integer)
-
-    raise ActiveRecord::RecordNotFound, "Invalid page context"
+  def load_history
+    changes = LibraryChange
+      .joins(:library_version).where(library_versions: { library_id: @library.id })
+      .includes(:user, :undone_by, :library_version, :library_change_targets, :dependency_links)
+      .ordered.to_a
+    content_ids = changes.flat_map(&:library_change_targets).filter_map(&:content_id).uniq
+    hidden_content_ids = Content.trashed.where(id: content_ids).pluck(:id)
+    @history = LibraryChanges::History.new(changes:, hidden_content_ids:)
   end
 
   def render_invalid_undo(error)
-    redirect_to library_path(@library, **page_context(folder_id: scalar_id(params[:folder_id]))),
+    redirect_to library_changes_path(@library),
       alert: error.message,
       status: :see_other
   end

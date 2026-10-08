@@ -27,6 +27,19 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     @other_root_folder = create_folder!(@other_library, name: "Science")
   end
 
+  test "only admins see the change history link" do
+    get library_url(@library)
+
+    assert_response :success
+    assert_select "a[href='#{library_changes_path(@library)}']", count: 0
+
+    users(:one).update!(role: :admin)
+    get library_url(@library)
+
+    assert_response :success
+    assert_select "a[href='#{library_changes_path(@library)}']", text: "Change history", count: 1
+  end
+
   test "index lists each library with its current version" do
     get libraries_url
 

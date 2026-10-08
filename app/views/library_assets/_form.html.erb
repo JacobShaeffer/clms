@@ -1,6 +1,9 @@
 <% form_data = local_assigns[:modal] ? { turbo_frame: "modal" } : { turbo: false } %>
 
 <%= form_with(model: library_asset, data: form_data) do |form| %>
+  <% @asset_filter_context.each do |field, value| %>
+    <%= hidden_field_tag "library_asset_filters[#{field}]", value %>
+  <% end %>
   <% if library_asset.errors.any? %>
     <div class="alert alert-danger" role="alert">
       <p class="mb-2"><%= pluralize(library_asset.errors.count, "error") %> prevented this library asset from being saved:</p>
@@ -20,12 +23,22 @@
 
   <div class="mb-3">
     <%= form.label :language, class: "form-label" %>
-    <%= form.text_field :language, class: "form-control" %>
+    <%= form.text_field :language, class: "form-control", list: "library-asset-languages", autocomplete: "off" %>
+    <datalist id="library-asset-languages">
+      <% LibraryAsset::LANGUAGES.each do |language| %>
+        <option value="<%= language %>"></option>
+      <% end %>
+    </datalist>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :asset_type, "Type", class: "form-label" %>
+    <%= form.select :asset_type, LibraryAsset::ASSET_TYPES, { include_blank: true }, { class: "form-select" } %>
   </div>
 
   <div class="mb-3">
     <%= form.label :image, "Image (PNG)", class: "form-label" %>
-    <%= form.file_field :image, class: "form-control", accept: "image/png,.png" %>
+    <%= form.file_field :image, class: "form-control", accept: "image/png,.png", required: !library_asset.image.attached? %>
     <% if library_asset.image.attached? %>
       <div class="form-text">Current file: <%= library_asset.image.filename %></div>
     <% end %>

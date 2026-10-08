@@ -4,7 +4,7 @@
       <% if library_asset.image.attached? %>
         <%= image_tag library_asset.image,
           class: "h-100 w-100 object-fit-cover",
-          alt: "#{library_asset.name} image"
+          alt: "#{library_asset.display_name} image"
         %>
       <% else %>
         <div class="d-flex align-items-center justify-content-center text-body-secondary">
@@ -17,10 +17,10 @@
       <%= render library_asset %>
 
       <div class="d-flex flex-wrap gap-2 mt-auto pt-3">
-        <%= link_to "Show", library_asset, class: "btn btn-sm btn-outline-primary", data: { turbo_frame: "modal" } %>
-        <%= link_to "Edit", edit_library_asset_path(library_asset), class: "btn btn-sm btn-outline-secondary", data: { turbo_frame: "modal" } %>
+        <%= link_to "Show", library_asset_path(library_asset, library_asset_filters: @asset_filter_context), class: "btn btn-sm btn-outline-primary", data: { turbo_frame: "modal" } %>
+        <%= link_to "Edit", edit_library_asset_path(library_asset, library_asset_filters: @asset_filter_context), class: "btn btn-sm btn-outline-secondary", data: { turbo_frame: "modal" } %>
         <%= link_to "Destroy",
-          delete_confirmation_library_asset_path(library_asset),
+          delete_confirmation_library_asset_path(library_asset, library_asset_filters: @asset_filter_context),
           class: "btn btn-sm btn-outline-danger",
           data: { turbo_frame: "modal" }
         %>

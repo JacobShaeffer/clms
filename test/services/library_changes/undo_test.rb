@@ -355,6 +355,80 @@ class LibraryChanges::UndoTest < ActiveSupport::TestCase
     end
   end
 
+  test "cascade undo reverses branches and shared dependents once while retaining unrelated edits" do
+    folder, root_change = create_recorded_folder!("Cascade", parent_folder: @root)
+    LibraryFolderOperations::PlaceContents.call(
+      library: @library, folder_id: folder.id,
+      content_ids: [ contents(:one).id, contents(:two).id ], user: @editor
+    )
+    remove_folder!(folder)
+    dependents = @version.library_changes.where.not(id: root_change.id).ordered.to_a
+    LibraryFolderOperations::PlaceContents.call(
+      library: @library, folder_id: @root.id, content_ids: [ contents(:one).id ], user: @editor
+    )
+    unrelated = @version.library_changes.last
+
+    LibraryChanges::CascadeUndo.call(change: root_change, user: @editor, confirmed_dependent_ids: dependents.map(&:id))
+
+    assert_predicate root_change.reload, :undone?
+    dependents.each do |change|
+      assert_predicate change.reload, :undone?
+      assert_equal @editor, change.undone_by
+    end
+    refute LibraryFolder.exists?(folder.id)
+    refute_predicate unrelated.reload, :undone?
+    assert @root.library_folder_contents.exists?(content: contents(:one))
+  end
+
+  test "cascade requires a fresh confirmation of all dependent edits" do
+    folder, root_change = create_recorded_folder!("Cascade", parent_folder: @root)
+    LibraryFolderOperations::PlaceContents.call(
+      library: @library, folder_id: folder.id, content_ids: [ contents(:one).id ], user: @editor
+    )
+
+    error = assert_raises(LibraryChanges::InvalidUndo) do
+      LibraryChanges::CascadeUndo.call(change: root_change, user: @editor, confirmed_dependent_ids: [])
+    end
+    assert_match(/Dependent edits have changed/, error.message)
+    refute_predicate root_change.reload, :undone?
+    assert folder.library_folder_contents.exists?(content: contents(:one))
+  end
+
+  test "only admins can cascade through another author's edits" do
+    folder, root_change = create_recorded_folder!("Cascade", parent_folder: @root)
+    LibraryFolderOperations::PlaceContents.call(
+      library: @library, folder_id: folder.id, content_ids: [ contents(:one).id ], user: @admin
+    )
+    dependent = @version.library_changes.last
+
+    assert_raises(LibraryChanges::InvalidUndo) do
+      LibraryChanges::CascadeUndo.call(change: root_change, user: @editor, confirmed_dependent_ids: [ dependent.id ])
+    end
+    refute_predicate dependent.reload, :undone?
+    refute_predicate root_change.reload, :undone?
+
+    LibraryChanges::CascadeUndo.call(change: root_change, user: @admin, confirmed_dependent_ids: [ dependent.id ])
+    assert_predicate dependent.reload, :undone?
+    assert_equal @admin, dependent.undone_by
+    assert_predicate root_change.reload, :undone?
+  end
+
+  test "a failure reverses every mutation in a cascade" do
+    folder, root_change = create_recorded_folder!("Cascade", parent_folder: @root)
+    LibraryFolderOperations::PlaceContents.call(
+      library: @library, folder_id: folder.id, content_ids: [ contents(:one).id ], user: @editor
+    )
+    dependent = @version.library_changes.last
+    create_folder!("Unrecorded child", parent_folder: folder)
+
+    assert_raises(ActiveRecord::RecordNotDestroyed) do
+      LibraryChanges::CascadeUndo.call(change: root_change, user: @editor, confirmed_dependent_ids: [ dependent.id ])
+    end
+    refute_predicate dependent.reload, :undone?
+    refute_predicate root_change.reload, :undone?
+    assert folder.library_folder_contents.exists?(content: contents(:one))
+  end
+
   private
 
   def create_folder!(name, parent_folder: nil)

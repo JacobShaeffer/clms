@@ -9,6 +9,35 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+.library-change-row {
+  margin-left: calc(var(--change-depth) * 1.25rem);
+  border-left: 2px solid var(--bs-border-color);
+  border-radius: 0.25rem;
+}
+
+.library-change-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  text-decoration: none;
+}
+
+.library-change-row:hover,
+.library-change-selected {
+  background: var(--bs-primary-bg-subtle);
+  border-color: var(--bs-primary);
+}
+
+.library-change-dependent {
+  background: var(--bs-warning-bg-subtle);
+  border-color: var(--bs-warning);
+}
+
+.library-change-undone .library-change-link > span:first-child {
+  text-decoration: line-through;
+}
+
 .modal-dialog.modal-nearly-fullscreen {
   width: calc(100% - 2rem);
   max-width: none;

@@ -137,11 +137,6 @@
             %>
             <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
               <span class="badge text-bg-secondary">Folder</span>
-              <% if viewing_current_version %>
-                <% @library_change_state.direct_changes_for_folder(folder).each do |change| %>
-                  <%= render "libraries/change_controls", change:, inline: true %>
-                <% end %>
-              <% end %>
             </div>
           </div>
         <% end %>
@@ -165,11 +160,6 @@
                 <span class="badge text-bg-warning">File changed</span>
               <% end %>
               <span class="badge text-bg-light">Content</span>
-              <% if viewing_current_version %>
-                <% @library_change_state.direct_changes_for_placement(placement).each do |change| %>
-                  <%= render "libraries/change_controls", change:, inline: true %>
-                <% end %>
-              <% end %>
             </div>
           </div>
         <% end %>

@@ -1,0 +1,37 @@
+<% content_for :title, "Change history — #{@library.name}" %>
+<% turbo_exempts_page_from_cache %>
+
+<div class="my-4" data-controller="library-change-history" data-action="turbo:frame-load@document->library-change-history#select hidden.bs.modal@document->library-change-history#clear">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h1 class="mb-1">Change history</h1>
+      <p class="text-body-secondary mb-0"><%= @library.name %></p>
+    </div>
+    <%= link_to "Back to library", library_path(@library), class: "btn btn-outline-secondary" %>
+  </div>
+
+  <% if @history.visible_changes.empty? %>
+    <p class="text-body-secondary">No changes to show for this library.</p>
+  <% else %>
+    <% rows_by_version = @history.rows.group_by { |change, _depth| change.library_version_id } %>
+    <% @versions.each do |version| %>
+      <% rows = rows_by_version.fetch(version.id, []) %>
+      <% next if rows.empty? %>
+      <section class="mb-4" aria-label="Version <%= version.version_number %> changes">
+        <h2 class="h6 text-body-secondary">Version <%= version.version_number %><%= " · Read only" if version.locked? %></h2>
+        <ul class="library-change-tree list-unstyled mb-0" aria-label="Edit dependencies">
+          <% rows.each do |change, depth| %>
+            <li class="library-change-row <%= "library-change-undone" if change.undone? %>" style="--change-depth: <%= depth %>" data-library-change-history-target="change" data-change-id="<%= change.id %>">
+              <%= link_to library_change_path(@library, change), class: "library-change-link link-body-emphasis", data: { turbo_frame: "modal", turbo_prefetch: false } do %>
+                <span><%= change.display_label %></span>
+                <span class="text-body-secondary"><%= change.action_type.humanize %><%= " · Undone" if change.undone? %></span>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+  <% end %>
+</div>
+
+<%= turbo_frame_tag "modal" %>

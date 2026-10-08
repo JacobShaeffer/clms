@@ -251,7 +251,8 @@ class LibrariesTest < ApplicationSystemTestCase
     refute LibraryFolder.exists?(nested_folder.id)
   end
 
-  test "shows inline undo without a pending changes panel or action badges" do
+  test "moves undo from folder rows to change history" do
+    users(:one).update!(role: :admin)
     library = Library.create!(name: "Undo Library", user: users(:one))
     root = create_folder!(library, "Root")
     child = library.current_version.library_folders.create!(
@@ -279,10 +280,101 @@ class LibrariesTest < ApplicationSystemTestCase
 
     visit library_path(library, folder_id: root.id)
 
-    assert_link "Undo"
+    assert_no_link "Undo", exact: true
+    click_on "Change history"
+    assert_current_path library_changes_path(library)
+    assert_link "New Child Add folder"
+    click_on "New Child Add folder"
+    within "#modal" do
+      assert_text users(:one).name
+      assert_button "Undo"
+      click_button "Undo"
+    end
+    assert_current_path library_changes_path(library)
+    assert_text "Library change was undone."
+    assert_selector ".library-change-undone", text: "New Child"
+    refute LibraryFolder.exists?(child.id)
     assert_no_selector "#library-pending-changes"
     assert_no_selector ".badge", text: "New"
     assert_no_link "Approve"
+  end
+
+  test "trashed content stays hidden when returning to history with the back button" do
+    users(:one).update!(role: :admin)
+    library = Library.create!(name: "Trash History Library", user: users(:one))
+    folder = create_folder!(library, "Root")
+    content = contents(:one)
+    LibraryFolderOperations::PlaceContents.call(
+      library:, folder_id: folder.id, content_ids: [ content.id ], user: users(:one)
+    )
+    change = library.current_version.library_changes.last
+
+    visit library_changes_path(library)
+    assert_selector ".library-change-row[data-change-id='#{change.id}']"
+    click_on "Back to library"
+    assert_current_path library_path(library)
+    content.trash!
+    page.go_back
+
+    assert_current_path library_changes_path(library)
+    assert_no_selector ".library-change-row"
+    assert_text "No changes to show for this library."
+
+    content.restore!
+    visit library_changes_path(library)
+    assert_selector ".library-change-row[data-change-id='#{change.id}']"
+  end
+
+  test "highlights transitive dependencies and undoes the reviewed chain" do
+    users(:one).update!(role: :admin)
+    library = Library.create!(name: "Dependency History Library", user: users(:one))
+    root = create_folder!(library, "Root")
+    child = create_folder!(library, "Tracked child", parent_folder: root)
+    first = LibraryChanges::Recorder.call(
+      library_version: library.current_version, user: users(:one), action_type: :add_folder,
+      details: { folder_id: child.id, parent_folder_id: root.id, logo_id: nil },
+      targets: [ {
+        target_kind: :folder, target_id: child.id, folder_id: child.id,
+        resource_key: LibraryChanges::Recorder.folder_key(child),
+        effect: :new, direct: true, label: child.name
+      } ]
+    )
+    LibraryFolderOperations::PlaceContents.call(
+      library:, folder_id: child.id, content_ids: [ contents(:one).id ], user: users(:one)
+    )
+    second = library.current_version.library_changes.add_content.last
+    LibraryFolderOperations::Remove.call(
+      library:, source_folder_id: child.id, folder_ids: [],
+      content_ids: [ contents(:one).id ], user: users(:one)
+    )
+    third = library.current_version.library_changes.remove_content.last
+
+    visit library_changes_path(library)
+    assert_selector ".library-change-row", count: 3
+    assert_selector "[data-change-id='#{third.id}'][style='--change-depth: 2']"
+    find("[data-change-id='#{first.id}'] a").click
+    assert_selector ".library-change-selected[data-change-id='#{first.id}']"
+    assert_selector ".library-change-dependent[data-change-id='#{second.id}']"
+    assert_selector ".library-change-dependent[data-change-id='#{third.id}']"
+    within "#modal" do
+      assert_text "Library System User"
+      assert_text "Undoing this change will also undo all 2 dependent edits"
+      assert_selector "ul[aria-label='Dependent edits to undo'] li", count: 2
+      Selenium::WebDriver::Wait.new(timeout: Capybara.default_max_wait_time).until do
+        page.evaluate_script("window.bootstrap.Modal.getInstance(document.querySelector('#modal .modal'))?._isTransitioning === false")
+      end
+      find(".modal-header [aria-label='Close']").click
+    end
+    assert_no_selector ".library-change-selected, .library-change-dependent"
+
+    find("[data-change-id='#{first.id}'] a").click
+    within "#modal" do
+      click_button "Undo"
+    end
+    assert_text "Library change was undone."
+    assert_selector ".library-change-undone", count: 3
+    refute LibraryFolder.exists?(child.id)
+    [ first, second, third ].each { |change| assert_predicate change.reload, :undone? }
   end
 
   test "moves selected content and folder trees to one destination" do

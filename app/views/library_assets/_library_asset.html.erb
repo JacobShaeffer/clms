@@ -1,9 +1,14 @@
 <div id="<%= dom_id library_asset %>">
-  <h2 class="card-title h5"><%= library_asset.name %></h2>
+  <h2 class="card-title h5"><%= library_asset.display_name %></h2>
 
   <p class="card-text mb-0">
     <strong>Language:</strong>
     <%= library_asset.language.presence || "Not specified" %>
+  </p>
+
+  <p class="card-text mb-0">
+    <strong>Type:</strong>
+    <%= library_asset.asset_type.presence || "Not specified" %>
   </p>
 
   <% if library_asset.design_files.attached? %>

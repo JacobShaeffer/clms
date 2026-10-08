@@ -15,6 +15,21 @@ class LibraryChangePolicyTest < ActiveSupport::TestCase
     )
   end
 
+  test "only admins can access change history and details" do
+    assert LibraryChangePolicy.new(@admin, LibraryChange).index?
+    assert LibraryChangePolicy.new(@admin, @change).show?
+
+    User.roles.each_key do |role|
+      next if role == "admin"
+
+      @author.role = role
+      refute LibraryChangePolicy.new(@author, LibraryChange).index?, role
+      refute LibraryChangePolicy.new(@author, @change).show?, role
+    end
+    refute LibraryChangePolicy.new(nil, LibraryChange).index?
+    refute LibraryChangePolicy.new(nil, @change).show?
+  end
+
   test "authors and admins can undo" do
     assert LibraryChangePolicy.new(@author, @change).undo?
     assert LibraryChangePolicy.new(@admin, @change).undo?

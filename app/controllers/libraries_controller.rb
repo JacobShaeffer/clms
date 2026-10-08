@@ -222,7 +222,6 @@ class LibrariesController < ApplicationController
     @file_changed_content_ids = @library_version
       .file_changed_content_ids(@browser_contents)
       .index_with(true)
-    @library_change_state = LibraryChanges::BrowserState.new(library_version: @library_version)
   end
 
   def load_active_shelves

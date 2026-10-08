@@ -2,7 +2,7 @@ Rails.application.routes.draw do
   resources :libraries, only: %i[ index show new create ] do
     resources :library_folders, only: %i[ new create ]
     resources :library_versions, only: %i[ new create ]
-    resources :changes, controller: "library_changes", only: [] do
+    resources :changes, controller: "library_changes", only: %i[ index show ] do
       member do
         patch :undo
       end
