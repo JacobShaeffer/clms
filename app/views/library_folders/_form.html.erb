@@ -67,7 +67,7 @@
           duplicate_library_folder_selection_path(@library, picker_params) %>
         <%= link_to "Back", picker_path, class: "btn btn-secondary", data: { turbo_frame: "modal" } %>
       <% else %>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-action="click->modal#hide">Cancel</button>
       <% end %>
     <% end %>
     <%= form.submit "New Folder", class: "btn btn-primary" %>

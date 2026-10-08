@@ -1,4 +1,5 @@
 class LibraryFoldersController < ApplicationController
+  include LibraryEditReceipts
   before_action :authenticate_user!
   before_action :set_library
   before_action :authorize_management
@@ -33,7 +34,10 @@ class LibraryFoldersController < ApplicationController
 
     respond_to do |format|
       if save_current_version_folder
-        format.turbo_stream { render_folder_creation_success }
+        format.turbo_stream do
+          expose_library_edit([ @recorded_change ])
+          render_folder_creation_success
+        end
         format.html do
           redirect_to library_path(@library, page_context_params),
             notice: "Folder was successfully created.",
@@ -161,7 +165,7 @@ class LibraryFoldersController < ApplicationController
         @library.current_version_id == @library_version.id
 
       if @library_folder.save
-        LibraryChanges::Recorder.call(
+        @recorded_change = LibraryChanges::Recorder.call(
           library_version: @library_version,
           user: current_user,
           action_type: :add_folder,

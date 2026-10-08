@@ -20,10 +20,10 @@ module LibraryFolderOperations
         batch_key = SecureRandom.uuid
 
         selection.direct_content_placements.each do |placement|
-          remove_content!(placement:, library_version:, user:, batch_key:)
+          selection.recorded_changes << remove_content!(placement:, library_version:, user:, batch_key:)
         end
         selection.selected_folders.each do |folder|
-          remove_folder!(
+          selection.recorded_changes << remove_folder!(
             selection:,
             folder:,
             library_version:,
@@ -44,7 +44,7 @@ module LibraryFolderOperations
           placement.library_folder_id,
           placement.content_id
         )
-        LibraryChanges::Recorder.call(
+        change = LibraryChanges::Recorder.call(
           library_version:,
           user:,
           action_type: :remove_content,
@@ -56,9 +56,11 @@ module LibraryFolderOperations
             placement_snapshot: snapshot(placement, PLACEMENT_SNAPSHOT_ATTRIBUTES)
           },
           targets: [ content_target(placement:, direct: true) ],
-          dependency_resource_keys: [ resource_key ]
+          dependency_resource_keys: [ resource_key ],
+          required_folder_ids: [ placement.library_folder_id ]
         )
         placement.destroy!
+        change
       end
 
       def remove_folder!(selection:, folder:, library_version:, user:, batch_key:)
@@ -79,7 +81,7 @@ module LibraryFolderOperations
           .distinct
           .pluck(:id)
 
-        LibraryChanges::Recorder.call(
+        change = LibraryChanges::Recorder.call(
           library_version:,
           user:,
           action_type: :remove_folder,
@@ -97,11 +99,13 @@ module LibraryFolderOperations
           },
           targets:,
           dependency_resource_keys: dependency_keys,
-          dependency_change_ids:
+          dependency_change_ids:,
+          required_folder_ids: [ folder.parent_folder_id ].compact
         )
 
         placements.each(&:destroy!)
         folders.reverse_each(&:destroy!)
+        change
       end
 
       def subtree_folders(selection, root)

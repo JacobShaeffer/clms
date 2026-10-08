@@ -5,7 +5,13 @@ Rails.application.routes.draw do
     resources :changes, controller: "library_changes", only: %i[ index show ] do
       member do
         patch :undo
+        patch :redo
       end
+    end
+    resource :edit_controls, controller: "library_edit_controls", only: [] do
+      get :status
+      patch :undo
+      patch :redo
     end
     resource :folder_selection, controller: "library_folder_selections", only: [] do
       get :remove_confirmation

@@ -2,7 +2,7 @@ class LibraryChangesController < ApplicationController
   before_action :authenticate_user!
   before_action :authorize_history_access
   before_action :set_library
-  before_action :set_change, only: %i[ show undo ]
+  before_action :set_change, only: %i[ show undo redo ]
 
   rescue_from LibraryChanges::InvalidUndo, with: :render_invalid_undo
 
@@ -22,6 +22,9 @@ class LibraryChangesController < ApplicationController
     @can_undo = @change.library_version_id == @library.current_version_id &&
       @change.library_version.editable? && !@change.undone? &&
       [ @change, *@undo_dependents ].all? { |change| policy(change).undo? }
+    @redo_changes = LibraryChanges::Redo.group(@change)
+    @visible_redo_changes = @redo_changes.select { |record| @history.visible?(record) }
+    @redo_error = redo_error
     render partial: "library_changes/modal" if turbo_frame_request?
   end
 
@@ -42,7 +45,24 @@ class LibraryChangesController < ApplicationController
       status: :see_other
   end
 
+  def redo
+    authorize @change
+    LibraryChanges::Redo.call(change: @change, user: current_user,
+      confirmed_change_ids: params.permit(change_ids: []).fetch(:change_ids, []),
+      confirmed_undo_group_key: params[:undo_group_key])
+    redirect_to library_changes_path(@library), notice: "Library changes were redone.", status: :see_other
+  end
+
   private
+
+  def redo_error
+    @library.with_lock do
+      LibraryChanges::Redo.validate!(changes: @redo_changes, user: current_user, library: @library)
+    end
+    nil
+  rescue LibraryChanges::InvalidUndo => error
+    error.message
+  end
 
   def authorize_history_access
     authorize LibraryChange, :index?
@@ -60,7 +80,7 @@ class LibraryChangesController < ApplicationController
   def load_history
     changes = LibraryChange
       .joins(:library_version).where(library_versions: { library_id: @library.id })
-      .includes(:user, :undone_by, :library_version, :library_change_targets, :dependency_links)
+      .includes(:user, :undone_by, :library_version, :library_change_targets, :dependency_links, :redo_change, :redo_of)
       .ordered.to_a
     content_ids = changes.flat_map(&:library_change_targets).filter_map(&:content_id).uniq
     hidden_content_ids = Content.trashed.where(id: content_ids).pluck(:id)

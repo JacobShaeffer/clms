@@ -327,6 +327,80 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
     refute LibraryFolder.exists?(child.id)
   end
 
+  test "admin history previews and redoes every edit undone together" do
+    first = add_content_change
+    second = remove_content_change
+    sign_in @admin
+    patch undo_library_change_url(@library, first), params: { cascade: "1", dependent_change_ids: [ second.id ] }
+    assert_redirected_to library_changes_url(@library)
+    get library_change_url(@library, first), headers: { "Turbo-Frame" => "modal" }
+    assert_select "ul[aria-label='Edits to redo'] li", count: 2
+    assert_select "input[type=submit][value=Redo]"
+    assert_select ".alert-warning", text: /all 2 edits undone together/
+    undo_group_key = first.reload.undo_group_key
+    assert_select "input[name=undo_group_key][value='#{undo_group_key}']"
+
+    assert_no_difference("LibraryChange.count") do
+      patch redo_library_change_url(@library, first), params: { change_ids: [ first.id, second.id ], undo_group_key: }
+    end
+    assert_redirected_to library_changes_url(@library)
+    assert [ first, second ].all? { |record| !record.reload.undone? && record.user_id == @author.id }
+    assert_empty @folder.library_folder_contents.reload
+    get library_changes_url(@library)
+    assert_select ".library-change-row", count: 2
+    assert_select ".library-change-undone", count: 0
+    assert_select ".library-change-row", text: /Undone|Redone/, count: 0
+    get library_change_url(@library, first), headers: { "Turbo-Frame" => "modal" }
+    assert_select "dt", text: "Undone by", count: 0
+    assert_select "a", text: "View the resulting edit", count: 0
+    assert_select "input[type=submit][value=Undo]"
+    assert_select "input[type=submit][value=Redo]", count: 0
+  end
+
+  test "history rejects stale redo confirmations and nonadmins" do
+    first = add_content_change
+    second = remove_content_change
+    LibraryChanges::CascadeUndo.call(change: first, user: @admin, confirmed_dependent_ids: [ second.id ])
+    undo_group_key = first.reload.undo_group_key
+    sign_in @admin
+    patch redo_library_change_url(@library, first), params: { change_ids: [ first.id ], undo_group_key: }
+    assert_redirected_to library_changes_url(@library)
+    assert_no_difference("LibraryChange.count") do
+      sign_in @author
+      patch redo_library_change_url(@library, first), params: { change_ids: [ first.id, second.id ], undo_group_key: }
+    end
+    assert_redirected_to root_url
+    assert_empty @library.current_version.library_changes.where.not(redo_of_id: nil)
+  end
+
+  test "history rejects a redo form from an earlier undo cycle" do
+    change = add_content_change
+    sign_in @admin
+    patch undo_library_change_url(@library, change)
+    old_group = change.reload.undo_group_key
+    patch redo_library_change_url(@library, change), params: { change_ids: [ change.id ], undo_group_key: old_group }
+    assert_redirected_to library_changes_url(@library)
+    refute_predicate change.reload, :undone?
+    patch undo_library_change_url(@library, change)
+
+    patch redo_library_change_url(@library, change), params: { change_ids: [ change.id ], undo_group_key: old_group }
+
+    assert_redirected_to library_changes_url(@library)
+    assert_match(/edits to redo have changed/, flash[:alert])
+    assert_predicate change.reload, :undone?
+    assert_empty @folder.library_folder_contents.reload
+  end
+
+  test "old undone changes remain readable without redo" do
+    change = add_content_change
+    change.update!(undone_by: @admin, undone_at: Time.current)
+    sign_in @admin
+    get library_change_url(@library, change), headers: { "Turbo-Frame" => "modal" }
+    assert_response :success
+    assert_select "p", text: /No saved redo data/
+    assert_select "input[type=submit][value=Redo]", count: 0
+  end
+
   private
 
   def remove_content_change(user: @author)

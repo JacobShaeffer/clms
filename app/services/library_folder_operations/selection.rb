@@ -7,10 +7,11 @@ module LibraryFolderOperations
     TreeNode = Struct.new(:folder, :contents, :children, keyword_init: true)
 
     attr_reader :library, :library_version, :source_folder, :selected_folders,
-      :direct_content_placements, :all_folders, :folder_ids, :content_ids
+      :direct_content_placements, :all_folders, :folder_ids, :content_ids, :recorded_changes
 
     def initialize(library:, source_folder_id:, folder_ids:, content_ids:, library_version: nil)
       @library = library
+      @recorded_changes = []
       @library_version = library_version || library.reload.current_version
       raise InvalidSelection, "The library does not have a current version." unless @library_version
 

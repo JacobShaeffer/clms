@@ -15,7 +15,7 @@ module LibraryFolderOperations
 
         duplicate_direct_content!(selection:, destination:, library_version:, user:, batch_key:)
         selection.selected_folders.each do |folder|
-          duplicate_folder!(
+          selection.recorded_changes << duplicate_folder!(
             selection:,
             source_folder: folder,
             destination:,
@@ -48,7 +48,7 @@ module LibraryFolderOperations
           )
           destination_key = LibraryChanges::Recorder.content_key(destination.id, placement.content_id)
 
-          LibraryChanges::Recorder.call(
+          selection.recorded_changes << LibraryChanges::Recorder.call(
             library_version:,
             user:,
             action_type: :duplicate_content,

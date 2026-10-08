@@ -48,6 +48,9 @@ module Contents
     def scrub_mixed_change!(change, targets)
       placement_ids = targets.map(&:target_id)
       details = change.details.deep_dup
+      if details["recorded_dependency_resources"]
+        details["recorded_dependency_resources"].reject! { |key| key.match?(/\Acontent:\d+:#{content.id}\z/) }
+      end
 
       case change.action_type
       when "remove_folder"
@@ -60,7 +63,24 @@ module Contents
         details["placement_ids"] = reject_ids(details["placement_ids"], placement_ids)
       end
 
-      change.update_columns(details:) if details != change.details
+      updates = {}
+      updates[:details] = details if details != change.details
+      if change.replay_snapshot
+        snapshot = change.replay_snapshot.deep_dup
+        removed_ids = placement_ids.map(&:to_s)
+        snapshot.each_value do |state|
+          state["placements"].each do |id, row|
+            removed_ids << id if row && row["content_id"].to_i == content.id
+          end
+        end
+        snapshot.each_value do |state|
+          state["placements"].except!(*removed_ids)
+          state["placement_keys"].reject! { |key| key["content_id"].to_i == content.id }
+          state["contents"].transform_values! { |ids| reject_ids(ids, removed_ids) }
+        end
+        updates[:replay_snapshot] = snapshot
+      end
+      change.update_columns(updates) if updates.any?
     end
 
     def reject_ids(values, removed_ids)
@@ -75,6 +95,7 @@ module Contents
         .or(LibraryChangeDependency.where(prerequisite_change_id: change_ids))
       dependency_scope.delete_all
       LibraryChangeTarget.where(library_change_id: change_ids).delete_all
+      LibraryChange.where(redo_of_id: change_ids).where.not(id: change_ids).update_all(redo_of_id: nil)
       LibraryChange.where(id: change_ids).delete_all
     end
   end

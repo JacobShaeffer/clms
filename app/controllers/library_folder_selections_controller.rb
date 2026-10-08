@@ -1,4 +1,5 @@
 class LibraryFolderSelectionsController < ApplicationController
+  include LibraryEditReceipts
   before_action :authenticate_user!
   before_action :set_library
   before_action :authorize_management
@@ -14,13 +15,13 @@ class LibraryFolderSelectionsController < ApplicationController
   end
 
   def remove
-    LibraryFolderOperations::Remove.call(
+    result = LibraryFolderOperations::Remove.call(
       library: @library,
       user: current_user,
       **selection_attributes
     )
 
-    render_success("Selected items were removed.")
+    render_success("Selected items were removed.", result.recorded_changes)
   end
 
   def move
@@ -28,14 +29,14 @@ class LibraryFolderSelectionsController < ApplicationController
   end
 
   def apply_move
-    LibraryFolderOperations::Move.call(
+    result = LibraryFolderOperations::Move.call(
       library: @library,
       **selection_attributes,
       destination_folder_id: params[:destination_folder_id],
       user: current_user
     )
 
-    render_success("Selected items were moved.")
+    render_success("Selected items were moved.", result.recorded_changes)
   end
 
   def duplicate
@@ -43,14 +44,14 @@ class LibraryFolderSelectionsController < ApplicationController
   end
 
   def apply_duplicate
-    LibraryFolderOperations::Duplicate.call(
+    result = LibraryFolderOperations::Duplicate.call(
       library: @library,
       **selection_attributes,
       destination_folder_id: params[:destination_folder_id],
       user: current_user
     )
 
-    render_success("Selected items were duplicated.")
+    render_success("Selected items were duplicated.", result.recorded_changes)
   end
 
   private
@@ -98,9 +99,10 @@ class LibraryFolderSelectionsController < ApplicationController
     render partial: "library_folder_selections/destination_modal"
   end
 
-  def render_success(message)
+  def render_success(message, changes)
     respond_to do |format|
       format.turbo_stream do
+        expose_library_edit(changes)
         flash[:notice] = message
         render turbo_stream: turbo_stream.refresh(request_id: nil)
       end

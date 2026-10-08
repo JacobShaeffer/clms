@@ -1,4 +1,5 @@
 class LibrariesController < ApplicationController
+  include LibraryEditReceipts
   CONTENT_TABS = %w[all shelves library].freeze
   ADD_TO_ACTIVE_FOLDER_STATUS_ID = "library-add-to-active-folder-status"
 
@@ -104,6 +105,7 @@ class LibrariesController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream do
+        expose_library_edit(placement_result.recorded_changes)
         load_folder_browser
         load_content_panel
 

@@ -25,7 +25,8 @@ module LibraryChanges
       batch_key: SecureRandom.uuid,
       dependency_resource_keys: [],
       required_folder_ids: [],
-      dependency_change_ids: []
+      dependency_change_ids: [],
+      redo_of: nil
     )
       @library_version = library_version
       @user = user
@@ -36,6 +37,7 @@ module LibraryChanges
       @dependency_resource_keys = dependency_resource_keys
       @required_folder_ids = required_folder_ids
       @dependency_change_ids = dependency_change_ids
+      @redo_of = redo_of
     end
 
     def call
@@ -44,8 +46,12 @@ module LibraryChanges
         change = library_version.library_changes.create!(
           user:,
           action_type:,
-          details:,
-          batch_key:
+          details: details.deep_stringify_keys.merge(
+            "recorded_dependency_resources" => dependency_resource_keys,
+            "recorded_required_folders" => required_folder_ids
+          ),
+          batch_key:,
+          redo_of: @redo_of
         )
         targets.each do |attributes|
           change.library_change_targets.create!(target_attributes(attributes))
@@ -66,7 +72,7 @@ module LibraryChanges
     def resolved_prerequisite_ids
       ids = dependency_change_ids.map(&:to_i)
       ids.concat(latest_change_ids_for_resources(dependency_resource_keys))
-      ids.concat(folder_creations.pluck(:id))
+      ids.concat(required_folder_change_ids)
       ids.select(&:positive?).uniq
     end
 
@@ -82,19 +88,29 @@ module LibraryChanges
       end
     end
 
-    def folder_creations
-      return library_version.library_changes.none if required_folder_ids.blank?
+    def required_folder_change_ids
+      folder_ids = []
+      required_folder_ids.each do |id|
+        folder = folders_by_id[id.to_i]
+        visited = Set.new
+        while folder && visited.add?(folder.id)
+          folder_ids << folder.id
+          folder = folders_by_id[folder.parent_folder_id]
+        end
+      end
+      return [] if folder_ids.empty?
 
-      library_version.library_changes.not_undone
+      rows = library_version.library_changes.not_undone
         .joins(:library_change_targets)
         .where(
           library_change_targets: {
             target_kind: "folder",
-            target_id: required_folder_ids,
-            effect: "new"
+            target_id: folder_ids
           }
         )
-        .distinct
+        .where("library_change_targets.details ->> 'context' IS NULL")
+        .pluck("library_change_targets.target_id", "library_changes.id")
+      rows.group_by(&:first).values.map { |records| records.max_by(&:last).last }
     end
 
     def target_attributes(attributes)

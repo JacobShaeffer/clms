@@ -1,12 +1,13 @@
 module LibraryChanges
   class Undo
-    def self.call(change:, user:)
-      new(change:, user:).call
+    def self.call(change:, user:, undo_group_key: SecureRandom.uuid)
+      new(change:, user:, undo_group_key:).call
     end
 
-    def initialize(change:, user:)
+    def initialize(change:, user:, undo_group_key:)
       @change = change
       @user = user
+      @undo_group_key = undo_group_key
     end
 
     def call
@@ -20,8 +21,11 @@ module LibraryChanges
             "Undo #{blocker.display_label} before undoing this change."
         end
 
+        snapshot = ReplaySnapshot.new(change)
+        applied = snapshot.capture
         undo_change!
-        change.update!(undone_by: user, undone_at: Time.current)
+        change.update!(undone_by: user, undone_at: Time.current,
+          undo_group_key: @undo_group_key, replay_snapshot: { applied:, undone: snapshot.capture })
       end
       change
     end

@@ -1,0 +1,13 @@
+<div class="mb-3"
+  data-controller="library-undo"
+  data-library-undo-page-path-value="<%= library_path(@library) %>"
+  data-library-undo-version-value="<%= @library_version.id %>"
+  data-library-undo-status-url-value="<%= status_library_edit_controls_path(@library) %>"
+  data-library-undo-undo-url-value="<%= undo_library_edit_controls_path(@library) %>"
+  data-library-undo-redo-url-value="<%= redo_library_edit_controls_path(@library) %>">
+  <div class="d-flex gap-2" role="group" aria-label="Library edits">
+    <button type="button" class="btn btn-outline-secondary" disabled data-library-undo-target="undo" data-action="library-undo#undo" aria-describedby="library-undo-status">Undo</button>
+    <button type="button" class="btn btn-outline-secondary" disabled data-library-undo-target="redo" data-action="library-undo#redo" aria-describedby="library-undo-status">Redo</button>
+  </div>
+  <p id="library-undo-status" class="small text-body-secondary mt-2 mb-0" role="status" aria-live="polite" data-library-undo-target="status"></p>
+</div>

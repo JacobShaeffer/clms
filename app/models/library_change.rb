@@ -12,6 +12,8 @@ class LibraryChange < ApplicationRecord
   belongs_to :library_version
   belongs_to :user
   belongs_to :undone_by, class_name: "User", optional: true
+  belongs_to :redo_of, class_name: "LibraryChange", optional: true
+  has_one :redo_change, class_name: "LibraryChange", foreign_key: :redo_of_id
 
   has_many :library_change_targets, dependent: :restrict_with_error
   has_many :dependency_links,
@@ -29,6 +31,8 @@ class LibraryChange < ApplicationRecord
 
   validates :batch_key, presence: true
   validates :details, presence: true
+  validates :redo_of_id, uniqueness: true, allow_nil: true
+  validate :redo_origin_is_valid, on: :create
   validate :undo_state_is_complete
   validate :audit_record_changes_only_when_undone, on: :update
   validate :library_version_is_editable, on: %i[create update]
@@ -58,7 +62,22 @@ class LibraryChange < ApplicationRecord
     direct_target&.label || action_type.humanize
   end
 
+  def mark_redone!
+    @marking_redone = true
+    update!(undone_at: nil, undone_by: nil, replay_snapshot: nil, undo_group_key: nil,
+      replay_generation: replay_generation + 1)
+  ensure
+    @marking_redone = false
+  end
+
   private
+
+  def redo_origin_is_valid
+    return unless redo_of
+    unless redo_of.library_version_id == library_version_id && redo_of.undone? && redo_of.replay_snapshot.present?
+      errors.add(:redo_of, "must be an undone change with replay data in the same version")
+    end
+  end
 
   def undo_state_is_complete
     return if undone_at.present? == undone_by.present?
@@ -71,10 +90,19 @@ class LibraryChange < ApplicationRecord
     return if changed_attributes.empty?
 
     if undone_at_in_database.present?
+      if @marking_redone && replay_snapshot_in_database.present? &&
+          undone_at.nil? && undone_by_id.nil? && replay_snapshot.nil? && undo_group_key.nil? &&
+          replay_generation == replay_generation_in_database + 1 &&
+          (changed_attributes - %w[undone_at undone_by_id replay_snapshot undo_group_key replay_generation]).empty?
+        return
+      end
       errors.add(:base, "Undone library changes cannot be modified")
       return
     end
-    return if (changed_attributes - %w[undone_at undone_by_id]).empty?
+    if undone_at.present? && undone_by.present? &&
+        (changed_attributes - %w[undone_at undone_by_id replay_snapshot undo_group_key]).empty?
+      return
+    end
 
     errors.add(:base, "Library change audit records can only be marked undone")
   end

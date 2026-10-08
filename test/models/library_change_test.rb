@@ -46,6 +46,38 @@ class LibraryChangeTest < ActiveSupport::TestCase
     assert_includes duplicate.errors[:prerequisite_change_id], "has already been taken"
   end
 
+  test "replay data stays immutable until the validated redo transition" do
+    change = create_change!
+    assert_not change.update(replay_snapshot: { applied: {}, undone: {} }, undo_group_key: "group")
+    change.reload.update!(undone_by: @user, undone_at: Time.current,
+      replay_snapshot: { applied: {}, undone: {} }, undo_group_key: "group")
+    assert_not change.update(replay_snapshot: { changed: true })
+    assert_not change.reload.update(undo_group_key: "another-group")
+    assert_not change.reload.update(undone_by: nil, undone_at: nil)
+    assert_not change.reload.update(undone_by: nil, undone_at: nil, replay_snapshot: nil,
+      undo_group_key: nil, replay_generation: 1)
+    change.reload.mark_redone!
+    refute_predicate change, :undone?
+    assert_nil change.replay_snapshot
+    assert_nil change.undo_group_key
+    assert_nil change.undone_by_id
+    assert_equal 1, change.replay_generation
+    assert_not change.update(details: { changed: true })
+    assert_not change.reload.update(replay_generation: 2)
+  end
+
+  test "redo state cannot be cleared without saved data or in a locked version" do
+    change = create_change!
+    assert_raises(ActiveRecord::RecordInvalid) { change.mark_redone! }
+    change.reload.update!(undone_by: @user, undone_at: Time.current)
+    assert_raises(ActiveRecord::RecordInvalid) { change.mark_redone! }
+    change.reload.update_columns(replay_snapshot: { applied: {}, undone: {} }, undo_group_key: "group")
+    @version.update_column(:locked_at, Time.current)
+    assert_raises(ActiveRecord::RecordInvalid) { change.reload.mark_redone! }
+    assert_predicate change.reload, :undone?
+    assert_equal 0, change.replay_generation
+  end
+
   test "database rejects non-chronological dependency edges" do
     older = create_change!
     newer = create_change!

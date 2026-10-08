@@ -5,6 +5,7 @@ module LibraryFolderOperations
       :missing_content_ids,
       :existing_content_ids,
       :added_placements,
+      :recorded_changes,
       keyword_init: true
     ) do
       alias_method :added_content_ids, :missing_content_ids
@@ -31,7 +32,7 @@ module LibraryFolderOperations
         )
 
         result.added_placements.each do |placement|
-          LibraryChanges::Recorder.call(
+          result.recorded_changes << LibraryChanges::Recorder.call(
             library_version:,
             user:,
             action_type: :add_content,
@@ -89,7 +90,8 @@ module LibraryFolderOperations
         status: result_status(missing_content_ids:, existing_content_ids:),
         missing_content_ids:,
         existing_content_ids:,
-        added_placements:
+        added_placements:,
+        recorded_changes: []
       )
     end
 

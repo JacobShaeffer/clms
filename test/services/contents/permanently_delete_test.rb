@@ -105,6 +105,34 @@ class Contents::PermanentlyDeleteTest < ActiveSupport::TestCase
     assert Content.exists?(@content.id)
   end
 
+  test "scrubs replay snapshots after redo without resurrecting content" do
+    library = Library.create!(name: "Replay Purge", user: @user)
+    root = library.current_version.library_folders.create!(name: "Root", user: @user, logo: library_assets(:one))
+    child = library.current_version.library_folders.create!(name: "Child", parent_folder: root, user: @user)
+    addition = LibraryFolderOperations::PlaceContents.call(library:, folder_id: child.id,
+      content_ids: [ @content.id ], user: @user).recorded_changes.first
+    LibraryChanges::Undo.call(change: addition, user: @user)
+    redone_addition = LibraryChanges::Redo.call(change: addition, user: @user, confirmed_change_ids: [ addition.id ]).first
+    assert_equal addition.id, redone_addition.id
+    removal = LibraryFolderOperations::Remove.call(library:, source_folder_id: root.id,
+      folder_ids: [ child.id ], content_ids: [], user: @user).recorded_changes.first
+    LibraryChanges::Undo.call(change: removal, user: @user)
+    @content.trash!
+    Contents::PermanentlyDelete.call(content: @content)
+
+    refute LibraryChange.exists?(addition.id)
+    removal.reload.replay_snapshot.each_value do |state|
+      assert_empty state["placements"]
+      assert_empty state["placement_keys"]
+      assert state["contents"].values.all?(&:empty?)
+    end
+    redone = LibraryChanges::Redo.call(change: removal, user: @user, confirmed_change_ids: [ removal.id ]).first
+    refute LibraryFolder.exists?(child.id)
+    LibraryChanges::Undo.call(change: redone, user: @user)
+    assert LibraryFolder.exists?(child.id)
+    refute LibraryFolderContent.exists?(content_id: @content.id)
+  end
+
   private
 
   def build_content!

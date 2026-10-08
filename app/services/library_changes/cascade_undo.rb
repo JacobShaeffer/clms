@@ -18,7 +18,8 @@ module LibraryChanges
         end
         raise InvalidUndo, "This library change has already been undone." if change.undone?
 
-        changes.sort_by(&:id).reverse_each { |record| Undo.call(change: record, user:) }
+        undo_group_key = SecureRandom.uuid
+        changes.sort_by(&:id).reverse_each { |record| Undo.call(change: record, user:, undo_group_key:) }
       end
       change
     end

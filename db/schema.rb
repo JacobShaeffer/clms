@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_08_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_08_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -138,9 +138,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_120000) do
     t.index ["library_change_id"], name: "index_library_change_targets_on_library_change_id"
     t.index ["resource_key"], name: "index_library_change_targets_on_resource_key"
     t.index ["target_kind", "target_id"], name: "index_library_change_targets_on_kind_and_target"
-    t.check_constraint "effect::text = ANY (ARRAY['new'::character varying, 'moved'::character varying, 'removed'::character varying]::text[])", name: "library_change_targets_effect"
+    t.check_constraint "effect::text = ANY (ARRAY['new'::character varying::text, 'moved'::character varying::text, 'removed'::character varying::text])", name: "library_change_targets_effect"
     t.check_constraint "target_kind::text = 'folder'::text AND content_id IS NULL OR target_kind::text = 'content'::text AND content_id IS NOT NULL", name: "library_change_targets_identifier_shape"
-    t.check_constraint "target_kind::text = ANY (ARRAY['folder'::character varying, 'content'::character varying]::text[])", name: "library_change_targets_kind"
+    t.check_constraint "target_kind::text = ANY (ARRAY['folder'::character varying::text, 'content'::character varying::text])", name: "library_change_targets_kind"
   end
 
   create_table "library_changes", force: :cascade do |t|
@@ -149,16 +149,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_120000) do
     t.datetime "created_at", null: false
     t.jsonb "details", default: {}, null: false
     t.bigint "library_version_id", null: false
+    t.bigint "redo_of_id"
+    t.integer "replay_generation", default: 0, null: false
+    t.jsonb "replay_snapshot"
+    t.string "undo_group_key"
     t.datetime "undone_at"
     t.bigint "undone_by_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["batch_key"], name: "index_library_changes_on_batch_key"
+    t.index ["library_version_id", "undo_group_key"], name: "index_library_changes_on_library_version_id_and_undo_group_key"
     t.index ["library_version_id", "undone_at", "id"], name: "index_library_changes_on_version_undone_at_id"
     t.index ["library_version_id"], name: "index_library_changes_on_library_version_id"
+    t.index ["redo_of_id"], name: "index_library_changes_on_redo_of_id", unique: true
     t.index ["undone_by_id"], name: "index_library_changes_on_undone_by_id"
     t.index ["user_id"], name: "index_library_changes_on_user_id"
-    t.check_constraint "action_type::text = ANY (ARRAY['add_folder'::character varying, 'add_content'::character varying, 'move_folder'::character varying, 'move_content'::character varying, 'remove_folder'::character varying, 'remove_content'::character varying, 'duplicate_folder'::character varying, 'duplicate_content'::character varying]::text[])", name: "library_changes_action_type"
+    t.check_constraint "action_type::text = ANY (ARRAY['add_folder'::character varying::text, 'add_content'::character varying::text, 'move_folder'::character varying::text, 'move_content'::character varying::text, 'remove_folder'::character varying::text, 'remove_content'::character varying::text, 'duplicate_folder'::character varying::text, 'duplicate_content'::character varying::text])", name: "library_changes_action_type"
     t.check_constraint "undone_at IS NULL AND undone_by_id IS NULL OR undone_at IS NOT NULL AND undone_by_id IS NOT NULL", name: "library_changes_undo_state"
   end
 
@@ -292,6 +298,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_120000) do
   add_foreign_key "library_change_dependencies", "library_changes"
   add_foreign_key "library_change_dependencies", "library_changes", column: "prerequisite_change_id"
   add_foreign_key "library_change_targets", "library_changes"
+  add_foreign_key "library_changes", "library_changes", column: "redo_of_id"
   add_foreign_key "library_changes", "library_versions"
   add_foreign_key "library_changes", "users"
   add_foreign_key "library_changes", "users", column: "undone_by_id"

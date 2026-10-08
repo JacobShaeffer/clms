@@ -52,7 +52,33 @@
       <%= submit_tag "Undo", class: "btn btn-danger" %>
     <% end %>
   <% elsif @change.undone? %>
-    <p class="text-body-secondary mb-0">This change has already been undone.</p>
+    <% if @redo_changes.any? && @change.redo_change.nil? %>
+      <% if @redo_changes.length > 1 %>
+        <div class="alert alert-warning" role="alert">Redo will restore all <%= @redo_changes.length %> edits undone together.</div>
+      <% end %>
+      <ul aria-label="Edits to redo">
+        <% @visible_redo_changes.each do |record| %>
+          <li><%= record.display_label %> · <%= record.action_type.humanize %> · <%= record.user.name %></li>
+        <% end %>
+      </ul>
+      <% hidden_count = @redo_changes.length - @visible_redo_changes.length %>
+      <% if hidden_count.positive? %>
+        <p><%= pluralize(hidden_count, "additional edit") %> involving content in Trash will also be redone.</p>
+      <% end %>
+      <% if @redo_error.nil? %>
+        <%= form_with url: redo_library_change_path(@library, @change), method: :patch, data: { turbo_frame: "_top" } do %>
+          <%= hidden_field_tag :undo_group_key, @change.undo_group_key %>
+          <% @redo_changes.each do |record| %>
+            <%= hidden_field_tag "change_ids[]", record.id, id: nil %>
+          <% end %>
+          <%= submit_tag "Redo", class: "btn btn-primary" %>
+        <% end %>
+      <% else %>
+        <p class="text-body-secondary mb-0"><%= @redo_error %></p>
+      <% end %>
+    <% else %>
+      <p class="text-body-secondary mb-0">This change has already been undone.<%= " No saved redo data is available." if @change.replay_snapshot.nil? %></p>
+    <% end %>
   <% elsif @change.library_version.locked? %>
     <p class="text-body-secondary mb-0">Changes in previous versions are read only.</p>
   <% else %>

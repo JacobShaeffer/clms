@@ -14,10 +14,10 @@ module LibraryFolderOperations
         batch_key = SecureRandom.uuid
 
         selection.direct_content_placements.each do |placement|
-          move_content!(placement:, destination:, library_version:, user:, batch_key:)
+          selection.recorded_changes << move_content!(placement:, destination:, library_version:, user:, batch_key:)
         end
         selection.selected_folders.each do |folder|
-          move_folder!(folder:, destination:, library_version:, user:, batch_key:)
+          selection.recorded_changes << move_folder!(folder:, destination:, library_version:, user:, batch_key:)
         end
 
         selection
@@ -75,7 +75,7 @@ module LibraryFolderOperations
             )
           ],
           dependency_resource_keys: [ source_key, destination_key ],
-          required_folder_ids: [ destination.id ]
+          required_folder_ids: [ source_folder_id, destination.id ]
         )
       end
 
@@ -113,7 +113,7 @@ module LibraryFolderOperations
           },
           targets:,
           dependency_resource_keys: [ resource_key ],
-          required_folder_ids: [ destination.id ]
+          required_folder_ids: [ previous_parent_folder_id, destination.id ].compact
         )
       end
 

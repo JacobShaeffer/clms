@@ -51,6 +51,9 @@
 
   <div class="row g-4">
     <div class="col-12 <%= "col-lg-4" if @viewing_current_version %>">
+      <% if @viewing_current_version && @library_version.editable? && policy(LibraryFolder).manage? %>
+        <%= render "libraries/undo_controls" %>
+      <% end %>
       <%= render "libraries/folder_browser" %>
     </div>
 
