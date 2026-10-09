@@ -46,21 +46,16 @@ module LibraryChanges
       end
       current = ReplaySnapshot.world(version)
       changes.each do |record|
-        unless record.undone? && record.replay_snapshot.present? && record.redo_change.nil?
+        unless record.undone? && record.replay_snapshot.present?
           raise InvalidUndo, "This change has no available redo or has already been redone."
         end
         record.prerequisites.each do |prerequisite|
-          next if ids.include?(prerequisite.id) || active_replacement(prerequisite)
+          next if ids.include?(prerequisite.id) || !prerequisite.undone?
 
           raise InvalidUndo, "Redo the required earlier edits first."
         end
         ReplaySnapshot.simulate!(record.replay_snapshot, current)
       end
-    end
-
-    def self.active_replacement(change)
-      change = change.redo_change while change&.undone? && change.redo_change
-      change unless change&.undone?
     end
   end
 end

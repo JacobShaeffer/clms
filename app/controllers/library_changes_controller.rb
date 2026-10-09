@@ -80,7 +80,7 @@ class LibraryChangesController < ApplicationController
   def load_history
     changes = LibraryChange
       .joins(:library_version).where(library_versions: { library_id: @library.id })
-      .includes(:user, :undone_by, :library_version, :library_change_targets, :dependency_links, :redo_change, :redo_of)
+      .includes(:user, :undone_by, :library_version, :library_change_targets, :dependency_links)
       .ordered.to_a
     content_ids = changes.flat_map(&:library_change_targets).filter_map(&:content_id).uniq
     hidden_content_ids = Content.trashed.where(id: content_ids).pluck(:id)

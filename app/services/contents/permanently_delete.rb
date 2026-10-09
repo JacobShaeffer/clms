@@ -29,16 +29,22 @@ module Contents
 
     def scrub_library_history!
       targets = LibraryChangeTarget.where(content_id: content.id).to_a
-      return if targets.empty?
-
-      changes_by_id = LibraryChange.where(id: targets.map(&:library_change_id).uniq).index_by(&:id)
+      snapshot_changes = LibraryChange.where(
+        "jsonb_path_exists(replay_snapshot, '$.*.placements.* ? (@.content_id == $content_id)', :variables::jsonb)",
+        variables: { content_id: content.id }.to_json
+      )
+      changes_by_id = LibraryChange.where(id: targets.map(&:library_change_id))
+        .or(snapshot_changes).index_by(&:id)
       content_change_ids = changes_by_id.values
         .select { |change| CONTENT_ONLY_ACTIONS.include?(change.action_type) }
         .map(&:id)
       mixed_targets = targets.reject { |target| content_change_ids.include?(target.library_change_id) }
 
-      mixed_targets.group_by(&:library_change_id).each do |change_id, change_targets|
-        scrub_mixed_change!(changes_by_id.fetch(change_id), change_targets)
+      targets_by_change = mixed_targets.group_by(&:library_change_id)
+      changes_by_id.each_value do |change|
+        next if content_change_ids.include?(change.id)
+
+        scrub_mixed_change!(change, targets_by_change.fetch(change.id, []))
       end
       LibraryChangeTarget.where(id: mixed_targets.map(&:id)).delete_all if mixed_targets.any?
 
@@ -78,7 +84,7 @@ module Contents
           state["placement_keys"].reject! { |key| key["content_id"].to_i == content.id }
           state["contents"].transform_values! { |ids| reject_ids(ids, removed_ids) }
         end
-        updates[:replay_snapshot] = snapshot
+        updates[:replay_snapshot] = snapshot if snapshot != change.replay_snapshot
       end
       change.update_columns(updates) if updates.any?
     end
@@ -95,7 +101,6 @@ module Contents
         .or(LibraryChangeDependency.where(prerequisite_change_id: change_ids))
       dependency_scope.delete_all
       LibraryChangeTarget.where(library_change_id: change_ids).delete_all
-      LibraryChange.where(redo_of_id: change_ids).where.not(id: change_ids).update_all(redo_of_id: nil)
       LibraryChange.where(id: change_ids).delete_all
     end
   end

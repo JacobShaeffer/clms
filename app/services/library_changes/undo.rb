@@ -4,6 +4,13 @@ module LibraryChanges
       new(change:, user:, undo_group_key:).call
     end
 
+    def self.with_transaction(library:, &block)
+      library.with_lock(&block)
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordNotFound,
+        ActiveRecord::InvalidForeignKey, ActiveRecord::RecordNotUnique
+      raise InvalidUndo, "This edit is blocked because required library data has changed."
+    end
+
     def initialize(change:, user:, undo_group_key:)
       @change = change
       @user = user
@@ -12,7 +19,7 @@ module LibraryChanges
 
     def call
       library = change.library_version.library
-      library.with_lock do
+      self.class.with_transaction(library:) do
         change.lock!
         ensure_resolvable!(library)
         blocker = change.undo_blocker
@@ -35,10 +42,7 @@ module LibraryChanges
     attr_reader :change, :user
 
     def ensure_resolvable!(library)
-      author_can_manage = change.user_id == user&.id &&
-        LibraryFolderPolicy.new(user, LibraryFolder).manage?
-      allowed = user&.admin? || author_can_manage
-      raise InvalidUndo, "You cannot undo this library change." unless allowed
+      raise InvalidUndo, "You cannot undo this library change." unless LibraryChangePolicy.new(user, change).undo?
       raise InvalidUndo, "This library change has already been undone." if change.undone?
       unless library.current_version_id == change.library_version_id && change.library_version.editable?
         raise InvalidUndo, "Only changes in the editable current version can be undone."

@@ -36,6 +36,9 @@ export default class extends Controller {
 
   connect() {
     this.connectSession()
+    document.addEventListener("submit", this.beforeSubmit, true)
+    document.addEventListener("turbo:submit-start", this.editStarted)
+    document.addEventListener("turbo:submit-end", this.editFinished)
     document.addEventListener("turbo:before-fetch-request", this.beforeRequest)
     document.addEventListener("turbo:before-fetch-response", this.editResponse)
     document.addEventListener("turbo:frame-load", this.refresh)
@@ -52,7 +55,7 @@ export default class extends Controller {
     if (!pageSession || pageSession.path !== this.pagePathValue || pageSession.version !== this.versionValue) {
       pageSession = {
         path: this.pagePathValue, version: this.versionValue, id: sessionId(),
-        undo: [], redo: [], availability: new Map(), blocked: new Map(), busy: false, message: ""
+        undo: [], redo: [], availability: new Map(), busy: false, message: ""
       }
     }
     this.session = pageSession
@@ -60,6 +63,9 @@ export default class extends Controller {
 
   disconnect() {
     clearTimeout(this.refreshTimer)
+    document.removeEventListener("submit", this.beforeSubmit, true)
+    document.removeEventListener("turbo:submit-start", this.editStarted)
+    document.removeEventListener("turbo:submit-end", this.editFinished)
     document.removeEventListener("turbo:before-fetch-request", this.beforeRequest)
     document.removeEventListener("turbo:before-fetch-response", this.editResponse)
     document.removeEventListener("turbo:frame-load", this.refresh)
@@ -79,10 +85,39 @@ export default class extends Controller {
 
   beforeRequest = (event) => {
     if (pageSession !== this.session) return
-    const url = new URL(event.detail.url, window.location.href)
-    if (url.origin === window.location.origin && url.pathname.startsWith(`${this.session.path}/`)) {
+    if (this.libraryRequest(event.detail.url)) {
       event.detail.fetchOptions.headers["X-Library-Page-Session"] = this.session.id
     }
+  }
+
+  libraryRequest(url) {
+    const destination = new URL(url, window.location.href)
+    return destination.origin === window.location.origin && destination.pathname.startsWith(`${this.session.path}/`)
+  }
+
+  libraryEdit(form) {
+    return form instanceof HTMLFormElement && form.method.toLowerCase() !== "get" && this.libraryRequest(form.action)
+  }
+
+  beforeSubmit = (event) => {
+    if (pageSession !== this.session || !this.session.busy || !this.libraryEdit(event.target)) return
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    this.session.message = "Wait for the current library edit to finish."
+    this.draw()
+  }
+
+  editStarted = (event) => {
+    if (pageSession !== this.session || !this.libraryEdit(event.target)) return
+    this.session.busy = true
+    this.draw()
+  }
+
+  editFinished = (event) => {
+    if (pageSession !== this.session || !this.libraryEdit(event.detail.formSubmission.formElement)) return
+    this.session.busy = false
+    this.draw()
+    this.refresh()
   }
 
   editResponse = (event) => {
@@ -94,10 +129,6 @@ export default class extends Controller {
     this.session.undo = this.session.undo.slice(-3)
     this.session.redo = []
     this.session.availability.clear()
-    const retained = new Set(this.session.undo)
-    for (const key of this.session.blocked.keys()) {
-      if (!retained.has(key)) this.session.blocked.delete(key)
-    }
     this.session.message = ""
     this.draw()
     this.refresh()
@@ -125,24 +156,17 @@ export default class extends Controller {
     await Promise.all(["undo", "redo"].map(async (direction) => {
       const receipt = this.session[direction].at(-1)
       if (!receipt) return
-      if (this.session.blocked.has(receipt)) {
-        this.session.availability.set(receipt, { available: false, reason: this.session.blocked.get(receipt) })
-        return
-      }
       const url = new URL(this.statusUrlValue, window.location.href)
       url.searchParams.set("receipt", receipt)
       url.searchParams.set("direction", direction)
       let result
-      let conflict = false
       try {
         const response = await fetch(url, { headers: this.headers(), cache: "no-store" })
         result = await response.json()
-        conflict = response.status === 409
       } catch {
         result = { available: false, reason: "Unable to check this edit. Try again when the connection is restored." }
       }
       if (pageSession === this.session && !this.session.busy && this.session[direction].at(-1) === receipt) {
-        if (conflict && result.reason) this.session.blocked.set(receipt, result.reason)
         this.session.availability.set(receipt, result)
       }
     }))
@@ -174,7 +198,6 @@ export default class extends Controller {
       if (!response.ok) {
         const reason = result.reason || "This edit is no longer available."
         this.session.availability.set(receipt, { available: false, reason })
-        if (response.status === 409) this.session.blocked.set(receipt, reason)
       } else {
         this.session[direction].pop()
         this.session[direction === "undo" ? "redo" : "undo"].push(result.receipt)

@@ -105,6 +105,54 @@ class Contents::PermanentlyDeleteTest < ActiveSupport::TestCase
     assert Content.exists?(@content.id)
   end
 
+  test "scrubs folder move snapshots without content targets and keeps unrelated placements" do
+    library = Library.create!(name: "Move Purge", user: @user)
+    root = library.current_version.library_folders.create!(name: "Root", user: @user, logo: library_assets(:one))
+    destination = library.current_version.library_folders.create!(name: "Destination", user: @user, logo: library_assets(:one))
+    child = library.current_version.library_folders.create!(name: "Child", parent_folder: root, user: @user)
+    placements = LibraryFolderOperations::PlaceContents.call(library:, folder_id: child.id,
+      content_ids: [ @content.id, contents(:one).id ], user: @user).added_placements
+    retained = placements.find { |placement| placement.content_id == contents(:one).id }
+    move = LibraryFolderOperations::Move.call(library:, source_folder_id: root.id,
+      folder_ids: [ child.id ], content_ids: [], destination_folder_id: destination.id, user: @user).recorded_changes.first
+    LibraryChanges::Undo.call(change: move, user: @user)
+    assert_empty move.library_change_targets.where(content_id: @content.id)
+
+    @content.trash!
+    Contents::PermanentlyDelete.call(content: @content)
+
+    move.reload.replay_snapshot.each_value do |state|
+      assert_equal [ retained.id.to_s ], state["placements"].keys
+      assert_equal [ retained.id ], state["contents"][child.id.to_s]
+      assert_equal [ contents(:one).id ], state["placement_keys"].map { |key| key["content_id"] }
+    end
+    LibraryChanges::Redo.call(change: move, user: @user, confirmed_change_ids: [ move.id ])
+    assert_equal destination.id, child.reload.parent_folder_id
+    assert LibraryFolderContent.exists?(retained.id)
+    LibraryChanges::Undo.call(change: move, user: @user)
+    assert_equal root.id, child.reload.parent_folder_id
+    refute LibraryFolderContent.exists?(content_id: @content.id)
+  end
+
+  test "scrubs snapshots when the deleted content has no history targets" do
+    library = Library.create!(name: "Untracked Content Purge", user: @user)
+    root = library.current_version.library_folders.create!(name: "Root", user: @user, logo: library_assets(:one))
+    destination = library.current_version.library_folders.create!(name: "Destination", user: @user, logo: library_assets(:one))
+    child = library.current_version.library_folders.create!(name: "Child", parent_folder: root, user: @user)
+    LibraryFolderContent.create!(library_folder: child, content: @content)
+    move = LibraryFolderOperations::Move.call(library:, source_folder_id: root.id,
+      folder_ids: [ child.id ], content_ids: [], destination_folder_id: destination.id, user: @user).recorded_changes.first
+    LibraryChanges::Undo.call(change: move, user: @user)
+    refute LibraryChangeTarget.exists?(content_id: @content.id)
+
+    @content.trash!
+    Contents::PermanentlyDelete.call(content: @content)
+
+    LibraryChanges::Redo.call(change: move.reload, user: @user, confirmed_change_ids: [ move.id ])
+    assert_equal destination.id, child.reload.parent_folder_id
+    assert_empty child.library_folder_contents
+  end
+
   test "scrubs replay snapshots after redo without resurrecting content" do
     library = Library.create!(name: "Replay Purge", user: @user)
     root = library.current_version.library_folders.create!(name: "Root", user: @user, logo: library_assets(:one))

@@ -38,6 +38,33 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "a deleted source logo reports a conflict instead of failing admin undo" do
+    move, destination = move_folder_and_delete_logo
+    sign_in @admin
+
+    patch undo_library_change_url(@library, move)
+
+    assert_redirected_to library_changes_url(@library)
+    assert_match(/blocked because required library data has changed/, flash[:alert])
+    assert_equal destination.id, @folder.reload.parent_folder_id
+    refute_predicate move.reload, :undone?
+    assert_nil move.replay_snapshot
+  end
+
+  test "a deleted source logo rolls back every edit in admin cascade undo" do
+    move, destination = move_folder_and_delete_logo
+    addition = add_content_change
+    sign_in @admin
+
+    patch undo_library_change_url(@library, move), params: { cascade: "1", dependent_change_ids: [ addition.id ] }
+
+    assert_redirected_to library_changes_url(@library)
+    assert_match(/blocked because required library data has changed/, flash[:alert])
+    assert_equal destination.id, @folder.reload.parent_folder_id
+    assert @folder.library_folder_contents.exists?(content: contents(:one))
+    assert [ move, addition ].all? { |change| !change.reload.undone? && change.replay_snapshot.nil? }
+  end
+
   test "history includes applied undone and locked-version changes" do
     change = add_content_change
     LibraryChanges::Undo.call(change:, user: @author)
@@ -370,7 +397,7 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
       patch redo_library_change_url(@library, first), params: { change_ids: [ first.id, second.id ], undo_group_key: }
     end
     assert_redirected_to root_url
-    assert_empty @library.current_version.library_changes.where.not(redo_of_id: nil)
+    assert [ first, second ].all? { |record| record.reload.undone? }
   end
 
   test "history rejects a redo form from an earlier undo cycle" do
@@ -402,6 +429,16 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def move_folder_and_delete_logo
+    logo = library_assets(:two)
+    @folder.update!(logo:)
+    destination = @library.current_version.library_folders.create!(name: "Destination", user: @author, logo: library_assets(:one))
+    move = LibraryFolderOperations::Move.call(library: @library, source_folder_id: nil,
+      folder_ids: [ @folder.id ], content_ids: [], destination_folder_id: destination.id, user: @author).recorded_changes.first
+    logo.destroy!
+    [ move, destination ]
+  end
 
   def remove_content_change(user: @author)
     LibraryFolderOperations::Remove.call(

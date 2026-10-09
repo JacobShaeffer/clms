@@ -1,16 +1,13 @@
 module LibraryChanges
   class UndoBatch
     def self.call(changes:, user:, library:)
-      library.with_lock do
+      Undo.with_transaction(library:) do
         changes.each(&:reload)
         validate!(changes:, user:, library:)
         undo_group_key = SecureRandom.uuid
         changes.sort_by(&:id).reverse_each { |change| Undo.call(change:, user:, undo_group_key:) }
       end
       changes
-    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordNotFound,
-        ActiveRecord::InvalidForeignKey, ActiveRecord::RecordNotUnique
-      raise InvalidUndo, "This edit is blocked because required library data has changed."
     end
 
     def self.validate!(changes:, user:, library:)

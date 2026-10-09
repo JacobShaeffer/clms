@@ -130,6 +130,90 @@ class LibraryUndoTest < ApplicationSystemTestCase
     assert_button "Redo", disabled: true
   end
 
+  test "undo becomes available again after another user's dependency is undone" do
+    visit library_path(@library, folder_id: @root.id)
+    create_child("Blocked")
+    folder = @library.current_version.library_folders.find_by!(name: "Blocked")
+    other = users(:two)
+    other.update!(role: :admin)
+    dependency = LibraryFolderOperations::PlaceContents.call(library: @library, folder_id: folder.id,
+      content_ids: [ contents(:one).id ], user: other).recorded_changes.first
+    page.execute_script("window.dispatchEvent(new Event('focus'))")
+    assert_text "blocked by later dependent edits"
+    assert_button "Undo", disabled: true
+
+    LibraryChanges::Undo.call(change: dependency, user: other)
+    page.execute_script("window.dispatchEvent(new Event('focus'))")
+
+    click_control("Undo")
+    assert_no_link "Blocked"
+    click_control("Redo")
+    assert_link "Blocked"
+  end
+
+  test "a pending library edit disables undo and keeps both history entries" do
+    visit library_path(@library, folder_id: @root.id)
+    create_child("Earlier")
+    click_link "New Folder"
+    within "#modal" do
+      fill_in "Name", with: "Pending"
+    end
+    hold_response(library_library_folders_path(@library))
+    within "#modal" do
+      click_button "New Folder"
+    end
+    assert_selector "body[data-library-response-held]"
+    assert_button "Undo", disabled: true
+    assert_button "Redo", disabled: true
+
+    release_response
+
+    assert_no_selector "#modal .modal"
+    assert_link "Pending"
+    click_control("Undo")
+    assert_no_link "Pending"
+    assert_link "Earlier"
+    click_control("Undo")
+    assert_no_link "Earlier"
+    click_control("Redo")
+    assert_link "Earlier"
+    click_control("Redo")
+    assert_link "Pending"
+  end
+
+  test "a pending undo prevents new edits and releases them when it finishes" do
+    visit library_path(@library, folder_id: @root.id)
+    create_child("Earlier")
+    hold_response(undo_library_edit_controls_path(@library))
+    click_control("Undo")
+    assert_selector "body[data-library-response-held]"
+    panel = "turbo-frame##{ActionView::RecordIdentifier.dom_id(@library, :content_panel)}"
+    within panel do
+      find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
+      click_on "Add to Active Folder"
+    end
+    assert_text "Wait for the current library edit to finish."
+    refute @root.library_folder_contents.exists?(content: contents(:one))
+
+    release_response
+
+    assert_no_link "Earlier"
+    click_control("Redo")
+    assert_link "Earlier"
+    within panel do
+      find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
+      click_on "Add to Active Folder"
+    end
+    within browser do
+      assert_text contents(:one).title
+    end
+    click_control("Undo")
+    within browser do
+      assert_no_text contents(:one).title
+    end
+    assert_link "Earlier"
+  end
+
   test "browser tabs have separate histories and switching versions clears them" do
     @user.update!(role: :admin)
     previous = @library.current_version
@@ -238,6 +322,29 @@ class LibraryUndoTest < ApplicationSystemTestCase
   end
 
   private
+
+  def hold_response(path)
+    page.execute_script(<<~JS, path)
+      const path = arguments[0]
+      const originalFetch = window.fetch
+      window.fetch = (url, options) => {
+        const response = originalFetch(url, options)
+        if (new URL(url, window.location.href).pathname !== path || options?.method?.toLowerCase() === "get") return response
+        window.fetch = originalFetch
+        return response.then((result) => new Promise((resolve) => {
+          document.body.dataset.libraryResponseHeld = "true"
+          window.releaseLibraryResponse = () => {
+            delete document.body.dataset.libraryResponseHeld
+            resolve(result)
+          }
+        }))
+      }
+    JS
+  end
+
+  def release_response
+    page.execute_script("window.releaseLibraryResponse()")
+  end
 
   def browser
     "turbo-frame##{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}"

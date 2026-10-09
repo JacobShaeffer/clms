@@ -52,7 +52,7 @@
       <%= submit_tag "Undo", class: "btn btn-danger" %>
     <% end %>
   <% elsif @change.undone? %>
-    <% if @redo_changes.any? && @change.redo_change.nil? %>
+    <% if @redo_changes.any? %>
       <% if @redo_changes.length > 1 %>
         <div class="alert alert-warning" role="alert">Redo will restore all <%= @redo_changes.length %> edits undone together.</div>
       <% end %>

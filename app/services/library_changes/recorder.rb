@@ -25,8 +25,7 @@ module LibraryChanges
       batch_key: SecureRandom.uuid,
       dependency_resource_keys: [],
       required_folder_ids: [],
-      dependency_change_ids: [],
-      redo_of: nil
+      dependency_change_ids: []
     )
       @library_version = library_version
       @user = user
@@ -37,7 +36,6 @@ module LibraryChanges
       @dependency_resource_keys = dependency_resource_keys
       @required_folder_ids = required_folder_ids
       @dependency_change_ids = dependency_change_ids
-      @redo_of = redo_of
     end
 
     def call
@@ -50,8 +48,7 @@ module LibraryChanges
             "recorded_dependency_resources" => dependency_resource_keys,
             "recorded_required_folders" => required_folder_ids
           ),
-          batch_key:,
-          redo_of: @redo_of
+          batch_key:
         )
         targets.each do |attributes|
           change.library_change_targets.create!(target_attributes(attributes))

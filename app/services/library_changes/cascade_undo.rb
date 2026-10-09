@@ -2,7 +2,7 @@ module LibraryChanges
   class CascadeUndo
     def self.call(change:, user:, confirmed_dependent_ids:)
       library = change.library_version.library
-      library.with_lock do
+      Undo.with_transaction(library:) do
         change.reload
         history = History.new(changes: change.library_version.library_changes
           .includes(:dependency_links).ordered)

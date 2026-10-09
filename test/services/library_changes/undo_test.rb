@@ -421,7 +421,7 @@ class LibraryChanges::UndoTest < ActiveSupport::TestCase
     dependent = @version.library_changes.last
     create_folder!("Unrecorded child", parent_folder: folder)
 
-    assert_raises(ActiveRecord::RecordNotDestroyed) do
+    assert_raises(LibraryChanges::InvalidUndo) do
       LibraryChanges::CascadeUndo.call(change: root_change, user: @editor, confirmed_dependent_ids: [ dependent.id ])
     end
     refute_predicate dependent.reload, :undone?

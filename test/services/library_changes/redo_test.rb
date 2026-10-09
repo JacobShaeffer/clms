@@ -249,7 +249,6 @@ class LibraryChanges::RedoTest < ActiveSupport::TestCase
       assert_raises(LibraryChanges::InvalidUndo) { replay(creation) }
     end
     refute LibraryFolder.exists?(parent.id)
-    assert_empty @version.library_changes.where.not(redo_of_id: nil)
     assert [ creation, *dependents ].all? { |record| record.reload.undone? && record.replay_generation.zero? && record.replay_snapshot.present? }
   end
 
