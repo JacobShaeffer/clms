@@ -1,7 +1,6 @@
 class ContentsController < ApplicationController
   MAX_METADATA_SEARCH_RESULTS = 100
-  ADD_TO_SHELVES_FORM_ID = "contents-add-to-shelves-form"
-  ADD_TO_SHELVES_STATUS_ID = "contents-add-to-shelves-status"
+  include ContentsShelfSelection
 
   before_action :authenticate_user!
   before_action :set_content, only: %i[show edit update trash_confirmation trash]
@@ -11,7 +10,7 @@ class ContentsController < ApplicationController
   def index
     authorize Content
     load_active_shelves
-    load_contents_table
+    load_contents_index_table
   end
 
   def trash_index
@@ -23,7 +22,7 @@ class ContentsController < ApplicationController
 
   def table
     authorize Content
-    load_contents_table
+    load_contents_index_table
 
     render partial: "content_tables/table_frame", locals: table_locals
   end
@@ -44,10 +43,22 @@ class ContentsController < ApplicationController
 
     content_ids = selected_ids(:content_ids)
     shelf_ids = selected_ids(:shelf_ids)
-    return render_add_to_shelves_error("Select at least one content item and one shelf.") if content_ids.empty? || shelf_ids.empty?
+    if content_ids.empty? && shelf_ids.any?
+      return render_add_to_shelves_error("Select at least one content item.")
+    end
 
     permitted_content_ids = policy_scope(Content).where(id: content_ids).pluck(:id)
     return render_add_to_shelves_error("One or more selected content items is unavailable.") unless permitted_content_ids.sort == content_ids.sort
+
+    if shelf_ids.empty?
+      shelf = current_user.shelves.build
+      authorize shelf, :new?
+      return render turbo_stream: turbo_stream.replace(
+        "modal",
+        partial: "shelves/modal_form",
+        locals: { shelf:, return_to_contents: true, content_ids: }
+      )
+    end
 
     message = current_user.with_lock do
       active_shelf_ids = current_user.active_shelves.where(shelf_id: shelf_ids).pluck(:shelf_id)
@@ -286,36 +297,9 @@ class ContentsController < ApplicationController
 
   private
 
-  def load_contents_table
-    metadata_types = policy_scope(MetadataType).order(:order, :name)
-    source = policy_scope(Content).includes(:user, metadata: :metadata_type)
-    @table_definition = ContentTables::ContentsDefinition.new(
-      source:,
-      metadata_types:,
-      update_path: table_contents_path,
-      reset_path: reset_table_contents_path,
-      selection_form_id: ADD_TO_SHELVES_FORM_ID
-    )
-    session.delete("contents_index_state")
-    table = ContentTables::Coordinator.call(
-      user: current_user,
-      definition: @table_definition,
-      params:,
-      paginator: method(:paginate_contents)
-    )
-    @table_state = table.state
-    @pagy = table.pagy
-    @contents = table.records
-    @navigation_token = table.navigation_token
-  end
-
   def load_metadata_types
     @metadata_types = policy_scope(MetadataType)
       .order(:order, :name)
-  end
-
-  def load_active_shelves
-    @active_shelves = current_user.active_shelves.includes(:shelf).ordered.map(&:shelf)
   end
 
   def set_content
@@ -443,29 +427,6 @@ class ContentsController < ApplicationController
       partial: "contents/add_to_shelves_status",
       locals: { message:, type: }
     ), status:
-  end
-
-  def render_add_to_shelves_success(message)
-    load_active_shelves
-    load_contents_table
-
-    render turbo_stream: [
-      turbo_stream.replace(
-        @table_definition.frame_id,
-        partial: "content_tables/table_frame",
-        locals: table_locals
-      ),
-      turbo_stream.replace(
-        ADD_TO_SHELVES_FORM_ID,
-        partial: "contents/add_to_shelves_form",
-        locals: { definition: @table_definition, active_shelves: @active_shelves }
-      ),
-      turbo_stream.update(
-        ADD_TO_SHELVES_STATUS_ID,
-        partial: "contents/add_to_shelves_status",
-        locals: { message:, type: :success }
-      )
-    ]
   end
 
   def add_to_shelves_message(content_ids:, shelf_ids:)

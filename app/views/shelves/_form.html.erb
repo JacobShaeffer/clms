@@ -1,5 +1,12 @@
+<% return_to_contents = local_assigns.fetch(:return_to_contents, false) %>
 <%= form_with(model: shelf, data: { turbo_frame: "modal" }) do |form| %>
   <%= hidden_field_tag :selected_shelf_id, @selected_shelf&.id if @selected_shelf %>
+  <% if return_to_contents %>
+    <%= hidden_field_tag :return_to_contents, "1" %>
+    <% local_assigns.fetch(:content_ids, []).each do |content_id| %>
+      <%= hidden_field_tag "content_ids[]", content_id, id: nil %>
+    <% end %>
+  <% end %>
 
   <% if shelf.errors.any? %>
     <div class="alert alert-danger">

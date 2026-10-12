@@ -13,6 +13,31 @@ class ContentsTest < ApplicationSystemTestCase
     sign_in @user
   end
 
+  test "opens shelves and creates a shelf by typing into the focused name field" do
+    visit contents_path
+    click_button "Shelves"
+    within ".shelf-selection-menu" do
+      click_link "Open shelves"
+    end
+
+    assert_current_path shelves_path
+    find("a[aria-label='Create shelf']").click
+
+    within "turbo-frame#modal" do
+      assert_selector ".modal-title", text: "New Shelf"
+      Selenium::WebDriver::Wait.new(timeout: Capybara.default_max_wait_time).until do
+        page.evaluate_script("window.bootstrap.Modal.getInstance(document.querySelector('#modal .modal'))?._isTransitioning === false")
+      end
+      assert_selector "input#shelf_name:focus"
+      page.driver.browser.switch_to.active_element.send_keys("Quick notes")
+      assert_field "Name", with: "Quick notes"
+      click_button "Create Shelf"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    assert_selector "#active-shelves", text: "Quick notes"
+  end
+
   test "adds selected content while keeping the shelf dropdown open" do
     content = contents(:two)
 
@@ -22,14 +47,134 @@ class ContentsTest < ApplicationSystemTestCase
     check @shelf.name
 
     within ".shelf-selection-menu" do
-      click_button "Add to Shelves"
+      click_button "Add to Shelf", exact: true
       assert_text "Content was added to the selected shelves."
     end
 
     assert_selector ".shelf-selection-menu.show"
     assert_no_selector "input[data-content-table-selection-target='row']:checked"
     assert_no_selector "input[name='shelf_ids[]']:checked"
+    assert_button "Add to NEW Shelf", exact: true
     assert ShelfContent.exists?(shelf: @shelf, content:)
+  end
+
+  test "the add button follows the number of selected shelves" do
+    second_shelf = @user.shelves.create!(name: "Second shelf")
+    ActiveShelf.activate!(user: @user, shelf: second_shelf)
+
+    visit contents_path
+    click_button "Shelves"
+
+    within ".shelf-selection-menu" do
+      assert_button "Add to NEW Shelf", exact: true
+      check @shelf.name
+      assert_button "Add to Shelf", exact: true
+      check second_shelf.name
+      assert_button "Add to Shelves", exact: true
+      uncheck @shelf.name
+      assert_button "Add to Shelf", exact: true
+      uncheck second_shelf.name
+      assert_button "Add to NEW Shelf", exact: true
+    end
+  end
+
+  test "creates a new shelf with all selected content after correcting validation errors" do
+    content_ids = [ contents(:one).id, contents(:two).id ]
+    create_preview_content!("Unselected document", Time.current)
+
+    visit contents_path
+    fill_in "Search", with: "MyString"
+    assert_selector "tbody tr", count: 2
+    find("input[data-content-table-selection-target='page']").check
+    click_button "Shelves"
+    click_button "Add to NEW Shelf"
+
+    assert_selector "turbo-frame#modal", count: 1
+    within "turbo-frame#modal" do
+      assert_selector ".modal-title", text: "New Shelf"
+      assert_selector "input#shelf_name:focus"
+      click_button "Create Shelf"
+      assert_selector ".alert.alert-danger", text: /Name can't be blank/
+    end
+
+    assert_selector "turbo-frame#modal", count: 1
+    within "turbo-frame#modal" do
+      fill_in "Name", with: "Selected documents"
+      click_button "Create Shelf"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    assert_current_path contents_path
+    assert_field "Search", with: "MyString"
+    assert_text "Shelf was successfully created and the selected content was added."
+    created = @user.shelves.find_by!(name: "Selected documents")
+    assert_equal content_ids.sort, created.contents.ids.sort
+    assert_no_selector "input[data-content-table-selection-target='row']:checked"
+
+    assert_selector ".shelf-selection-menu.show"
+    within ".shelf-selection-menu" do
+      assert_field created.name, checked: false
+      assert_button "Add to NEW Shelf", exact: true
+    end
+  end
+
+  test "canceling a new shelf keeps the selected content" do
+    content = contents(:two)
+
+    visit contents_path
+    find("input[data-content-table-selection-target='row'][value='#{content.id}']").check
+    click_button "Shelves"
+    click_button "Add to NEW Shelf"
+
+    within "turbo-frame#modal" do
+      assert_selector ".modal-title", text: "New Shelf"
+      fill_in "Name", with: "Canceled shelf"
+      click_button "Cancel"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    assert_selector "input[data-content-table-selection-target='row'][value='#{content.id}']:checked"
+    refute @user.shelves.exists?(name: "Canceled shelf")
+    assert_current_path contents_path
+  end
+
+  test "creates a shelf from content when no active shelves exist" do
+    @user.active_shelves.delete_all
+    content = contents(:two)
+
+    visit contents_path
+    find("input[data-content-table-selection-target='row'][value='#{content.id}']").check
+    click_button "Shelves"
+    assert_text "No active shelves."
+    click_button "Add to NEW Shelf"
+
+    within "turbo-frame#modal" do
+      fill_in "Name", with: "First active shelf"
+      click_button "Create Shelf"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    created = @user.shelves.find_by!(name: "First active shelf")
+    assert_equal [ content.id ], created.contents.ids
+    assert @user.active_shelves.exists?(shelf: created)
+    assert_current_path contents_path
+  end
+
+  test "creates an empty shelf when no content is selected" do
+    visit contents_path
+    click_button "Shelves"
+    click_button "Add to NEW Shelf"
+
+    within "turbo-frame#modal" do
+      fill_in "Name", with: "Empty shelf"
+      click_button "Create Shelf"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    created = @user.shelves.find_by!(name: "Empty shelf")
+    assert_empty created.contents
+    assert @user.active_shelves.exists?(shelf: created)
+    assert_current_path contents_path
   end
 
   test "table replacement does not retain selected rows" do

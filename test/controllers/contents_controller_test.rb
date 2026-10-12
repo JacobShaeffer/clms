@@ -71,9 +71,37 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       assert_select "input[name='shelf_ids[]']", count: 2
       assert_select "label", text: second_shelf.name
       assert_select "label", text: first_shelf.name
-      assert_select "input[type='submit'][value='Add to Shelves']:not([disabled])"
+      assert_select "input[type='submit'][value='Add to NEW Shelf']:not([disabled])"
       assert_select "#contents-add-to-shelves-status[role='status']"
     end
+  end
+
+  test "add to shelves opens the new shelf modal with the selected content when no shelves are selected" do
+    assert_no_difference([ "Shelf.count", "ActiveShelf.count", "ShelfContent.count" ]) do
+      post add_to_shelves_contents_url,
+        params: { content_ids: [ @matching_content.id, @other_content.id, @matching_content.id ] },
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    end
+
+    assert_response :success
+    assert_select "turbo-stream[action='replace'][target='modal']" do
+      assert_select ".modal-title", text: "New Shelf"
+      assert_select "form[action='#{shelves_path}'][data-turbo-frame='modal']" do
+        assert_select "input[name='return_to_contents'][value='1']"
+        assert_select "input[name='content_ids[]']", count: 2
+        assert_select "input[name='content_ids[]'][value='#{@matching_content.id}']"
+        assert_select "input[name='content_ids[]'][value='#{@other_content.id}']"
+      end
+    end
+  end
+
+  test "add to a new shelf opens the modal when no content is selected" do
+    post add_to_shelves_contents_url,
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    assert_response :success
+    assert_select "turbo-stream[target='modal'] template .modal-title", text: "New Shelf"
+    assert_select "input[name='content_ids[]']", count: 0
   end
 
   test "add to shelves creates missing placements and skips existing ones" do
@@ -132,7 +160,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("ShelfContent.count") do
       post add_to_shelves_contents_url,
-        params: { content_ids: [], shelf_ids: [] },
+        params: { content_ids: [], shelf_ids: [ active_shelf.id ] },
         headers: { "Accept" => "text/vnd.turbo-stream.html" }
     end
     assert_response :unprocessable_content
@@ -146,6 +174,22 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       end
       assert_response :unprocessable_content
       assert_select "turbo-stream[target='contents-add-to-shelves-status']", text: /no longer active/
+    end
+  end
+
+  test "add to a new shelf rejects content that is no longer available" do
+    @other_content.trash!(comment: "Unavailable selection")
+
+    [ @other_content.id, Content.maximum(:id) + 1 ].each do |unavailable_id|
+      assert_no_difference([ "Shelf.count", "ActiveShelf.count", "ShelfContent.count" ]) do
+        post add_to_shelves_contents_url,
+          params: { content_ids: [ @matching_content.id, unavailable_id ] },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      end
+
+      assert_response :unprocessable_content
+      assert_select "turbo-stream[target='contents-add-to-shelves-status']", text: /content items is unavailable/
+      assert_select "turbo-stream[target='modal']", count: 0
     end
   end
 

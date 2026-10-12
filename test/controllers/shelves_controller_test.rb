@@ -39,7 +39,7 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
     get new_shelf_url(selected_shelf_id: @shelf.id), headers: { "Turbo-Frame" => "modal" }
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "New shelf"
+    assert_select "turbo-frame#modal .modal-title", text: "New Shelf"
     assert_select "form[action='#{shelves_path}'][data-turbo-frame='modal']" do
       assert_select "input[name='selected_shelf_id'][value='#{@shelf.id}']"
       assert_select "input#shelf_name[name='shelf[name]']"
@@ -83,6 +83,85 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(existing_shelves.last, :archived)}"
   end
 
+  test "create from contents adds every selected item and refreshes the content table" do
+    content_ids = [ contents(:one).id, contents(:two).id ]
+
+    assert_difference([ "Shelf.count", "ActiveShelf.count" ], 1) do
+      assert_difference("ShelfContent.count", 2) do
+        post shelves_url,
+          params: { shelf: { name: "Selected content" }, return_to_contents: "1", content_ids: content_ids + content_ids },
+          headers: TURBO_STREAM_HEADERS
+      end
+    end
+
+    created = @user.shelves.find_by!(name: "Selected content")
+    assert_equal content_ids.sort, created.contents.ids.sort
+    assert_equal created.id, @user.active_shelves.ordered.first.shelf_id
+    assert_response :success
+    assert_select "turbo-stream[action='update'][target='modal']"
+    assert_select "turbo-stream[action='replace'][target='contents_table']" do
+      assert_select "input[name='content_ids[]'][checked]", count: 0
+    end
+    assert_select "turbo-stream[action='replace'][target='contents-add-to-shelves-form']" do
+      assert_select "input[name='shelf_ids[]'][value='#{created.id}']"
+    end
+    assert_select "turbo-stream[target='shelf-lists']", count: 0
+  end
+
+  test "invalid create from contents retains the content selection in the modal" do
+    content_ids = [ contents(:one).id, contents(:two).id ]
+
+    assert_no_difference([ "Shelf.count", "ActiveShelf.count", "ShelfContent.count" ]) do
+      post shelves_url,
+        params: { shelf: { name: " " }, return_to_contents: "1", content_ids: },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[target='modal'] template" do
+      assert_select ".alert.alert-danger", text: /Name can't be blank/
+      assert_select "form[data-turbo-frame='modal']" do
+        assert_select "input[name='return_to_contents'][value='1']"
+        content_ids.each do |content_id|
+          assert_select "input[name='content_ids[]'][value='#{content_id}']"
+        end
+      end
+    end
+  end
+
+  test "create from contents can create an empty shelf" do
+    assert_difference([ "Shelf.count", "ActiveShelf.count" ], 1) do
+      assert_no_difference("ShelfContent.count") do
+        post shelves_url,
+          params: { shelf: { name: "Empty shelf" }, return_to_contents: "1" },
+          headers: TURBO_STREAM_HEADERS
+      end
+    end
+
+    assert_empty @user.shelves.find_by!(name: "Empty shelf").contents
+    assert_response :success
+    assert_select "turbo-stream[action='update'][target='modal']"
+  end
+
+  test "create from contents rejects a selection that became unavailable" do
+    unavailable_content = contents(:two)
+    unavailable_content.trash!(comment: "Trashed after opening the modal")
+
+    [ unavailable_content.id, Content.maximum(:id) + 1 ].each do |unavailable_id|
+      assert_no_difference([ "Shelf.count", "ActiveShelf.count", "ShelfContent.count" ]) do
+        post shelves_url,
+          params: {
+            shelf: { name: "Unavailable content" }, return_to_contents: "1",
+            content_ids: [ contents(:one).id, unavailable_id ]
+          },
+          headers: TURBO_STREAM_HEADERS
+      end
+
+      assert_response :unprocessable_content
+      assert_select "turbo-stream[target='modal'] template .alert.alert-danger", text: /content items is unavailable/
+    end
+  end
+
   test "invalid create rerenders the modal without creating a shelf" do
     assert_no_difference([ "Shelf.count", "ActiveShelf.count" ]) do
       post shelves_url,
@@ -91,7 +170,7 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
-    assert_select "turbo-stream[action='update'][target='modal'] template .alert.alert-danger",
+    assert_select "turbo-stream[action='replace'][target='modal'] template .alert.alert-danger",
       text: /Name can't be blank/
   end
 

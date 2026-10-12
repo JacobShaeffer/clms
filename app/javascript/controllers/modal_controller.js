@@ -52,7 +52,11 @@ export default class extends Controller {
 
   markShown = () => {
     this.shown = true
-    if (this.focusTitleAfterShown) this.focusTitle()
+    if (this.focusTitleAfterShown) {
+      this.focusTitle()
+    } else {
+      this.element.querySelector("[autofocus]")?.focus({ preventScroll: true })
+    }
   }
 
   markClosing = () => {

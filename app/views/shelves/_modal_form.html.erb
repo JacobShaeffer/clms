@@ -1,3 +1,6 @@
-<%= render layout: "shared/modal", locals: { title: "New shelf" } do %>
-  <%= render "shelves/form", shelf: shelf %>
+<%= render layout: "shared/modal", locals: { title: "New Shelf" } do %>
+  <%= render "shelves/form",
+    shelf:,
+    return_to_contents: local_assigns.fetch(:return_to_contents, false),
+    content_ids: local_assigns.fetch(:content_ids, []) %>
 <% end %>
