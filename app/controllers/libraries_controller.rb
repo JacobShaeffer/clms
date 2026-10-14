@@ -86,7 +86,7 @@ class LibrariesController < ApplicationController
     return render_add_to_active_folder_error("Open a folder before adding content.") if params[:folder_id].blank?
 
     @current_folder = @library_version.library_folders.find(scalar_id!(:folder_id))
-    content_ids = selected_ids(:content_ids)
+    content_ids = placement_content_ids
     return render_add_to_active_folder_error("Select at least one content item.") if content_ids.empty?
 
     permitted_content_ids = policy_scope(Content).where(id: content_ids).pluck(:id)
@@ -333,6 +333,18 @@ class LibrariesController < ApplicationController
 
   def selected_ids(key)
     Array(params[key]).filter_map { |value| Integer(value, exception: false) }.uniq
+  end
+
+  def placement_content_ids
+    return selected_ids(:content_ids) unless params[:selection_mode] == "whole_shelf"
+
+    unless normalized_tab == "shelves"
+      raise LibraryFolderOperations::Selection::InvalidSelection, "Select an active shelf."
+    end
+
+    load_active_shelves
+    load_selected_active_shelf!
+    policy_scope(Content).where(id: @selected_shelf.contents.select(:id)).pluck(:id)
   end
 
   def validate_placement_context!

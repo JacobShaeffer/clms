@@ -241,6 +241,15 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_select "form##{context[:frame_id]}_add_to_active_folder_form" do
         assert_select "input[type='submit'][value='Add to Active Folder']:not([disabled])"
+        if context[:tab] == "shelves"
+          assert_select "button.btn.btn-secondary[name='selection_mode'][value='whole_shelf']",
+            text: "Add Whole Shelf to Active Folder",
+            count: 1
+          assert_select "button[name='selection_mode'][value='whole_shelf'] + input.btn.btn-primary[type='submit']",
+            count: 1
+        else
+          assert_select "button[name='selection_mode'][value='whole_shelf']", count: 0
+        end
       end
     end
   end
@@ -604,6 +613,99 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_select "turbo-stream[target='library-add-to-active-folder-status']",
       text: /already in the active folder/
+  end
+
+  test "add whole shelf to active folder includes every page and skips existing placements" do
+    users(:one).update!(role: :intern_plus)
+    shelf = users(:one).shelves.create!(name: "Whole Shelf")
+    shelf_contents = 11.times.map do |index|
+      create_content_with_file!(bytes: "whole shelf content #{index}")
+    end
+    shelf.contents << shelf_contents
+    ActiveShelf.activate!(user: users(:one), shelf:)
+    LibraryFolderContent.create!(library_folder: @root_folder, content: shelf_contents.first)
+
+    get library_url(
+      @library,
+      folder_id: @root_folder.id,
+      tab: "shelves",
+      shelf_id: shelf.id
+    )
+
+    assert_response :success
+    assert_select "tbody input[name='content_ids[]']", count: 10
+    assert_select "nav.pagy-bootstrap a.page-link", text: "2"
+
+    assert_difference("LibraryFolderContent.count", 10) do
+      post add_to_active_folder_library_url(@library),
+        params: {
+          folder_id: @root_folder.id,
+          tab: "shelves",
+          shelf_id: shelf.id,
+          selection_mode: "whole_shelf",
+          content_ids: [ shelf_contents.first.id ]
+        },
+        headers: PLACEMENT_HEADERS
+    end
+
+    assert_equal shelf_contents.map(&:id).sort, @root_folder.contents.ids.sort
+    assert_select "turbo-stream[target='library-add-to-active-folder-status']",
+      text: /Existing placements were skipped/
+  end
+
+  test "add whole shelf to active folder rejects empty missing inactive and non-shelf contexts" do
+    users(:one).update!(role: :intern_plus)
+    empty_shelf = users(:one).shelves.create!(name: "Empty Shelf")
+    ActiveShelf.activate!(user: users(:one), shelf: empty_shelf)
+
+    assert_no_difference("LibraryFolderContent.count") do
+      post add_to_active_folder_library_url(@library),
+        params: {
+          folder_id: @root_folder.id,
+          tab: "shelves",
+          shelf_id: empty_shelf.id,
+          selection_mode: "whole_shelf"
+        },
+        headers: PLACEMENT_HEADERS
+    end
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[target='library-add-to-active-folder-status']",
+      text: /Select at least one content item/
+
+    post add_to_active_folder_library_url(@library),
+      params: {
+        folder_id: @root_folder.id,
+        tab: "shelves",
+        selection_mode: "whole_shelf"
+      },
+      headers: PLACEMENT_HEADERS
+    assert_response :not_found
+
+    inactive_shelf = users(:one).shelves.create!(name: "Inactive Shelf")
+    inactive_shelf.contents << contents(:one)
+    post add_to_active_folder_library_url(@library),
+      params: {
+        folder_id: @root_folder.id,
+        tab: "shelves",
+        shelf_id: inactive_shelf.id,
+        selection_mode: "whole_shelf"
+      },
+      headers: PLACEMENT_HEADERS
+    assert_response :not_found
+
+    assert_no_difference("LibraryFolderContent.count") do
+      post add_to_active_folder_library_url(@library),
+        params: {
+          folder_id: @root_folder.id,
+          tab: "all",
+          shelf_id: empty_shelf.id,
+          selection_mode: "whole_shelf"
+        },
+        headers: PLACEMENT_HEADERS
+    end
+    assert_response :unprocessable_content
+    assert_select "turbo-stream[target='library-add-to-active-folder-status']",
+      text: /Select an active shelf/
   end
 
   test "add to active folder rejects root empty stale foreign and malformed selections" do

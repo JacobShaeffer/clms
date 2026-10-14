@@ -524,6 +524,34 @@ class LibrariesTest < ApplicationSystemTestCase
     assert_includes root_folder.reload.contents, contents(:one)
   end
 
+  test "adds a whole shelf to the active folder and skips existing content" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+    root_folder = create_folder!(library, "Guides")
+    shelf = users(:one).shelves.create!(name: "Reading List")
+    shelf.contents << [ contents(:one), contents(:two) ]
+    ActiveShelf.activate!(user: users(:one), shelf:)
+    LibraryFolderContent.create!(library_folder: root_folder, content: contents(:one))
+
+    visit library_path(
+      library,
+      folder_id: root_folder.id,
+      tab: "shelves",
+      shelf_id: shelf.id
+    )
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      assert_selector "button.btn.btn-secondary", text: "Add Whole Shelf to Active Folder"
+      click_on "Add Whole Shelf to Active Folder"
+      assert_text "Content was added to the active folder. Existing placements were skipped."
+    end
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      assert_text contents(:one).title
+      assert_text contents(:two).title
+    end
+    assert_equal [ contents(:one).id, contents(:two).id ].sort, root_folder.reload.contents.ids.sort
+  end
+
   test "keeps separate content selections for each library tab" do
     library = Library.create!(name: "Health Library", user: users(:one))
     root_folder = create_folder!(library, "Guides")

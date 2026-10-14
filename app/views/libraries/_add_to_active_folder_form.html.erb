@@ -14,9 +14,20 @@
   <%= hidden_field_tag :tab, active_tab %>
   <%= hidden_field_tag :shelf_id, selected_shelf&.id if selected_shelf %>
 
-  <%= submit_tag "Add to Active Folder",
-    class: "btn btn-primary"
-  %>
+  <div class="d-flex gap-2 justify-content-end">
+    <% if active_tab == "shelves" && selected_shelf %>
+      <%= button_tag "Add Whole Shelf to Active Folder",
+        type: "submit",
+        name: "selection_mode",
+        value: "whole_shelf",
+        class: "btn btn-secondary"
+      %>
+    <% end %>
+
+    <%= submit_tag "Add to Active Folder",
+      class: "btn btn-primary"
+    %>
+  </div>
 
   <div
     id="<%= LibrariesController::ADD_TO_ACTIVE_FOLDER_STATUS_ID %>"
