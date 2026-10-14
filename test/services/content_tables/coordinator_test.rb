@@ -43,6 +43,12 @@ class ContentTables::CoordinatorTest < ActiveSupport::TestCase
     assert_equal 2, table.pagy.page
     assert_equal Content.limit(10).to_a, table.records
     assert_equal 2, @user.content_table_preferences.find_by!(table_key: @definition.state_key).state.fetch("page")
+    navigation_context = ContentTables::PageNavigation.context_for(
+      user: @user,
+      token: table.navigation_token
+    )
+    assert_equal table.records.map(&:id), navigation_context.content_ids
+    assert_equal @definition.frame_id, navigation_context.table_id
   end
 
   private
@@ -68,7 +74,8 @@ class ContentTables::CoordinatorTest < ActiveSupport::TestCase
       default_page_size: 10,
       empty_message: "Nothing found.",
       quick_search: ->(relation:, **) { relation },
-      default_order: ->(relation:) { relation }
+      default_order: ->(relation:) { relation },
+      actions_partial: "contents/table_actions"
     )
   end
 end

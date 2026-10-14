@@ -279,6 +279,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get content_url(@matching_content), headers: TURBO_FRAME_HEADERS
     assert_response :success
     assert_select "turbo-frame#modal .modal-title", text: @matching_content.title
+    assert_select ".modal-header input[data-controller='content-preview-selection']", count: 0
     assert_select ".modal-dialog.modal-nearly-fullscreen.content-edit-dialog.content-view-dialog"
     assert_select ".modal-content" do
       assert_select "> .modal-body .content-edit-layout.content-view-layout" do
@@ -325,6 +326,13 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     get preview_links.first["href"], headers: TURBO_FRAME_HEADERS
     assert_select ".modal-title", text: @matching_content.title
+    assert_select ".modal-header > .d-flex.align-items-center.gap-2" do
+      assert_select "input.form-check-input[type='checkbox'][value='#{@matching_content.id}'][aria-label='Select #{@matching_content.title}']" \
+        "[data-controller='content-preview-selection']" \
+        "[data-content-preview-selection-content-id-value='#{@matching_content.id}']" \
+        "[data-content-preview-selection-table-id-value='contents_table'] + h1.modal-title",
+        text: @matching_content.title
+    end
     assert_select "button[disabled]", text: "Previous"
     next_link = css_select("a").find { |link| link.text.strip == "Next" }
     assert next_link
@@ -352,12 +360,14 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
   test "preview ignores navigation signed for another user or changed by the client" do
     token = ContentTables::PageNavigation.token_for(
       user: @user,
-      records: [ @matching_content, @other_content ]
+      records: [ @matching_content, @other_content ],
+      table_id: "contents_table"
     )
 
     get content_url(@matching_content, navigation: "#{token}changed"), headers: TURBO_FRAME_HEADERS
     assert_select "button[disabled]", text: "Previous"
     assert_select "button[disabled]", text: "Next"
+    assert_select "input[data-controller='content-preview-selection']", count: 0
 
     other_user = User.create!(
       name: "Preview User",
@@ -369,6 +379,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get content_url(@matching_content, navigation: token), headers: TURBO_FRAME_HEADERS
     assert_select "button[disabled]", text: "Previous"
     assert_select "button[disabled]", text: "Next"
+    assert_select "input[data-controller='content-preview-selection']", count: 0
   end
 
   test "view modal offers edit according to permissions next to trash" do
@@ -393,7 +404,9 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
   test "editing from view preserves the return path through validation and update" do
     token = ContentTables::PageNavigation.token_for(
-      user: @user, records: [ @matching_content, @other_content ]
+      user: @user,
+      records: [ @matching_content, @other_content ],
+      table_id: "contents_table"
     )
     view_path = content_path(@matching_content, navigation: token)
 

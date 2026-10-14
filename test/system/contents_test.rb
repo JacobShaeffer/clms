@@ -484,6 +484,49 @@ class ContentsTest < ApplicationSystemTestCase
     end
   end
 
+  test "keeps preview and originating row selections in sync while navigating" do
+    first = create_preview_content!("Preview selection row one", 2.days.ago)
+    second = create_preview_content!("Preview selection row two", 1.day.ago)
+    first_row = "input[data-content-table-selection-target='row'][value='#{first.id}']"
+    second_row = "input[data-content-table-selection-target='row'][value='#{second.id}']"
+    page_checkbox = "input[data-content-table-selection-target='page']"
+
+    visit contents_path
+    fill_in "Search", with: "Preview selection row"
+    assert_selector "tbody tr", count: 2
+    find(second_row).check
+    find("a[aria-label='Preview #{second.title}']").click
+
+    within "turbo-frame#modal" do
+      assert_selector "input[data-controller='content-preview-selection'][value='#{second.id}']:checked"
+      find("input[data-controller='content-preview-selection']").uncheck
+    end
+    assert_selector "#{second_row}:not(:checked)"
+    assert_selector "#{page_checkbox}:not(:checked)"
+
+    within "turbo-frame#modal" do
+      find("input[data-controller='content-preview-selection']").check
+    end
+    assert_selector "#{second_row}:checked"
+    assert_selector "#{page_checkbox}:indeterminate"
+
+    within "turbo-frame#modal" do
+      click_on "Next"
+      assert_selector ".modal-title", text: first.title
+      assert_selector "input[data-controller='content-preview-selection'][value='#{first.id}']:not(:checked)"
+      find("input[data-controller='content-preview-selection']").check
+    end
+    assert_selector "#{first_row}:checked"
+    assert_selector "#{second_row}:checked"
+    assert_selector "#{page_checkbox}:checked"
+
+    within "turbo-frame#modal" do
+      click_on "Previous"
+      assert_selector ".modal-title", text: second.title
+      assert_selector "input[data-controller='content-preview-selection'][value='#{second.id}']:checked"
+    end
+  end
+
   test "trashes restores and permanently deletes content" do
     @user.update!(role: :intern_plus)
     content = create_preview_content!("Trash workflow row", Time.current)

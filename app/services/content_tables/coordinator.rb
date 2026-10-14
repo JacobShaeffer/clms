@@ -25,7 +25,13 @@ module ContentTables
         @pagy, @records = paginate(relation)
       end
 
-      @navigation_token = PageNavigation.token_for(user:, records:) if definition.actions?
+      if definition.actions?
+        @navigation_token = PageNavigation.token_for(
+          user:,
+          records:,
+          table_id: definition.frame_id
+        )
+      end
       state.persist!
       self
     end

@@ -427,10 +427,7 @@ class ContentsController < ApplicationController
   end
 
   def preview_neighbors
-    content_ids = ContentTables::PageNavigation.content_ids_for(
-      user: current_user,
-      token: params[:navigation]
-    )
+    content_ids = preview_navigation_context.content_ids
     current_index = content_ids.index(@content.id)
     return [ nil, nil ] unless current_index
 
@@ -450,8 +447,22 @@ class ContentsController < ApplicationController
       metadata_types: @metadata_types,
       previous_content:,
       next_content:,
-      navigation_token: params[:navigation]
+      navigation_token: params[:navigation],
+      selection_table_id: preview_selection_table_id
     }
+  end
+
+  def preview_navigation_context
+    @preview_navigation_context ||= ContentTables::PageNavigation.context_for(
+      user: current_user,
+      token: params[:navigation]
+    )
+  end
+
+  def preview_selection_table_id
+    return unless preview_navigation_context.content_ids.include?(@content.id)
+
+    preview_navigation_context.table_id
   end
 
   def return_to_content_view?

@@ -5,7 +5,14 @@
     <div class="modal-dialog <%= local_assigns[:dialog_class] %>">
       <div class="modal-content">
         <div class="modal-header">
-          <h1 class="modal-title fs-5" id="<%= modal_title_id %>"><%= title %></h1>
+          <% if local_assigns[:title_prefix].present? %>
+            <div class="d-flex align-items-center gap-2">
+              <%= title_prefix %>
+              <h1 class="modal-title fs-5" id="<%= modal_title_id %>"><%= title %></h1>
+            </div>
+          <% else %>
+            <h1 class="modal-title fs-5" id="<%= modal_title_id %>"><%= title %></h1>
+          <% end %>
           <% if local_assigns[:close_path].present? %>
             <%= link_to "", close_path, class: "btn-close", aria: { label: "Close" },
               data: { turbo_frame: "modal", turbo_prefetch: false } %>

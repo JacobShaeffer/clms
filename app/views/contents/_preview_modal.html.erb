@@ -35,8 +35,25 @@
   <% end %>
 <% end %>
 
+<% modal_title_prefix = if selection_table_id.present?
+  tag.input(
+    type: "checkbox",
+    id: dom_id(content, :preview_selection),
+    value: content.id,
+    class: "form-check-input mt-0",
+    aria: { label: "Select #{content.title}" },
+    data: {
+      controller: "content-preview-selection",
+      action: "change->content-preview-selection#change",
+      content_preview_selection_content_id_value: content.id,
+      content_preview_selection_table_id_value: selection_table_id
+    }
+  )
+end %>
+
 <%= render layout: "shared/modal", locals: {
   title: content.title,
+  title_prefix: modal_title_prefix,
   preserve_modal: true,
   dialog_class: "modal-nearly-fullscreen content-edit-dialog content-view-dialog",
   title_id: dom_id(content, :preview_title),
