@@ -250,6 +250,150 @@ class ContentsTest < ApplicationSystemTestCase
     assert_equal scroll_y, page.evaluate_script("window.scrollY")
   end
 
+  test "saves reopens and submits a draft while retaining the uploaded file" do
+    @user.update!(role: :volunteer)
+    visit contents_path
+    assert_no_link "View Drafts"
+    click_link "New content"
+
+    within "turbo-frame#modal" do
+      remember_open_modal
+      fill_in "Title", with: "Unfinished document"
+      attach_file "File", file_fixture("document.pdf")
+      assert_text "Uploaded and validated: document.pdf"
+      click_button "Save as Draft"
+      assert_text "Draft was saved."
+      assert_preserved_modal
+      assert_field "Title", with: "Unfinished document"
+      assert_text "Saved file: document.pdf"
+      fill_in "Title", with: "Updated draft", fill_options: { clear: :backspace }
+      click_button "Save as Draft"
+      assert_text "Draft was saved."
+      assert_field "Title", with: "Updated draft"
+      assert_selector "input#content_title[value='Updated draft']"
+      assert_preserved_modal
+      find(".modal-header [aria-label='Close']").click
+    end
+
+    assert_no_selector "#modal .modal"
+    assert_equal 1, @user.content_drafts.count
+    assert_link "View Drafts"
+    click_link "View Drafts"
+
+    within "turbo-frame#modal" do
+      assert_selector ".list-group-item", count: 1
+      remember_open_modal
+      click_link "Updated draft"
+      assert_field "Title", with: "Updated draft"
+      assert_text "Saved file: document.pdf"
+      assert_preserved_modal
+      fill_in "Display title", with: "Published display"
+      fill_in "Description", with: "Published description"
+      click_button "Create Content"
+    end
+
+    assert_text "Content was successfully created."
+    assert_no_selector "#modal .modal"
+    assert_no_link "View Drafts"
+    assert_empty @user.content_drafts.reload
+    assert_equal file_fixture("document.pdf").binread, Content.find_by!(title: "Updated draft").file.download
+  end
+
+  test "failed submissions save one draft and a manual save clears its warning" do
+    @user.update!(role: :volunteer)
+    visit contents_path
+    click_link "New content"
+
+    within "turbo-frame#modal" do
+      remember_open_modal
+      fill_in "Title", with: "Submission draft"
+      2.times do
+        click_button "Create Content"
+        assert_selector ".alert.alert-danger", text: "Your form was saved as a draft."
+        assert_preserved_modal
+      end
+      find(".modal-header [aria-label='Close']").click
+    end
+
+    assert_no_selector "#modal .modal"
+    assert_equal 1, @user.content_drafts.count
+    click_link "View Drafts"
+
+    find("#modal .list-group-item a > i.bi-exclamation-triangle-fill.text-danger").hover
+    assert_selector ".tooltip-inner", text: "Draft saved with submission errors:"
+    within "turbo-frame#modal" do
+      assert_selector ".list-group-item a > i.bi-exclamation-triangle-fill.text-danger + span"
+      click_link "Submission draft"
+      assert_selector ".alert.alert-danger", text: "Display title can't be blank"
+      click_button "Save as Draft"
+      assert_text "Draft was saved."
+      assert_no_selector ".alert.alert-danger"
+      find(".modal-header [aria-label='Close']").click
+    end
+
+    assert_no_selector "#modal .modal"
+    click_link "View Drafts"
+    assert_no_selector "#modal .bi-exclamation-triangle-fill"
+    assert_empty @user.content_drafts.sole.submission_errors
+  end
+
+  test "draft deletion requires confirmation and keeps the list modal open" do
+    @user.update!(role: :volunteer)
+    first = @user.content_drafts.create!(form_data: { title: "First draft" })
+    last = @user.content_drafts.create!(form_data: { title: "Last draft" })
+    visit contents_path
+    click_link "View Drafts"
+
+    within "turbo-frame#modal" do
+      remember_open_modal
+      dismiss_confirm "Delete this draft? This cannot be undone." do
+        within "#content_draft_#{first.id}" do
+          find("button[aria-label='Delete draft']").click
+        end
+      end
+      assert_selector ".list-group-item", count: 2
+      assert ContentDraft.exists?(first.id)
+
+      accept_confirm "Delete this draft? This cannot be undone." do
+        within "#content_draft_#{first.id}" do
+          find("button[aria-label='Delete draft']").click
+        end
+      end
+      assert_no_selector "#content_draft_#{first.id}"
+      assert_selector ".list-group-item", count: 1
+      assert_preserved_modal
+
+      accept_confirm "Delete this draft? This cannot be undone." do
+        within "#content_draft_#{last.id}" do
+          find("button[aria-label='Delete draft']").click
+        end
+      end
+      assert_text "No saved drafts."
+      assert_preserved_modal
+    end
+
+    assert_no_link "View Drafts"
+    assert_empty @user.content_drafts.reload
+  end
+
+  test "manual draft saving remains available after file validation fails" do
+    @user.update!(role: :volunteer)
+    visit new_content_path
+    fill_in "Title", with: "Unsupported upload"
+    attach_file "File", file_fixture("library_asset.png")
+    assert_text "must be a supported file type"
+    assert_button "Create Content", disabled: true
+    assert_button "Save as Draft", disabled: false
+    assert_empty @user.content_drafts
+
+    click_button "Save as Draft"
+
+    assert_text "Draft was saved."
+    assert_field "Title", with: "Unsupported upload"
+    assert_text "Saved file: library_asset.png"
+    assert_equal file_fixture("library_asset.png").binread, @user.content_drafts.sole.file.download
+  end
+
   test "uploads and validates a file when it is selected" do
     @user.update!(role: :volunteer)
     visit contents_path

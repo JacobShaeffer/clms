@@ -5,12 +5,55 @@ class ContentsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_content, only: %i[show edit update trash_confirmation trash]
   before_action :set_trashed_content, only: %i[restore destroy]
-  before_action :load_metadata_types, only: %i[show new create edit update]
+  before_action :load_metadata_types, only: %i[show new create save_draft edit update]
 
   def index
     authorize Content
+    load_drafts
     load_active_shelves
     load_contents_index_table
+  end
+
+  def drafts
+    authorize ContentDraft, :index?
+    load_drafts
+  end
+
+  def save_draft
+    attributes = prepare_new_content
+    @draft ||= current_user.content_drafts.build
+    authorize @draft, @draft.new_record? ? :create? : :update?
+    @draft.capture!(content: @content, attributes:)
+    @draft_saved = true
+
+    respond_to do |format|
+      format.turbo_stream do
+        if modal_frame_request?
+          render turbo_stream: [ content_form_stream, draft_button_stream ]
+        else
+          redirect_to new_content_path(draft_id: @draft.id), notice: "Draft was saved.", status: :see_other
+        end
+      end
+      format.html do
+        redirect_to new_content_path(draft_id: @draft.id), notice: "Draft was saved.", status: :see_other
+      end
+    end
+  end
+
+  def destroy_draft
+    load_content_draft(:destroy?)
+    @draft.destroy!
+    load_drafts
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: [
+          turbo_stream.replace("modal", template: "contents/drafts"),
+          draft_button_stream
+        ]
+      end
+      format.html { redirect_to drafts_contents_path, notice: "Draft was deleted.", status: :see_other }
+    end
   end
 
   def trash_index
@@ -145,7 +188,8 @@ class ContentsController < ApplicationController
   end
 
   def new
-    @content = current_user.contents.build
+    load_content_draft(:show?)
+    @content = @draft ? @draft.build_content(metadata_scope: policy_scope(Metadatum)) : current_user.contents.build
     authorize @content
 
     render partial: "contents/modal_form", locals: { content: @content } if turbo_frame_request?
@@ -204,12 +248,21 @@ class ContentsController < ApplicationController
   end
 
   def create
-    @content = current_user.contents.build
-    authorize @content
-    @content.assign_attributes(content_params)
+    attributes = prepare_new_content
+    saved = Content.transaction do
+      if @content.save
+        @draft&.destroy!
+        true
+      else
+        @draft ||= current_user.content_drafts.build
+        authorize @draft, @draft.new_record? ? :create? : :update?
+        @draft.capture!(content: @content, attributes:, submission_errors: @content.errors.full_messages)
+        false
+      end
+    end
 
     respond_to do |format|
-      if @content.save
+      if saved
         format.turbo_stream do
           if modal_frame_request?
             flash[:notice] = "Content was successfully created."
@@ -222,11 +275,7 @@ class ContentsController < ApplicationController
       else
         format.turbo_stream do
           if modal_frame_request?
-            render turbo_stream: turbo_stream.replace(
-              "modal",
-              partial: "contents/modal_form",
-              locals: { content: @content }
-            ), status: :unprocessable_content
+            render turbo_stream: [ content_form_stream, draft_button_stream ], status: :unprocessable_content
           else
             render :new, formats: :html, status: :unprocessable_content
           end
@@ -296,6 +345,44 @@ class ContentsController < ApplicationController
   end
 
   private
+
+  def load_drafts
+    @drafts = current_user.content_drafts.with_attached_file.recent_first
+  end
+
+  def load_content_draft(permission)
+    return if params[:draft_id].blank?
+
+    @draft = current_user.content_drafts.with_attached_file.find(params[:draft_id])
+    authorize @draft, permission
+  end
+
+  def prepare_new_content
+    @content = current_user.contents.build
+    authorize @content, :create?
+    load_content_draft(:update?)
+    attributes = content_params.to_h
+    attributes["metadatum_ids"] ||= []
+    attributes.delete("file") if attributes["file"].blank?
+
+    uploaded_file = attributes["file"]
+    if uploaded_file.is_a?(ActionDispatch::Http::UploadedFile)
+      attributes["file"] = create_uploaded_blob(uploaded_file)
+    end
+
+    @content.file = @draft.file.blob if @draft&.file&.attached?
+    @content.assign_attributes(attributes)
+    attributes
+  end
+
+  def content_form_stream
+    turbo_stream.replace("modal", partial: "contents/modal_form", locals: { content: @content })
+  end
+
+  def draft_button_stream
+    load_drafts
+    turbo_stream.replace("contents-draft-button", partial: "contents/draft_button", locals: { drafts: @drafts })
+  end
 
   def load_metadata_types
     @metadata_types = policy_scope(MetadataType)

@@ -426,6 +426,248 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "draft button is hidden without owned drafts and always opens the list when drafts exist" do
+    foreign_user = User.create!(name: "Other author", email: "other-author@example.com", password: "password", role: :admin)
+    foreign_user.content_drafts.create!(form_data: { title: "Private draft" })
+
+    get contents_url
+    assert_select "#contents-draft-button[hidden]"
+    assert_select "a", text: "View Drafts", count: 0
+
+    draft = @user.content_drafts.create!(form_data: { title: "My draft" })
+    get contents_url
+    assert_select "#contents-draft-button a[href='#{drafts_contents_path}'][data-turbo-frame='modal']", text: "View Drafts"
+    assert_select "#contents-draft-button + a[href='#{new_content_path}']", text: "New content"
+    assert_select "a", text: "View Draft", count: 0
+
+    get drafts_contents_url, headers: TURBO_FRAME_HEADERS
+    assert_response :success
+    assert_select ".list-group-item", count: 1
+    assert_select "a[href='#{new_content_path(draft_id: draft.id)}'] span", text: "My draft"
+    assert_select ".list-group-item", text: /Private draft/, count: 0
+  end
+
+  test "draft list orders by saved time and id and renders label fallbacks and escaped error tooltips" do
+    title_draft = @user.content_drafts.create!(form_data: { title: "Title label" })
+    title_draft.file.attach(@matching_content.file.blob)
+    file_draft = @user.content_drafts.create!(form_data: { title: " " })
+    file_draft.file.attach(@other_content.file.blob)
+    date_draft = @user.content_drafts.create!(submission_errors: [ "Title can't be blank", '<script>alert("error")</script>' ])
+    saved_at = Time.zone.local(2026, 10, 14, 12)
+    [ title_draft, file_draft ].each { |draft| draft.update_columns(updated_at: saved_at) }
+    date_draft.update_columns(updated_at: saved_at + 1.minute)
+
+    get drafts_contents_url, headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_equal [ date_draft, file_draft, title_draft ].map { |draft| "content_draft_#{draft.id}" },
+      css_select(".list-group-item").map { |item| item["id"] }
+    assert_select "#content_draft_#{title_draft.id} a span", text: "Title label"
+    assert_select "#content_draft_#{file_draft.id} a span", text: @other_content.file.filename.to_s
+    assert_select "#content_draft_#{date_draft.id} a span", text: I18n.l(date_draft.updated_at, format: :long)
+    assert_select "#content_draft_#{date_draft.id} a > i.bi-exclamation-triangle-fill.text-danger + span"
+    assert_select "i[data-controller='tooltip'][data-bs-toggle='tooltip']" do |icons|
+      assert_equal "Draft saved with submission errors: #{date_draft.submission_errors.to_sentence}", icons.first["title"]
+    end
+    assert_select ".list-group script", count: 0
+    assert_select ".list-group-item > form[data-turbo-confirm='Delete this draft? This cannot be undone.'] button.text-danger[aria-label='Delete draft'] i.bi-trash-fill", count: 3
+    assert_select ".list-group-item a form", count: 0
+  end
+
+  test "manual save accepts incomplete fields and prefills the same full page form" do
+    foreign_id = @user.id + 1
+    assert_no_difference("Content.count") do
+      assert_difference("ContentDraft.count", 1) do
+        post save_draft_contents_url, params: {
+          content: { title: "Partial content", display_title: "", description: "Notes", year_of_publication: "2025", metadatum_ids: [ @history.id ], user_id: foreign_id },
+          submission_errors: [ "Untrusted errors" ]
+        }
+      end
+    end
+
+    draft = @user.content_drafts.sole
+    refute_equal foreign_id, draft.user_id
+    assert_empty draft.submission_errors
+    assert_equal "2025", draft.form_data["year_of_publication"]
+    assert_redirected_to new_content_path(draft_id: draft.id)
+    follow_redirect!
+    assert_response :success
+    assert_select ".alert.alert-success", text: "Draft was saved."
+    assert_select "input[name='draft_id'][value='#{draft.id}']"
+    assert_select "input#content_title[value='Partial content']"
+    assert_select "input#content_display_title[value='']"
+    assert_select "textarea#content_description", text: "Notes"
+    assert_select "input#content_year_of_publication[value='2025']"
+    assert_select "input[name='content[metadatum_ids][]'][value='#{@history.id}'][checked]"
+    assert_select "button[formaction='#{save_draft_contents_path}'][formnovalidate]", text: "Save as Draft"
+  end
+
+  test "manual modal save updates one draft clears its errors and refreshes the button without closing the form" do
+    draft = @user.content_drafts.create!(
+      form_data: { title: "Original", metadatum_ids: [ @history.id ] },
+      submission_errors: [ "Description can't be blank" ]
+    )
+    draft.file.attach(@matching_content.file.blob)
+
+    assert_no_difference([ "ContentDraft.count", "Content.count" ]) do
+      post save_draft_contents_url,
+        params: { draft_id: draft.id, content: { title: "Updated draft", description: "" } },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :success
+    assert_empty draft.reload.submission_errors
+    assert_equal [], draft.form_data["metadatum_ids"]
+    assert_equal "Updated draft", draft.form_data["title"]
+    assert_equal @matching_content.file.blob, draft.file.blob
+    assert_select "turbo-stream[action='replace'][target='modal'] template .modal[data-modal-preserve-value='true']" do
+      assert_select ".alert.alert-success[role='status']", text: "Draft was saved."
+      assert_select ".alert.alert-danger", count: 0
+      assert_select "input[name='draft_id'][value='#{draft.id}']"
+      assert_select "[data-content-file-upload-target='status']", text: /Saved file:/
+    end
+    assert_select "turbo-stream[target='contents-draft-button'] template a", text: "View Drafts"
+  end
+
+  test "raw uploads survive manual saves and failed submissions" do
+    post save_draft_contents_url, params: {
+      content: { title: "", file: fixture_file_upload("library_asset.png", "image/png") }
+    }, as: :multipart
+    draft = @user.content_drafts.sole
+    assert_equal file_fixture("library_asset.png").binread, draft.file.download
+
+    get new_content_url(draft_id: draft.id), headers: TURBO_FRAME_HEADERS
+    assert_select "input[type='hidden'][name='content[file]'][value='#{draft.file.blob.signed_id}']"
+    assert_select "[data-content-file-upload-target='status']", text: "Saved file: library_asset.png"
+
+    assert_no_difference("ContentDraft.count") do
+      post contents_url, params: {
+        draft_id: draft.id,
+        content: { title: "", file: fixture_file_upload("document.pdf", "application/pdf") }
+      }, as: :multipart
+    end
+    assert_response :unprocessable_content
+    assert_equal file_fixture("document.pdf").binread, draft.reload.file.download
+    assert_includes draft.submission_errors, "Title can't be blank"
+    assert_select "input[type='hidden'][name='content[file]'][value='#{draft.file.blob.signed_id}']"
+  end
+
+  test "failed submissions automatically save and repeatedly update the same draft" do
+    assert_difference("ContentDraft.count", 1) do
+      post contents_url,
+        params: { content: { title: "Failed draft", metadatum_ids: [ @history.id ] } },
+        headers: TURBO_STREAM_HEADERS
+    end
+    assert_response :unprocessable_content
+    draft = @user.content_drafts.sole
+    assert_includes draft.submission_errors, "Description can't be blank"
+    assert_select "input[name='draft_id'][value='#{draft.id}']"
+    assert_select ".alert.alert-danger", text: /Your form was saved as a draft/
+    assert_select "turbo-stream[target='contents-draft-button'] template a", text: "View Drafts"
+
+    assert_no_difference("ContentDraft.count") do
+      post contents_url,
+        params: { draft_id: draft.id, content: { title: "Second attempt", description: "Now filled" } },
+        headers: TURBO_STREAM_HEADERS
+    end
+    assert_response :unprocessable_content
+    assert_equal "Second attempt", draft.reload.form_data["title"]
+    refute_includes draft.submission_errors, "Description can't be blank"
+    assert_equal [], draft.form_data["metadatum_ids"]
+
+    get new_content_url(draft_id: draft.id), headers: TURBO_FRAME_HEADERS
+    assert_select "input#content_title[value='Second attempt']"
+    assert_select ".alert.alert-danger", text: /Display title can't be blank/
+  end
+
+  test "automatic drafts retain files that fail content validation" do
+    assert_no_difference("Content.count") do
+      post contents_url, params: {
+        content: { title: "Invalid file draft", file: fixture_file_upload("library_asset.png", "image/png") }
+      }, as: :multipart
+    end
+
+    assert_response :unprocessable_content
+    draft = @user.content_drafts.sole
+    assert_includes draft.submission_errors, "File must be a supported file type"
+    assert_equal file_fixture("library_asset.png").binread, draft.file.download
+    assert_select "input[type='hidden'][name='content[file]'][value='#{draft.file.blob.signed_id}']"
+  end
+
+  test "successful content submission consumes the draft and preserves its published upload" do
+    post save_draft_contents_url, params: {
+      content: { title: "Publication draft", file: fixture_file_upload("document.pdf", "application/pdf") }
+    }, as: :multipart
+    draft = @user.content_drafts.sole
+    blob = draft.file.blob
+
+    assert_difference("Content.count", 1) do
+      assert_difference("ContentDraft.count", -1) do
+        perform_enqueued_jobs do
+          post contents_url, params: {
+            draft_id: draft.id,
+            content: { title: "Published draft", display_title: "Published display", description: "Published description" }
+          }, headers: TURBO_STREAM_HEADERS
+        end
+      end
+    end
+    assert_response :success
+    assert_select "turbo-stream[action='refresh']"
+    published = Content.find_by!(title: "Published draft")
+    assert_equal blob, published.file.blob
+    assert_equal file_fixture("document.pdf").binread, published.file.download
+  end
+
+  test "deleting a draft updates the open list and hides the button after the last deletion" do
+    first = @user.content_drafts.create!(form_data: { title: "Delete first" })
+    last = @user.content_drafts.create!(form_data: { title: "Keep last" })
+
+    assert_difference("ContentDraft.count", -1) do
+      delete destroy_draft_contents_url(draft_id: first.id), headers: TURBO_STREAM_HEADERS
+    end
+    assert_response :success
+    assert_select "turbo-stream[target='modal'] template .list-group-item", count: 1
+    assert_select "turbo-stream[target='modal'] template .modal[data-modal-preserve-value='true']"
+    assert_select "turbo-stream[target='contents-draft-button'] template a", text: "View Drafts"
+
+    delete destroy_draft_contents_url(draft_id: last.id), headers: TURBO_STREAM_HEADERS
+    assert_response :success
+    assert_select "turbo-stream[target='modal'] template", text: /No saved drafts/
+    assert_select "turbo-stream[target='contents-draft-button'] template #contents-draft-button[hidden]"
+  end
+
+  test "draft routes enforce ownership even for admins" do
+    draft = @user.content_drafts.create!(form_data: { title: "Private draft" })
+    other_user = User.create!(name: "Other user", email: "draft-other@example.com", password: "password", role: :volunteer)
+    sign_in other_user
+
+    [ :volunteer, :admin ].each do |role|
+      other_user.update!(role:)
+      get drafts_contents_url, headers: TURBO_FRAME_HEADERS
+      assert_response :success
+      assert_select ".list-group-item", count: 0
+      get new_content_url(draft_id: draft.id)
+      assert_response :not_found
+      assert_no_difference([ "Content.count", "ContentDraft.count" ]) do
+        post save_draft_contents_url, params: { draft_id: draft.id, content: { title: "Tampered" } }
+        assert_response :not_found
+        post contents_url, params: { draft_id: draft.id, content: { title: "Tampered" } }
+        assert_response :not_found
+        delete destroy_draft_contents_url(draft_id: draft.id)
+        assert_response :not_found
+      end
+    end
+    assert_equal "Private draft", draft.reload.form_data["title"]
+  end
+
+  test "users without content creation permission cannot save drafts" do
+    @user.update!(role: :organization)
+    assert_no_difference("ContentDraft.count") do
+      post save_draft_contents_url, params: { content: { title: "Not permitted" } }
+    end
+    assert_redirected_to root_path
+  end
+
   test "new renders a Bootstrap content form" do
     get new_content_url
 

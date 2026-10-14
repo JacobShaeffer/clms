@@ -1,0 +1,6 @@
+<div id="contents-draft-button" <%= "hidden" if drafts.empty? %>>
+  <% if drafts.any? %>
+    <%= link_to "View Drafts", drafts_contents_path,
+      class: "btn btn-secondary", data: { turbo_frame: "modal", turbo_prefetch: false } %>
+  <% end %>
+</div>

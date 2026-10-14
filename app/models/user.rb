@@ -6,6 +6,7 @@ class User < ApplicationRecord
          :trackable
 
   has_many :contents
+  has_many :content_drafts, dependent: :destroy
   has_many :metadata_types
   has_many :metadata
   has_many :shelves

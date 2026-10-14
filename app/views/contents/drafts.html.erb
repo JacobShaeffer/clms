@@ -1,0 +1,33 @@
+<%= render layout: "shared/modal", locals: { title: "Content drafts", preserve_modal: true } do %>
+  <% if @drafts.empty? %>
+    <p class="mb-0">No saved drafts.</p>
+  <% else %>
+    <div class="list-group">
+      <% @drafts.each do |draft| %>
+        <div id="<%= dom_id(draft) %>" class="list-group-item d-flex align-items-center p-0">
+          <%= link_to new_content_path(draft_id: draft.id),
+            class: "list-group-item-action d-flex align-items-center gap-2 flex-grow-1 overflow-hidden p-3 text-decoration-none text-reset",
+            data: { turbo_frame: "modal", turbo_prefetch: false } do %>
+            <% if draft.submission_errors.any? %>
+              <i class="bi bi-exclamation-triangle-fill text-danger"
+                tabindex="0"
+                aria-label="Draft saved with submission errors"
+                title="Draft saved with submission errors: <%= draft.submission_errors.to_sentence %>"
+                data-controller="tooltip"
+                data-bs-toggle="tooltip"></i>
+            <% end %>
+            <span class="text-break"><%= draft.display_name %></span>
+          <% end %>
+          <%= button_to destroy_draft_contents_path(draft_id: draft.id),
+            method: :delete,
+            class: "btn btn-link text-danger p-0",
+            aria: { label: "Delete draft" },
+            form_class: "me-3 flex-shrink-0",
+            form: { data: { turbo_frame: "modal", turbo_confirm: "Delete this draft? This cannot be undone." } } do %>
+            <i class="bi bi-trash-fill text-danger" aria-hidden="true"></i>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

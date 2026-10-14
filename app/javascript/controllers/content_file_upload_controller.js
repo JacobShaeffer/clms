@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-	static targets = ["input", "blob", "status", "submit"]
+	static targets = ["input", "blob", "status", "submit", "draftSubmit"]
 	static values = {
 		url: String,
 		required: { type: Boolean, default: true }
@@ -24,6 +24,7 @@ export default class extends Controller {
 
 		const file = this.inputTarget.files[0]
 		if (!file) {
+			this.setDraftSubmitting(true)
 			this.dispatch("preview-reset")
 			if (this.requiredValue) {
 				this.showError("File can't be blank")
@@ -36,6 +37,7 @@ export default class extends Controller {
 		this.dispatch("preview", { detail: { file } })
 		this.abortController = new AbortController()
 		this.setSubmitting(false)
+		this.setDraftSubmitting(false)
 		this.showStatus(`Uploading and checking ${file.name}…`)
 
 		const body = new FormData()
@@ -69,6 +71,8 @@ export default class extends Controller {
 				this.dispatch("preview-reset")
 				this.showError("File upload failed. Select the file again to retry.")
 			}
+		} finally {
+			if (requestNumber === this.requestNumber) this.setDraftSubmitting(true)
 		}
 	}
 
@@ -118,6 +122,10 @@ export default class extends Controller {
 
 	setSubmitting(enabled) {
 		this.submitTargets.forEach((submit) => { submit.disabled = !enabled })
+	}
+
+	setDraftSubmitting(enabled) {
+		this.draftSubmitTargets.forEach((submit) => { submit.disabled = !enabled })
 	}
 
 	get csrfToken() {

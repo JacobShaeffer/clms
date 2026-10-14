@@ -9,12 +9,14 @@ class DemoDataSeederTest < ActiveSupport::TestCase
   end
 
   test "rebuilds the complete development demonstration dataset" do
-    User.create!(name: "Existing user", email: "existing@example.com", password: "password")
+    user = User.create!(name: "Existing user", email: "existing@example.com", password: "password")
+    user.content_drafts.create!(form_data: { title: "Existing draft" })
 
     output = StringIO.new
     DemoDataSeeder.call(output:)
 
     refute User.exists?(email: "existing@example.com")
+    assert_empty ContentDraft.all
     assert_users
     assert_metadata
     assert_contents

@@ -6,6 +6,7 @@ module DevelopmentSeedSupport
 
     ActiveShelf.delete_all
     ContentTablePreference.delete_all
+    ContentDraft.delete_all
     LibraryFolderContent.delete_all
     LibraryVersionContent.delete_all
     ShelfContent.delete_all

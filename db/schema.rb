@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_002000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -52,6 +52,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_002000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "content_drafts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "form_data", default: {}, null: false
+    t.jsonb "submission_errors", default: [], null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_content_drafts_on_user_id"
   end
 
   create_table "content_table_preferences", force: :cascade do |t|
@@ -285,6 +294,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_002000) do
   add_foreign_key "active_shelves", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "content_drafts", "users"
   add_foreign_key "content_table_preferences", "users"
   add_foreign_key "contents", "users"
   add_foreign_key "contents_metadata", "contents"

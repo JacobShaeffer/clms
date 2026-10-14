@@ -42,6 +42,9 @@ Rails.application.routes.draw do
 
   resources :contents, only: %i[ index show new create edit update destroy ] do
     collection do
+      get :drafts
+      post :save_draft
+      delete "drafts/:draft_id", action: :destroy_draft, as: :destroy_draft
       get :trash, action: :trash_index
       post :validate_file
       get :table
