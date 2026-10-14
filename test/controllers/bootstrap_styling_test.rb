@@ -34,6 +34,9 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
     get root_url
 
     assert_response :success
+    assert_select "title", text: "SolarHub", count: 1
+    assert_select "meta[name='application-name'][content='SolarHub']", count: 1
+    assert_select "a.navbar-brand[href='#{root_path}']", text: "SolarHub", count: 1
     assert_select "link[rel='stylesheet'][href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css'][integrity][crossorigin='anonymous']", count: 1
     assert_select "link[rel='stylesheet'][href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css']", count: 1
     assert_select "link[rel='stylesheet'][href*='/assets/application']", count: 1
