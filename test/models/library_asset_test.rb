@@ -63,6 +63,23 @@ class LibraryAssetTest < ActiveSupport::TestCase
     assert_includes library_asset.errors[:design_files], "must be a supported file type"
   end
 
+  test "cannot change type or be deleted while used as a library banner" do
+    library_asset = build_image_only_asset
+    library_asset.name = "Library Banner"
+    library_asset.asset_type = "Banner"
+    library_asset.save!
+    library = Library.create!(name: "Banner Library", user: users(:one), banner: library_asset)
+
+    library_asset.asset_type = "Subject"
+    refute library_asset.save
+    assert_includes library_asset.errors[:asset_type], "must remain Banner while used by a library"
+
+    library_asset.reload
+    refute library_asset.destroy
+    assert Library.exists?(library.id)
+    assert_includes library_asset.errors[:base], "Cannot delete record because dependent banner libraries exist"
+  end
+
   private
 
   def build_image_only_asset

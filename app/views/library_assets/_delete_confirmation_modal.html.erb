@@ -1,4 +1,10 @@
 <%= render layout: "shared/modal", locals: { title: "Delete library asset" } do %>
+  <% if library_asset.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <%= library_asset.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
   <p>Are you sure you want to delete <strong><%= library_asset.display_name %></strong>?</p>
 
   <div class="modal-footer px-0 pb-0">

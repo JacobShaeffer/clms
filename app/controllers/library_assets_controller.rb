@@ -76,14 +76,28 @@ class LibraryAssetsController < ApplicationController
 
   # DELETE /library_assets/1 or /library_assets/1.json
   def destroy
-    @library_asset.destroy!
-
     respond_to do |format|
-      format.turbo_stream do
-        render_asset_results
+      if @library_asset.destroy
+        format.turbo_stream do
+          render_asset_results
+        end
+        format.html { redirect_to library_assets_path, notice: "Library asset was successfully destroyed.", status: :see_other }
+        format.json { head :no_content }
+      else
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "modal",
+            partial: "library_assets/delete_confirmation_modal",
+            locals: { library_asset: @library_asset }
+          ), status: :unprocessable_content
+        end
+        format.html do
+          redirect_to library_assets_path,
+            alert: @library_asset.errors.full_messages.to_sentence,
+            status: :see_other
+        end
+        format.json { render json: @library_asset.errors, status: :unprocessable_content }
       end
-      format.html { redirect_to library_assets_path, notice: "Library asset was successfully destroyed.", status: :see_other }
-      format.json { head :no_content }
     end
   end
 

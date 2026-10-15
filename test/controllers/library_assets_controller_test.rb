@@ -300,6 +300,46 @@ class LibraryAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to library_assets_url
   end
 
+  test "does not destroy an asset used by a module" do
+    library_module = LibraryModule.create!(
+      user: users(:one),
+      name: "Protected Module",
+      folder_name: "protected",
+      icon: @library_asset
+    )
+
+    assert_no_difference("LibraryAsset.count") do
+      delete library_asset_url(@library_asset), headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert LibraryModule.exists?(library_module.id)
+    assert LibraryAsset.exists?(@library_asset.id)
+    assert_select "turbo-stream[action='replace'][target='modal'] template turbo-frame#modal" do
+      assert_select ".alert.alert-danger[role='alert']", text: /dependent library modules/
+    end
+  end
+
+  test "does not destroy an asset used as a library banner" do
+    @library_asset.update!(asset_type: "Banner")
+    library = Library.create!(
+      name: "Banner Library",
+      user: users(:one),
+      banner: @library_asset
+    )
+
+    assert_no_difference("LibraryAsset.count") do
+      delete library_asset_url(@library_asset), headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert Library.exists?(library.id)
+    assert LibraryAsset.exists?(@library_asset.id)
+    assert_select "turbo-stream[action='replace'][target='modal'] template turbo-frame#modal" do
+      assert_select ".alert.alert-danger[role='alert']", text: /dependent banner libraries/
+    end
+  end
+
   private
 
   def create_filter_asset!(name:, language:, asset_type:)

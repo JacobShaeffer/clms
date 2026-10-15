@@ -36,6 +36,12 @@ class LibraryPolicyTest < Minitest::Test
     assert LibraryPolicy.new(user(:admin), Library).create?
   end
 
+  def test_updating_a_banner_requires_intern_plus
+    refute LibraryPolicy.new(user(:intern), Library).update_banner?
+    assert LibraryPolicy.new(user(:intern_plus), Library).update_banner?
+    assert LibraryPolicy.new(user(:admin), Library).update_banner?
+  end
+
   def test_table_actions_use_library_read_access
     organization_policy = LibraryPolicy.new(user(:organization), Library)
     guest_policy = LibraryPolicy.new(user(:guest), Library)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_15_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -98,11 +98,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
   end
 
   create_table "libraries", force: :cascade do |t|
+    t.bigint "banner_id"
     t.datetime "created_at", null: false
     t.bigint "current_version_id"
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["banner_id"], name: "index_libraries_on_banner_id"
     t.index ["current_version_id"], name: "index_libraries_on_current_version_id", unique: true
     t.index ["name"], name: "index_libraries_on_name"
     t.index ["user_id"], name: "index_libraries_on_user_id"
@@ -205,6 +207,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
     t.check_constraint "parent_folder_id IS NULL AND logo_id IS NOT NULL OR parent_folder_id IS NOT NULL AND logo_id IS NULL", name: "library_folders_root_only_logo"
   end
 
+  create_table "library_modules", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "folder_name", null: false
+    t.bigint "icon_id", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["icon_id"], name: "index_library_modules_on_icon_id"
+    t.index ["user_id"], name: "index_library_modules_on_user_id"
+  end
+
   create_table "library_version_contents", force: :cascade do |t|
     t.bigint "content_id", null: false
     t.datetime "created_at", null: false
@@ -299,6 +312,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
   add_foreign_key "contents", "users"
   add_foreign_key "contents_metadata", "contents"
   add_foreign_key "contents_metadata", "metadata", column: "metadata_id"
+  add_foreign_key "libraries", "library_assets", column: "banner_id"
   add_foreign_key "libraries", "library_versions", column: "current_version_id"
   add_foreign_key "libraries", "library_versions", column: ["current_version_id", "id"], primary_key: ["id", "library_id"], name: "fk_libraries_current_version_library"
   add_foreign_key "libraries", "users"
@@ -321,6 +335,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_120000) do
   add_foreign_key "library_folders", "library_versions"
   add_foreign_key "library_folders", "library_versions", column: ["library_version_id", "library_id"], primary_key: ["id", "library_id"], name: "fk_library_folders_version_library"
   add_foreign_key "library_folders", "users"
+  add_foreign_key "library_modules", "library_assets", column: "icon_id"
+  add_foreign_key "library_modules", "users"
   add_foreign_key "library_version_contents", "contents"
   add_foreign_key "library_version_contents", "library_versions"
   add_foreign_key "library_versions", "libraries"

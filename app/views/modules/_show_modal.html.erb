@@ -1,0 +1,11 @@
+<%= render layout: "shared/modal", locals: { title: "Module" } do %>
+  <%= render "modules/library_module", library_module: library_module %>
+
+  <div class="modal-footer px-0 pb-0">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <%= link_to "Edit",
+      edit_module_path(library_module, module_filters: @module_filter_context),
+      class: "btn btn-primary",
+      data: { turbo_frame: "modal" } %>
+  </div>
+<% end %>

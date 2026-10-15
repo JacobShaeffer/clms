@@ -1,0 +1,25 @@
+<div id="<%= dom_id library, :banner %>" class="position-relative">
+  <div class="ratio rounded border overflow-hidden bg-body-tertiary" style="--bs-aspect-ratio: 33.2757%;">
+    <% if library.banner&.image&.attached? %>
+      <%= image_tag library.banner.image,
+        class: "h-100 w-100 object-fit-cover",
+        alt: "#{library.name} banner" %>
+    <% else %>
+      <div class="d-flex align-items-center justify-content-center gap-2 text-body-secondary">
+        <i class="bi bi-exclamation-triangle-fill text-warning" aria-hidden="true"></i>
+        <span>No banner image chosen</span>
+        <i class="bi bi-exclamation-triangle-fill text-warning" aria-hidden="true"></i>
+      </div>
+    <% end %>
+  </div>
+
+  <% if policy(library).update_banner? %>
+    <%= link_to edit_library_banner_path(library),
+      class: "btn btn-sm btn-light border shadow-sm position-absolute top-0 start-0 m-2 z-1",
+      data: { turbo_frame: "modal" },
+      aria: { label: "Choose banner image for #{library.name}" },
+      title: "Choose banner image" do %>
+      <i class="bi bi-image" aria-hidden="true"></i>
+    <% end %>
+  <% end %>
+</div>

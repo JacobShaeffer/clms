@@ -40,6 +40,43 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{library_changes_path(@library)}']", text: "Change history", count: 1
   end
 
+  test "show renders the empty banner state and limits the image button" do
+    get library_url(@library)
+
+    assert_response :success
+    assert_select ".row > .col-xl-5 ##{ActionView::RecordIdentifier.dom_id(@library, :banner)}" do
+      assert_select ".ratio[style='--bs-aspect-ratio: 33.2757%;']", count: 1
+      assert_select "span", text: "No banner image chosen"
+      assert_select "i.bi.bi-exclamation-triangle-fill.text-warning[aria-hidden='true']", count: 2
+      assert_select "a[aria-label='Choose banner image for #{@library.name}']", count: 0
+    end
+
+    users(:one).update!(role: :intern_plus)
+    get library_url(@library)
+
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@library, :banner)}" do
+      assert_select "a[href='#{edit_library_banner_path(@library)}']" \
+        "[data-turbo-frame='modal'][title='Choose banner image']" \
+        "[aria-label='Choose banner image for #{@library.name}'] i.bi.bi-image[aria-hidden='true']"
+    end
+  end
+
+  test "show renders the same library banner for current and historical versions" do
+    banner = create_banner_asset!
+    @library.update!(banner: banner)
+    historical_version = @library.library_versions.order(:id).first
+
+    [ library_url(@library), library_url(@library, library_version_id: historical_version.id) ].each do |url|
+      get url
+
+      assert_response :success
+      assert_select "##{ActionView::RecordIdentifier.dom_id(@library, :banner)}" do
+        assert_select "img.h-100.w-100.object-fit-cover[alt='#{@library.name} banner']", count: 1
+        assert_select "span", text: "No banner image chosen", count: 0
+      end
+    end
+  end
+
   test "index lists each library with its current version" do
     get libraries_url
 
@@ -808,6 +845,21 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def create_banner_asset!
+    LibraryAsset.new(
+      user: users(:one),
+      name: "Library Banner #{SecureRandom.hex(4)}",
+      asset_type: "Banner"
+    ).tap do |asset|
+      asset.image.attach(
+        io: StringIO.new("PNG contents"),
+        filename: "library-banner.png",
+        content_type: "image/png"
+      )
+      asset.save!
+    end
+  end
 
   def create_folder!(library, name:, parent_folder: nil)
     library.library_folders.create!(

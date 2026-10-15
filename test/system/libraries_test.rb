@@ -38,6 +38,35 @@ class LibrariesTest < ApplicationSystemTestCase
     assert_selector "tbody#libraries tr", text: /Agriculture Library.*1\.0/
   end
 
+  test "chooses a Banner asset and updates the library header" do
+    library = Library.create!(name: "Banner Library", user: users(:one))
+    banner = create_library_asset!(name: "Community Banner", asset_type: "Banner")
+    subject = create_library_asset!(name: "Community Subject", asset_type: "Subject")
+
+    visit library_path(library)
+
+    within "##{ActionView::RecordIdentifier.dom_id(library, :banner)}" do
+      assert_text "No banner image chosen"
+      assert_selector "i.bi-exclamation-triangle-fill.text-warning", count: 2
+      find("a[aria-label='Choose banner image for #{library.name}']").click
+    end
+
+    within "turbo-frame#modal" do
+      assert_selector ".modal-title", text: "Choose banner image"
+      assert_selector "option", text: banner.display_name
+      assert_no_selector "option", text: subject.display_name
+      select banner.display_name, from: "Banner image"
+      click_button "Save banner"
+    end
+
+    assert_no_selector "turbo-frame#modal .modal"
+    within "##{ActionView::RecordIdentifier.dom_id(library, :banner)}" do
+      assert_selector "img[alt='#{library.name} banner']"
+      assert_no_text "No banner image chosen"
+    end
+    assert_equal banner, library.reload.banner
+  end
+
   test "selecting a previous version shows its folder snapshot as read only" do
     library = Library.create!(name: "Versioned Library", user: users(:one))
     root_folder = create_folder!(library, "Guides")
@@ -628,6 +657,17 @@ class LibrariesTest < ApplicationSystemTestCase
   end
 
   private
+
+  def create_library_asset!(name:, asset_type:)
+    LibraryAsset.new(user: users(:one), name: name, asset_type: asset_type).tap do |asset|
+      asset.image.attach(
+        io: StringIO.new("PNG contents"),
+        filename: "#{name.parameterize}.png",
+        content_type: "image/png"
+      )
+      asset.save!
+    end
+  end
 
   def create_folder!(library, name, parent_folder: nil)
     library.library_folders.create!(

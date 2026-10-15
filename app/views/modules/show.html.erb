@@ -1,0 +1,11 @@
+<% content_for :title, @library_module.name %>
+
+<div class="my-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0"><%= @library_module.name %></h1>
+    <%= link_to "Edit Module", edit_module_path(@library_module), class: "btn btn-primary" %>
+  </div>
+
+  <%= render "modules/library_module", library_module: @library_module %>
+  <%= link_to "Back to modules", modules_path, class: "btn btn-secondary mt-3" %>
+</div>

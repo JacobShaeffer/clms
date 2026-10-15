@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   resources :libraries, only: %i[ index show new create ] do
+    resource :banner, controller: "library_banners", only: %i[ edit update ]
     resources :library_folders, only: %i[ new create ]
     resources :library_versions, only: %i[ new create ]
     resources :changes, controller: "library_changes", only: %i[ index show ] do
@@ -34,6 +35,11 @@ Rails.application.routes.draw do
   end
 
   resources :library_assets do
+    member do
+      get :delete_confirmation
+    end
+  end
+  resources :modules, controller: "modules" do
     member do
       get :delete_confirmation
     end

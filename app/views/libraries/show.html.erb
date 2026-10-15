@@ -4,8 +4,8 @@
   class="my-4"
   data-controller="library-folder-actions library-content-selection"
   data-action="turbo:frame-load->library-folder-actions#sync change->library-content-selection#update turbo:frame-render@document->library-content-selection#frameRendered content-table-selection:connected->library-content-selection#tableConnected">
-  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-    <div>
+  <div class="row g-3 align-items-start mb-4">
+    <div class="col-12 col-xl-3">
       <h1 class="mb-1"><%= @library.name %></h1>
       <div class="dropdown">
         <button
@@ -35,7 +35,11 @@
       </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2">
+    <div class="col-12 col-xl-5">
+      <%= render "libraries/banner", library: @library %>
+    </div>
+
+    <div class="col-12 col-xl-4 d-flex flex-wrap justify-content-xl-end gap-2">
       <% if policy(LibraryChange).index? %>
         <%= link_to "Change history", library_changes_path(@library), class: "btn btn-outline-secondary" %>
       <% end %>

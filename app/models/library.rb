@@ -3,6 +3,10 @@ class Library < ApplicationRecord
 
   belongs_to :user
   belongs_to :current_version, class_name: "LibraryVersion", optional: true
+  belongs_to :banner,
+    class_name: "LibraryAsset",
+    inverse_of: :banner_libraries,
+    optional: true
 
   has_many :library_versions, inverse_of: :library, dependent: :restrict_with_error
   has_many :library_folders, inverse_of: :library, dependent: :restrict_with_error
@@ -11,6 +15,7 @@ class Library < ApplicationRecord
 
   validates :name, presence: true
   validates :current_version, presence: true, on: :update
+  validate :banner_is_banner_asset
   validate :current_version_belongs_to_library
   validate :current_version_is_editable
 
@@ -21,6 +26,12 @@ class Library < ApplicationRecord
   end
 
   private
+
+  def banner_is_banner_asset
+    return if banner.blank? || banner.asset_type == "Banner"
+
+    errors.add(:banner, "must be a Banner library asset")
+  end
 
   def create_initial_version!
     version = library_versions.create!(

@@ -1,0 +1,46 @@
+<% form_data = local_assigns[:modal] ? { turbo_frame: "modal" } : { turbo: false } %>
+<% form_url = library_module.persisted? ? module_path(library_module) : modules_path %>
+
+<%= form_with model: library_module, url: form_url, data: form_data do |form| %>
+  <% @module_filter_context.each do |field, value| %>
+    <%= hidden_field_tag "module_filters[#{field}]", value %>
+  <% end %>
+
+  <% if library_module.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <p class="mb-2"><%= pluralize(library_module.errors.count, "error") %> prevented this module from being saved:</p>
+      <ul class="mb-0">
+        <% library_module.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= form.label :name, class: "form-label" %>
+    <%= form.text_field :name, class: "form-control", required: true, autofocus: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :folder_name, "Folder Name", class: "form-label" %>
+    <%= form.text_field :folder_name, class: "form-control", required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :icon_id, "Icon", class: "form-label" %>
+    <%= form.collection_select :icon_id,
+      @icon_options,
+      :id,
+      :display_name,
+      { prompt: "Select a library asset" },
+      { class: "form-select", required: true } %>
+  </div>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if local_assigns[:modal] %>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <% end %>
+    <%= form.submit library_module.persisted? ? "Update Module" : "Create Module", class: "btn btn-primary" %>
+  </div>
+<% end %>

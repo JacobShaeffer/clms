@@ -1,0 +1,42 @@
+<% form_data = local_assigns[:modal] ? { turbo_frame: "modal" } : { turbo: false } %>
+
+<%= form_with model: library, url: library_banner_path(library), data: form_data do |form| %>
+  <% if library.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <p class="mb-2"><%= pluralize(library.errors.count, "error") %> prevented the banner from being saved:</p>
+      <ul class="mb-0">
+        <% library.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if @banner_assets.any? %>
+    <div class="mb-3">
+      <%= form.label :banner_id, "Banner image", class: "form-label" %>
+      <select
+        id="library_banner_id"
+        name="library[banner_id]"
+        class="form-select"
+        required
+        autofocus>
+        <% unless library.banner_id? %>
+          <option value="" selected disabled>Select a banner image</option>
+        <% end %>
+        <% @banner_assets.each do |asset| %>
+          <option value="<%= asset.id %>" <%= "selected" if asset.id == library.banner_id %>><%= asset.display_name %></option>
+        <% end %>
+      </select>
+    </div>
+  <% else %>
+    <p class="text-body-secondary" role="status">No Banner library assets are available.</p>
+  <% end %>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if local_assigns[:modal] %>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <% end %>
+    <%= form.submit "Save banner", class: "btn btn-primary", disabled: @banner_assets.empty? %>
+  </div>
+<% end %>

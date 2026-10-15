@@ -13,6 +13,7 @@ class User < ApplicationRecord
   has_many :active_shelves, dependent: :destroy
   has_many :content_table_preferences, dependent: :destroy
   has_many :library_assets
+  has_many :library_modules
   has_many :libraries
   has_many :library_versions
   has_many :library_folders

@@ -1,0 +1,3 @@
+<%= render layout: "shared/modal", locals: { title: library_module.persisted? ? "Edit Module" : "New Module" } do %>
+  <%= render "modules/form", library_module: library_module, modal: true %>
+<% end %>

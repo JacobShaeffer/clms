@@ -1,0 +1,9 @@
+<% content_for :title, "New Module" %>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8">
+    <h1 class="mb-4">New Module</h1>
+    <%= render "modules/form", library_module: @library_module %>
+    <%= link_to "Back to modules", modules_path, class: "btn btn-secondary mt-3" %>
+  </div>
+</div>

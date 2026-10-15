@@ -1,0 +1,9 @@
+<% content_for :title, "Choose banner image" %>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8">
+    <h1 class="mb-4">Choose banner image</h1>
+    <%= render "library_banners/form", library: @library %>
+    <%= link_to "Back to library", library_path(@library), class: "btn btn-secondary mt-3" %>
+  </div>
+</div>

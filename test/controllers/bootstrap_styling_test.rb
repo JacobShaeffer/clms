@@ -59,6 +59,7 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
       assert_select "a.nav-link[href='#{libraries_path}']", text: "Library", count: 1
       assert_select "button.nav-link.dropdown-toggle.dropdown-toggle-split[data-bs-toggle='dropdown'][aria-expanded='false']", count: 1
       assert_select "ul.dropdown-menu a.dropdown-item[href='#{library_assets_path}']", text: "Library Assets", count: 1
+      assert_select "ul.dropdown-menu a.dropdown-item[href='#{modules_path}']", text: "Modules", count: 1
     end
     assert_select "h1.mb-3", text: "Home Page"
   end

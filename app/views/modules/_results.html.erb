@@ -1,0 +1,56 @@
+<div class="table-responsive">
+  <table class="table table-striped table-hover align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Folder Name</th>
+        <th scope="col">Library asset</th>
+        <th scope="col" class="text-end"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody id="modules">
+      <% @library_modules.each do |library_module| %>
+        <tr id="<%= dom_id library_module %>">
+          <td><%= library_module.name %></td>
+          <td><%= library_module.folder_name %></td>
+          <td><%= library_module.icon.display_name %></td>
+          <td class="text-end text-nowrap">
+            <div class="d-inline-flex gap-1">
+              <%= link_to module_path(library_module, module_filters: @module_filter_context),
+                class: "btn btn-sm btn-outline-primary",
+                data: { turbo_frame: "modal", module_filters_target: "contextLink" },
+                aria: { label: "Show #{library_module.name}" },
+                title: "Show" do %>
+                <i class="bi bi-eye" aria-hidden="true"></i>
+              <% end %>
+
+              <%= link_to edit_module_path(library_module, module_filters: @module_filter_context),
+                class: "btn btn-sm btn-outline-secondary",
+                data: { turbo_frame: "modal", module_filters_target: "contextLink" },
+                aria: { label: "Edit #{library_module.name}" },
+                title: "Edit" do %>
+                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+              <% end %>
+
+              <% if policy(library_module).destroy? %>
+                <%= link_to delete_confirmation_module_path(library_module, module_filters: @module_filter_context),
+                  class: "btn btn-sm btn-outline-danger",
+                  data: { turbo_frame: "modal", module_filters_target: "contextLink" },
+                  aria: { label: "Destroy #{library_module.name}" },
+                  title: "Destroy" do %>
+                  <i class="bi bi-trash" aria-hidden="true"></i>
+                <% end %>
+              <% end %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+
+      <% if @library_modules.empty? %>
+        <tr>
+          <td colspan="4" class="text-center text-body-secondary py-4">No modules match your search.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

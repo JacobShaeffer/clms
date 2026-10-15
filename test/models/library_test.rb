@@ -40,4 +40,40 @@ class LibraryTest < ActiveSupport::TestCase
     assert_not library.valid?
     assert_includes library.errors[:name], "can't be blank"
   end
+
+  test "banner is optional" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+
+    assert_nil library.banner
+  end
+
+  test "accepts only Banner library assets as the banner" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+    banner = build_asset("Banner")
+    subject = build_asset("Subject")
+    banner.save!
+    subject.save!
+
+    assert library.update(banner: banner)
+
+    library.banner = subject
+    refute library.valid?
+    assert_includes library.errors[:banner], "must be a Banner library asset"
+  end
+
+  private
+
+  def build_asset(asset_type)
+    LibraryAsset.new(
+      user: users(:one),
+      name: "#{asset_type} #{SecureRandom.hex(4)}",
+      asset_type: asset_type
+    ).tap do |asset|
+      asset.image.attach(
+        io: StringIO.new("PNG contents"),
+        filename: "#{asset_type.downcase}.png",
+        content_type: "image/png"
+      )
+    end
+  end
 end
