@@ -1,0 +1,1305 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [8 0 R 10 0 R 12 0 R 14 0 R 16 0 R] /Count 5 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Title (SolarHub PostgreSQL Production Setup) /Author (SolarHub) /Subject (Production PostgreSQL server configuration) >>
+endobj
+7 0 obj
+<< /Length 4117 >>
+stream
+BT
+/F2 22.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 105.80 733.00 Tm
+(SolarHub PostgreSQL Production Setup) Tj
+ET
+BT
+/F1 11.50 Tf
+0.300 0.380 0.450 rg
+1 0 0 1 137.98 703.00 Tm
+(Single-server Ubuntu/Debian deployment with Docker and Kamal) Tj
+ET
+BT
+/F1 9.50 Tf
+0.420 0.470 0.520 rg
+1 0 0 1 248.86 683.00 Tm
+(Prepared October 20, 2026) Tj
+ET
+q
+0.100 0.380 0.600 RG
+1.4 w
+54.0 664.0 m 558.0 664.0 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 656.00 Tm
+(This guide installs PostgreSQL directly on the same server that runs the SolarHub Docker containers. It) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 641.80 Tm
+(creates a restricted PostgreSQL role and four production databases, then permits database connections) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 627.60 Tm
+(only from Kamal's Docker network.) Tj
+ET
+BT
+/F2 10.60 Tf
+0.540 0.150 0.120 rg
+1 0 0 1 54.00 606.40 Tm
+(Important security rule) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 587.40 Tm
+(Do not expose PostgreSQL port 5432 to the public internet. The database should listen only on localhost and) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 573.20 Tm
+(the private Docker network gateway.) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 541.00 Tm
+(1. Install PostgreSQL) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 530.9999999999998 m 558.0 530.9999999999998 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 516.00 Tm
+(Run these commands on the server from an administrator account with sudo access:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 424.2999999999998 504.0 75.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 487.80 Tm
+(sudo apt update) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 476.30 Tm
+(sudo apt install -y postgresql postgresql-client) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 464.80 Tm
+(sudo systemctl enable --now postgresql) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 453.30 Tm
+(sudo systemctl status postgresql --no-pager) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 441.80 Tm
+(psql --version) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 410.30 Tm
+(The status command should report that PostgreSQL is active. Record the major version printed by psql; it) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 396.10 Tm
+(is used in configuration paths later.) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 363.90 Tm
+(2. Create the Kamal Docker network) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 353.8999999999998 m 558.0 353.8999999999998 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 338.90 Tm
+(Run this as the deploy user:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 293.1999999999998 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 310.70 Tm
+(docker network inspect kamal >/dev/null 2>&1 || docker network create kamal) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 279.20 Tm
+(Display the network subnet and host gateway:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 221.99999999999983 504.0 41.0 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 251.00 Tm
+(docker network inspect kamal \\) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 239.50 Tm
+(  --format 'Subnet={{\(index .IPAM.Config 0\).Subnet}} Gateway={{\(index .IPAM.Config 0\).Gateway}}') Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 208.00 Tm
+(Record both values. A typical result looks like this:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 162.29999999999984 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 179.80 Tm
+(Subnet=172.18.0.0/16 Gateway=172.18.0.1) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 148.30 Tm
+(The rest of this guide calls these values DOCKER_SUBNET and DOCKER_GATEWAY. Use the actual values) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 134.10 Tm
+(reported by your server.) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 42 m 558.0 42 l S
+Q
+BT
+/F1 8.2 Tf
+0.40 0.45 0.50 rg
+1 0 0 1 517.0 27 Tm
+(Page 1 of 5) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 4625 >>
+stream
+BT
+/F2 8.5 Tf
+0.30 0.38 0.45 rg
+1 0 0 1 54.0 758.0 Tm
+(SolarHub PostgreSQL Production Setup) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 750.0 m 558.0 750.0 l S
+Q
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 727.00 Tm
+(3. Configure PostgreSQL network access) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 717.0 m 558.0 717.0 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 702.00 Tm
+(List the installed PostgreSQL version directory:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 656.3 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 673.80 Tm
+(ls /etc/postgresql) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 642.30 Tm
+(Edit the server configuration, replacing VERSION with that directory name:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 596.5999999999999 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 614.10 Tm
+(sudoedit /etc/postgresql/VERSION/main/postgresql.conf) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 582.60 Tm
+(Set these values, replacing DOCKER_GATEWAY with the network gateway recorded above:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 525.3999999999999 504.0 41.0 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 554.40 Tm
+(listen_addresses = 'localhost,DOCKER_GATEWAY') Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 542.90 Tm
+(password_encryption = 'scram-sha-256') Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 511.40 Tm
+(Example:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 454.1999999999999 504.0 41.0 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 483.20 Tm
+(listen_addresses = 'localhost,172.18.0.1') Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 471.70 Tm
+(password_encryption = 'scram-sha-256') Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 440.20 Tm
+(Do not use an asterisk for listen_addresses. Restart PostgreSQL:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 394.4999999999999 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 412.00 Tm
+(sudo systemctl restart postgresql) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 369.50 Tm
+(4. Create the restricted SolarHub role) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 359.4999999999999 m 558.0 359.4999999999999 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 344.50 Tm
+(Generate a long random password and save it in a password manager. Then create the PostgreSQL login) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 330.30 Tm
+(role:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 284.83333333333326 504.0 29.266666666666666 re B
+Q
+BT
+/F3 8.07 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 302.10 Tm
+(sudo -u postgres createuser --login --pwprompt --no-superuser --no-createdb --no-createrole solarhub) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 270.83 Tm
+(Enter the generated password when prompted. This role deliberately cannot create databases, roles, or) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 256.63 Tm
+(superusers.) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 224.43 Tm
+(5. Create the production databases) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 214.43333333333328 m 558.0 214.43333333333328 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 199.43 Tm
+(Because the SolarHub role does not have CREATEDB permission, create the four production databases once) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 185.23 Tm
+(using the PostgreSQL administrator:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 105.0333333333333 504.0 64.0 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 157.03 Tm
+(sudo -u postgres createdb --owner=solarhub solarhub_production) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 145.53 Tm
+(sudo -u postgres createdb --owner=solarhub solarhub_production_cache) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 134.03 Tm
+(sudo -u postgres createdb --owner=solarhub solarhub_production_queue) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 122.53 Tm
+(sudo -u postgres createdb --owner=solarhub solarhub_production_cable) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 91.03 Tm
+(Rails will not need permission to create databases. During deployment, bin/rails db:prepare will create) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 76.83 Tm
+(tables and run migrations inside these existing databases.) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 42 m 558.0 42 l S
+Q
+BT
+/F1 8.2 Tf
+0.40 0.45 0.50 rg
+1 0 0 1 517.0 27 Tm
+(Page 2 of 5) Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 4038 >>
+stream
+BT
+/F2 8.5 Tf
+0.30 0.38 0.45 rg
+1 0 0 1 54.0 758.0 Tm
+(SolarHub PostgreSQL Production Setup) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 750.0 m 558.0 750.0 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 738.00 Tm
+(Verify the role and databases:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 680.8 504.0 41.0 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 709.80 Tm
+(sudo -u postgres psql -c "\\du solarhub") Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 698.30 Tm
+(sudo -u postgres psql -l) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 666.80 Tm
+(The SolarHub role should own all four databases and should not be a superuser.) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 634.60 Tm
+(6. Authorize connections from Docker) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 624.5999999999999 m 558.0 624.5999999999999 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 609.60 Tm
+(Edit the client-authentication configuration:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 563.8999999999999 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 581.40 Tm
+(sudoedit /etc/postgresql/VERSION/main/pg_hba.conf) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 549.90 Tm
+(Add these lines at the end of the file. Replace DOCKER_SUBNET with the actual network subnet:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 469.6999999999998 504.0 64.0 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 521.70 Tm
+(host  solarhub_production        solarhub  DOCKER_SUBNET  scram-sha-256) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 510.20 Tm
+(host  solarhub_production_cache  solarhub  DOCKER_SUBNET  scram-sha-256) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 498.70 Tm
+(host  solarhub_production_queue  solarhub  DOCKER_SUBNET  scram-sha-256) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 487.20 Tm
+(host  solarhub_production_cable  solarhub  DOCKER_SUBNET  scram-sha-256) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 455.70 Tm
+(Example:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 375.49999999999983 504.0 64.0 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 427.50 Tm
+(host  solarhub_production        solarhub  172.18.0.0/16  scram-sha-256) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 416.00 Tm
+(host  solarhub_production_cache  solarhub  172.18.0.0/16  scram-sha-256) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 404.50 Tm
+(host  solarhub_production_queue  solarhub  172.18.0.0/16  scram-sha-256) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 393.00 Tm
+(host  solarhub_production_cable  solarhub  172.18.0.0/16  scram-sha-256) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 361.50 Tm
+(Check for pg_hba.conf parsing errors:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 316.0333333333332 504.0 29.266666666666666 re B
+Q
+BT
+/F3 8.07 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 333.30 Tm
+(sudo -u postgres psql -c "SELECT line_number, error FROM pg_hba_file_rules WHERE error IS NOT NULL;") Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 302.03 Tm
+(The query should return zero rows. Restart PostgreSQL:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 256.3333333333332 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 273.83 Tm
+(sudo systemctl restart postgresql) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 242.33 Tm
+(Confirm that PostgreSQL listens only on localhost and the Docker gateway:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 196.6333333333332 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 214.13 Tm
+(sudo ss -ltnp | grep 5432) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 182.63 Tm
+(The output should not contain 0.0.0.0:5432 or the server's public IP address.) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 42 m 558.0 42 l S
+Q
+BT
+/F1 8.2 Tf
+0.40 0.45 0.50 rg
+1 0 0 1 517.0 27 Tm
+(Page 3 of 5) Tj
+ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 4782 >>
+stream
+BT
+/F2 8.5 Tf
+0.30 0.38 0.45 rg
+1 0 0 1 54.0 758.0 Tm
+(SolarHub PostgreSQL Production Setup) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 750.0 m 558.0 750.0 l S
+Q
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 727.00 Tm
+(7. Configure the firewall) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 717.0 m 558.0 717.0 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 702.00 Tm
+(Check whether UFW is active:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 656.3 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 673.80 Tm
+(sudo ufw status) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 642.30 Tm
+(If it is active, allow only the Docker subnet to reach PostgreSQL on the Docker gateway:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 596.5999999999999 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 614.10 Tm
+(sudo ufw allow from DOCKER_SUBNET to DOCKER_GATEWAY port 5432 proto tcp) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 582.60 Tm
+(Example:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 536.8999999999999 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 554.40 Tm
+(sudo ufw allow from 172.18.0.0/16 to 172.18.0.1 port 5432 proto tcp) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 522.90 Tm
+(Do not add a public allow rule for port 5432.) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 490.70 Tm
+(8. Test from a Docker container) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 480.6999999999999 m 558.0 480.6999999999999 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 465.70 Tm
+(Replace POSTGRES_MAJOR with the PostgreSQL major version and DOCKER_GATEWAY with the actual) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 451.50 Tm
+(gateway. Docker may download the matching client image the first time this command runs:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 371.2999999999999 504.0 64.0 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 423.30 Tm
+(docker run --rm -it --network kamal postgres:POSTGRES_MAJOR-alpine \\) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 411.80 Tm
+(  psql --host=DOCKER_GATEWAY --username=solarhub \\) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 400.30 Tm
+(  --dbname=solarhub_production --password \\) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 388.80 Tm
+(  --command='select current_database\(\), current_user;') Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 357.30 Tm
+(Enter the SolarHub database password when prompted. Successful output identifies solarhub_production) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 343.10 Tm
+(as the current database and solarhub as the current user. Do not continue to deployment until this test) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 328.90 Tm
+(passes.) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 296.70 Tm
+(9. Configure Kamal) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 286.69999999999993 m 558.0 286.69999999999993 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 271.70 Tm
+(In config/deploy.yml, add the PostgreSQL settings. Replace DOCKER_GATEWAY with the actual gateway:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 87.99999999999994 504.0 167.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 243.50 Tm
+(env:) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 232.00 Tm
+(  secret:) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 220.50 Tm
+(    - RAILS_MASTER_KEY) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 209.00 Tm
+(    - POSTGRES_PASSWORD) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 186.00 Tm
+(  clear:) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 174.50 Tm
+(    SOLID_QUEUE_IN_PUMA: true) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 163.00 Tm
+(    POSTGRES_HOST: DOCKER_GATEWAY) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 151.50 Tm
+(    POSTGRES_USER: solarhub) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 140.00 Tm
+(    POSTGRES_DB: solarhub_production) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 128.50 Tm
+(    POSTGRES_CACHE_DB: solarhub_production_cache) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 117.00 Tm
+(    POSTGRES_QUEUE_DB: solarhub_production_queue) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 105.50 Tm
+(    POSTGRES_CABLE_DB: solarhub_production_cable) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 74.00 Tm
+(In .kamal/secrets, add a reference to the environment variable. Do not put the actual password in this) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 42 m 558.0 42 l S
+Q
+BT
+/F1 8.2 Tf
+0.40 0.45 0.50 rg
+1 0 0 1 517.0 27 Tm
+(Page 4 of 5) Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 4642 >>
+stream
+BT
+/F2 8.5 Tf
+0.30 0.38 0.45 rg
+1 0 0 1 54.0 758.0 Tm
+(SolarHub PostgreSQL Production Setup) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 750.0 m 558.0 750.0 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 738.00 Tm
+(tracked file:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 692.3 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 709.80 Tm
+(POSTGRES_PASSWORD=$POSTGRES_PASSWORD) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 678.30 Tm
+(Inside the development container, load the password without placing it in shell history:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 609.5999999999999 504.0 52.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 650.10 Tm
+(read -rsp "PostgreSQL password: " POSTGRES_PASSWORD) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 638.60 Tm
+(export POSTGRES_PASSWORD) Tj
+ET
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 627.10 Tm
+(echo) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 595.60 Tm
+(Check the resulting deployment configuration:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 549.8999999999999 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 567.40 Tm
+(bin/kamal config) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 524.90 Tm
+(10. Completion checklist) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 514.8999999999999 m 558.0 514.8999999999999 l S
+Q
+BT
+/F2 10.20 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 58.00 499.90 Tm
+(-) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 72.00 499.90 Tm
+(PostgreSQL is active and enabled at boot.) Tj
+ET
+BT
+/F2 10.20 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 58.00 482.70 Tm
+(-) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 72.00 482.70 Tm
+(The solarhub role is not a superuser and cannot create databases or roles.) Tj
+ET
+BT
+/F2 10.20 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 58.00 465.50 Tm
+(-) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 72.00 465.50 Tm
+(All four production databases exist and are owned by solarhub.) Tj
+ET
+BT
+/F2 10.20 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 58.00 448.30 Tm
+(-) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 72.00 448.30 Tm
+(PostgreSQL listens only on localhost and the Kamal Docker gateway.) Tj
+ET
+BT
+/F2 10.20 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 58.00 431.10 Tm
+(-) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 72.00 431.10 Tm
+(pg_hba.conf permits SCRAM authentication only from the Kamal subnet.) Tj
+ET
+BT
+/F2 10.20 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 58.00 413.90 Tm
+(-) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 72.00 413.90 Tm
+(The Docker-based connection test succeeds.) Tj
+ET
+BT
+/F2 10.20 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 58.00 396.70 Tm
+(-) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 72.00 396.70 Tm
+(The PostgreSQL password is stored in a password manager and is not committed.) Tj
+ET
+BT
+/F2 10.20 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 58.00 379.50 Tm
+(-) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 72.00 379.50 Tm
+(Kamal receives POSTGRES_PASSWORD as a secret.) Tj
+ET
+BT
+/F2 14.00 Tf
+0.050 0.230 0.390 rg
+1 0 0 1 54.00 351.30 Tm
+(11. Official references) Tj
+ET
+q
+0.740 0.820 0.880 RG
+0.6 w
+54.0 341.29999999999995 m 558.0 341.29999999999995 l S
+Q
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 326.30 Tm
+(Ubuntu PostgreSQL installation and configuration:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 280.59999999999997 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 298.10 Tm
+(https://documentation.ubuntu.com/server/how-to/databases/install-postgresql/) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 266.60 Tm
+(PostgreSQL role documentation:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 220.89999999999998 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 238.40 Tm
+(https://www.postgresql.org/docs/current/sql-createrole.html) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 206.90 Tm
+(PostgreSQL client authentication documentation:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 161.2 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 178.70 Tm
+(https://www.postgresql.org/docs/current/auth-pg-hba-conf.html) Tj
+ET
+BT
+/F1 10.20 Tf
+0.130 0.160 0.190 rg
+1 0 0 1 54.00 147.20 Tm
+(Kamal Docker network documentation:) Tj
+ET
+q
+0.955 0.965 0.972 rg
+0.820 0.850 0.880 RG
+0.5 w
+54.0 101.5 504.0 29.5 re B
+Q
+BT
+/F3 8.30 Tf
+0.100 0.140 0.180 rg
+1 0 0 1 64.00 119.00 Tm
+(https://kamal-deploy.org/docs/upgrading/network-changes/) Tj
+ET
+q
+0.78 0.82 0.86 RG
+0.5 w
+54.0 42 m 558.0 42 l S
+Q
+BT
+/F1 8.2 Tf
+0.40 0.45 0.50 rg
+1 0 0 1 517.0 27 Tm
+(Page 5 of 5) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 15 0 R >>
+endobj
+xref
+0 17
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000149 00000 n 
+0000000246 00000 n 
+0000000348 00000 n 
+0000000443 00000 n 
+0000000583 00000 n 
+0000004752 00000 n 
+0000004898 00000 n 
+0000009575 00000 n 
+0000009722 00000 n 
+0000013813 00000 n 
+0000013961 00000 n 
+0000018796 00000 n 
+0000018944 00000 n 
+0000023639 00000 n 
+trailer
+<< /Size 17 /Root 1 0 R /Info 6 0 R >>
+startxref
+23787
+%%EOF

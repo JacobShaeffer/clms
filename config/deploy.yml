@@ -1,13 +1,13 @@
 # Name of your application. Used to uniquely configure containers.
-service: clms
+service: solarhub
 
 # Name of the container image (use your-user/app-name on external registries).
-image: clms
+image: solarhub
 
 # Deploy to these servers.
 servers:
   web:
-    - 192.168.0.1
+    - 10.212.7.245
   # job:
   #   hosts:
   #     - 192.168.0.1
@@ -54,11 +54,11 @@ env:
 
     # Set Postgres connection settings for production.
     # POSTGRES_HOST: postgres
-    # POSTGRES_DB: clms_production
+    # POSTGRES_DB: solarhub_production
     # POSTGRES_USER: postgres
 
     # Match this to any external database server to configure Active Record correctly
-    # Use clms-db for a db accessory server on same machine via local kamal docker network.
+    # Use solarhub-db for a db accessory server on same machine via local kamal docker network.
     # DB_HOST: 192.168.0.2
 
     # Log everything from Rails
@@ -75,7 +75,7 @@ aliases:
 # Use a persistent storage volume for sqlite database files and local Active Storage files.
 # Recommended to change this to a mounted volume path that is backed up off server.
 volumes:
-  - "clms_storage:/rails/storage"
+  - "solarhub_storage:/rails/storage"
 
 # Bridge fingerprinted assets, like JS and CSS, between versions to avoid
 # hitting 404 on in-flight requests. Combines all files from new and old
@@ -97,8 +97,10 @@ builder:
   #   - RAILS_MASTER_KEY
 
 # Use a different ssh user than root
-# ssh:
-#   user: app
+ssh:
+  user: deploy
+  keys_only: false
+  forward_agent: false
 
 # Use accessory services (secrets come from .kamal/secrets).
 # accessories:

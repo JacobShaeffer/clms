@@ -1,6 +1,6 @@
-# SolarSPELL Content and Library Management System
+# SolarHub
 
-CLMS is a Rails application for managing learning content, metadata, libraries, library assets, folders, and user shelves.
+SolarHub is a Rails application for managing learning content, metadata, libraries, library assets, folders, and user shelves.
 
 ## Requirements
 
@@ -37,7 +37,7 @@ Development uses PostgreSQL with these defaults:
 
 - Host: `localhost`
 - User: `postgres`
-- Database: `clms_development`
+- Database: `solarhub_development`
 
 Set `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` to override them. Use `POSTGRES_TEST_DB` for the test database.
 

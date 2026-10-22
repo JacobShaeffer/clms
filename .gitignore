@@ -35,6 +35,9 @@
 
 /node_modules
 
+# Local database backups created during application/infrastructure migrations.
+/.backups/
+
 # Ignore ad hoc test output captures.
 /test/test_output.txt
 /test/test:system_output.txt
