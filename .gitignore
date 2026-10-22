@@ -42,3 +42,4 @@
 /test/test_output.txt
 /test/test:system_output.txt
 AI prompt workspace.md
+.DS_Store
