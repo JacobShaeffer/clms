@@ -44,7 +44,7 @@ class ContentPolicy < ApplicationPolicy
   end
 
   def update?
-    create?
+    at_least?(:intern_plus) || (create? && owner?)
   end
 
   def destroy?
@@ -76,5 +76,11 @@ class ContentPolicy < ApplicationPolicy
 
       scope.active
     end
+  end
+
+  private
+
+  def owner?
+    record.is_a?(Content) && user&.id.present? && record.user_id == user.id
   end
 end

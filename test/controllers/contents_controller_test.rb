@@ -776,6 +776,55 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal original_blob, @matching_content.file.blob
   end
 
+  test "volunteers and interns can edit their own content but cannot edit another users content" do
+    author = User.create!(name: "Content author", email: "content-author@example.com", password: "password", role: :volunteer)
+    @other_content.update!(user: author)
+    original_attributes = @other_content.attributes
+    original_metadata_ids = @other_content.metadatum_ids
+
+    %i[volunteer intern].each do |role|
+      @user.update!(role:)
+
+      get edit_content_url(@matching_content), headers: TURBO_FRAME_HEADERS
+      assert_response :success
+      patch content_url(@matching_content), params: { content: { description: "Own edit by #{role}" } }
+      assert_redirected_to contents_path
+      assert_equal "Own edit by #{role}", @matching_content.reload.description
+
+      get edit_content_url(@other_content), headers: TURBO_FRAME_HEADERS
+      assert_redirected_to root_path
+      patch content_url(@other_content), params: {
+        content: { title: "Unauthorized edit", metadatum_ids: [ @history.id ], user_id: @user.id }
+      }
+      assert_redirected_to root_path
+      assert_equal original_attributes, @other_content.reload.attributes
+      assert_equal original_metadata_ids, @other_content.metadatum_ids
+
+      get contents_url
+      assert_response :success
+      assert_select "a[href='#{edit_content_path(@matching_content)}']"
+      assert_select "a[href='#{edit_content_path(@other_content)}']", count: 0
+      get content_url(@other_content), headers: TURBO_FRAME_HEADERS
+      assert_response :success
+      assert_select ".modal-footer a", text: "Edit", count: 0
+    end
+  end
+
+  test "intern plus and admins can edit another users content" do
+    author = User.create!(name: "Content author", email: "content-author@example.com", password: "password", role: :volunteer)
+    @other_content.update!(user: author)
+
+    %i[intern_plus admin].each do |role|
+      @user.update!(role:)
+      get edit_content_url(@other_content), headers: TURBO_FRAME_HEADERS
+      assert_response :success
+      patch content_url(@other_content), params: { content: { description: "Edit by #{role}" } }
+      assert_redirected_to contents_path
+      assert_equal "Edit by #{role}", @other_content.reload.description
+      assert_equal author.id, @other_content.user_id
+    end
+  end
+
   test "invalid modal update rerenders the edit modal with errors" do
     patch content_url(@matching_content),
       params: { content: { title: "", description: "" } },

@@ -28,11 +28,36 @@ class ContentPolicyTest < Minitest::Test
     assert ContentPolicy.new(user(:volunteer), Content).create?
   end
 
-  def test_show_and_update
+  def test_show
     refute ContentPolicy.new(user(:guest), Content).show?
     assert ContentPolicy.new(user(:organization), Content).show?
-    refute ContentPolicy.new(user(:organization), Content).update?
-    assert ContentPolicy.new(user(:volunteer), Content).update?
+  end
+
+  def test_edit_and_update_require_ownership_below_intern_plus
+    User.roles.each_key do |role|
+      editor = user(role)
+      editor.id = 1
+      own_content = Content.new(user: editor)
+      other_content = Content.new(user_id: 2)
+      own_policy = ContentPolicy.new(editor, own_content)
+      other_policy = ContentPolicy.new(editor, other_content)
+
+      %i[edit? update?].each do |permission|
+        assert_equal %w[volunteer intern intern_plus admin].include?(role), own_policy.public_send(permission),
+          "#{role} #{permission} for own content"
+        assert_equal %w[intern_plus admin].include?(role), other_policy.public_send(permission),
+          "#{role} #{permission} for another user's content"
+      end
+    end
+  end
+
+  def test_edit_and_update_do_not_treat_missing_owners_as_a_match
+    [ nil, user(:volunteer) ].each do |editor|
+      policy = ContentPolicy.new(editor, Content.new)
+      refute policy.edit?
+      refute policy.update?
+    end
+    refute ContentPolicy.new(user(:volunteer), Content).update?
   end
 
   def test_file_replacement_and_permanent_deletion_have_separate_permissions
