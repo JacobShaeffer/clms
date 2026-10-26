@@ -21,6 +21,7 @@ class LibraryBuilds::ExportTest < ActiveSupport::TestCase
     run_export(build)
 
     storage = LibraryBuilds::Storage.new(build)
+    assert_empty storage.folder_path.join("modules", "launch-destination").children
     export_db(build) do |db|
       assert_equal "Saved Subject", db.get_first_value("SELECT folder_name FROM folder WHERE id = ?", @root.id)
       assert_equal @root.id, db.get_first_value("SELECT parent_id FROM folder WHERE id = ?", @child.id)
@@ -48,9 +49,76 @@ class LibraryBuilds::ExportTest < ActiveSupport::TestCase
       assert zip.find_entry("export/library.db")
       assert zip.find_entry("export/content/")
       assert zip.find_entry("export/assets/")
+      assert_predicate zip.find_entry("export/modules/launch-destination/"), :directory?
+      assert_predicate zip.find_entry("export/modules/"), :directory?
       assert_equal 1, zip.entries.count { |entry| entry.name.start_with?("export/content/") && !entry.directory? }
     end
     assert_predicate build, :ready?
+    assert_empty build.working_files
+  end
+
+  test "module folders use exact selected folder names and are replaced on rebuild" do
+    modules = [ "First Aid", ".offline-science" ].map.with_index do |name, index|
+      LibraryModule.create!(name: "Selected module #{index}", folder_name: name, icon: @asset, user: @user)
+    end
+    LibraryModule.create!(name: "Unselected module", folder_name: "unselected", icon: @asset, user: @user)
+    @library.selected_modules = modules
+    build = run_export(request_export)
+    storage = LibraryBuilds::Storage.new(build)
+    module_root = storage.folder_path.join("modules")
+    assert_equal [ ".offline-science", "First Aid" ], module_root.children.map { |path| path.basename.to_s }.sort
+    module_root.children.each { |path| assert_empty path.children }
+    Zip::File.open(storage.archive_path) do |zip|
+      entries = zip.entries.select { |entry| entry.name.start_with?("export/modules/") }
+      assert_equal [ "export/modules/", "export/modules/.offline-science/", "export/modules/First Aid/" ], entries.map(&:name).sort
+      entries.each { |entry| assert_predicate entry, :directory? }
+    end
+
+    @library.selected_modules = [ modules.last ]
+    run_export(request_export)
+    storage = LibraryBuilds::Storage.new(build.reload)
+    assert_equal [ ".offline-science" ], storage.folder_path.join("modules").children.map { |path| path.basename.to_s }
+    Zip::File.open(storage.archive_path) do |zip|
+      assert_nil zip.find_entry("export/modules/First Aid/")
+      assert_predicate zip.find_entry("export/modules/.offline-science/"), :directory?
+    end
+
+    @library.selected_modules.clear
+    run_export(request_export)
+    storage = LibraryBuilds::Storage.new(build.reload)
+    refute storage.folder_path.join("modules").exist?
+    Zip::File.open(storage.archive_path) do |zip|
+      assert_empty zip.entries.select { |entry| entry.name.start_with?("export/modules/") }
+    end
+  end
+
+  test "unsafe module folder names fail without replacing a published export" do
+    build = run_export(request_export)
+    archive = LibraryBuilds::Storage.new(build).archive_path.binread
+    mod = LibraryModule.create!(name: "Unsafe module", folder_name: "../escape", icon: @asset, user: @user)
+    @library.selected_modules << mod
+
+    [ "../escape", "/absolute", "nested/folder", "nested\\folder", ".", ".." ].each do |name|
+      mod.update!(folder_name: name)
+      build = request_export
+      error = assert_raises(LibraryBuilds::Error) { run_export(build) }
+      assert_includes error.message, "must be a single folder name"
+      assert_predicate build.reload, :failed?
+      assert_empty build.working_files
+      assert_equal 1, build.published_generation
+      assert_equal archive, LibraryBuilds::Storage.new(build).archive_path.binread
+    end
+  end
+
+  test "selected modules with duplicate folder names fail instead of merging folders" do
+    2.times do |index|
+      @library.selected_modules << LibraryModule.create!(name: "Module #{index}", folder_name: "same-folder", icon: @asset, user: @user)
+    end
+    build = request_export
+    error = assert_raises(LibraryBuilds::Error) { run_export(build) }
+    assert_includes error.message, "distinct folder names"
+    assert_predicate build.reload, :failed?
+    refute_predicate build, :published?
     assert_empty build.working_files
   end
 
@@ -113,6 +181,10 @@ class LibraryBuilds::ExportTest < ActiveSupport::TestCase
     LibraryVersions::Create.call(library: @library, version_number: "3.0", user: @user)
     build = run_export(request_export(source_version))
     assert_equal %w[.mp3 .mp4 .pdf], LibraryBuilds::Storage.new(build).folder_path.join("content").children.map(&:extname).sort
+    refute LibraryBuilds::Storage.new(build).folder_path.join("modules").exist?
+    Zip::File.open(LibraryBuilds::Storage.new(build).archive_path) do |zip|
+      assert_empty zip.entries.select { |entry| entry.name.start_with?("export/modules/") }
+    end
 
     empty = Library.create!(name: "Empty", user: @user)
     empty_version = empty.current_version
@@ -121,6 +193,7 @@ class LibraryBuilds::ExportTest < ActiveSupport::TestCase
     export_db(empty_build) { |db| assert_equal 0, db.get_first_value("SELECT count(*) FROM content") }
     assert_empty LibraryBuilds::Storage.new(empty_build).folder_path.join("content").children
     assert_empty LibraryBuilds::Storage.new(empty_build).folder_path.join("assets").children
+    refute LibraryBuilds::Storage.new(empty_build).folder_path.join("modules").exist?
   end
 
   test "obsolete generations and duplicate workers do not replace outputs" do

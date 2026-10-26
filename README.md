@@ -143,6 +143,8 @@ export/
   library.db
   content/
   assets/
+  modules/                 # Only when the library has selected modules
+    <module folder name>/  # Empty placeholder, one per selected module
 export.zip
 ```
 
@@ -150,6 +152,15 @@ The ZIP contains the `export/` directory. Content files are copied once per
 distinct content ID, regardless of folder count. PDF, MP3, and MP4 are supported.
 Assets contain referenced banner, folder-logo, and module-icon PNG images, not
 design ZIPs. Filenames include source IDs and sanitized source filenames.
+
+Libraries with selected modules also receive a `modules/` directory alongside
+`content/` and `assets/`. It contains one empty directory for each selected module,
+named exactly using that module's Folder name field. Empty directories are also
+included in the ZIP. No module files are copied yet, and libraries without
+selected modules omit `modules/`. Folder names must be distinct within the
+selection and must be single directory names. Path separators (`/` and `\\`) and
+the names `.` and `..` are not allowed. Invalid names fail the build and leave
+any previous export intact.
 
 SQLite schema version `1` is recorded in `PRAGMA user_version`:
 

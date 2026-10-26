@@ -26,6 +26,7 @@ module LibraryBuilds
           folder = stage.join("export")
           FileUtils.mkdir_p([ folder.join("content"), folder.join("assets") ])
           source = Source.call(build:)
+          create_module_folders(source, folder)
           copy_files(source, folder)
           SqliteWriter.call(source:, path: folder.join("library.db"))
           package(folder, stage.join("export.zip"))
@@ -54,6 +55,20 @@ module LibraryBuilds
 
     attr_reader :build, :generation, :storage
 
+    def create_module_folders(source, folder)
+      names = source.modules.map { |mod| mod.fetch(:module_name) }
+      return if names.empty?
+
+      names.each do |name|
+        if name.blank? || %w[. ..].include?(name) || name.include?("/") || name.include?("\\") || name.include?("\0")
+          raise Error, "Module folder name #{name.inspect} must be a single folder name"
+        end
+      end
+      raise Error, "Selected modules must have distinct folder names" unless names.uniq.length == names.length
+
+      FileUtils.mkdir_p(names.map { |name| folder.join("modules", name) })
+    end
+
     def copy_files(source, folder)
       source.files.each do |file|
         destination = folder.join(file[:path])
@@ -69,9 +84,16 @@ module LibraryBuilds
 
     def package(folder, archive)
       Zip::File.open(archive, create: true) do |zip|
-        [ "export", "export/content", "export/assets" ].each { |directory| zip.mkdir(directory) }
-        folder.glob("**/*").select(&:file?).sort.each do |path|
-          zip.add("export/#{path.relative_path_from(folder)}", path)
+        zip.mkdir("export")
+        folder.glob("**/*", File::FNM_DOTMATCH).sort.each do |path|
+          next if path.basename.to_s == "."
+
+          entry = "export/#{path.relative_path_from(folder)}"
+          if path.directory?
+            zip.mkdir(entry)
+          else
+            zip.add(entry, path)
+          end
         end
       end
     end
