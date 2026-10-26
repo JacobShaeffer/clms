@@ -33,6 +33,16 @@ class LibraryModuleTest < ActiveSupport::TestCase
     assert_includes library_module.icon.errors[:base], "Cannot delete record because dependent library modules exist"
   end
 
+  test "deleting a selected module removes its library selections" do
+    library_module = build_module
+    library_module.save!
+    library = Library.create!(name: "Module selection", user: users(:one))
+    library.selected_modules << library_module
+
+    assert_difference("LibraryModuleSelection.count", -1) { library_module.destroy! }
+    assert_empty library.reload.selected_modules
+  end
+
   private
 
   def build_module

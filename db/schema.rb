@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_15_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_23_180100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -120,6 +120,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_130000) do
     t.index ["user_id"], name: "index_library_assets_on_user_id"
   end
 
+  create_table "library_builds", force: :cascade do |t|
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.integer "generation", default: 1, null: false
+    t.text "last_error"
+    t.bigint "library_version_id", null: false
+    t.datetime "published_at"
+    t.integer "published_generation"
+    t.datetime "requested_at", null: false
+    t.datetime "started_at"
+    t.string "status", default: "queued", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["library_version_id"], name: "index_library_builds_on_library_version_id", unique: true
+    t.index ["status", "requested_at"], name: "index_library_builds_on_status_and_requested_at"
+    t.index ["user_id"], name: "index_library_builds_on_user_id"
+    t.check_constraint "generation > 0 AND (published_generation IS NULL OR published_generation > 0 AND published_generation <= generation)", name: "library_builds_generations"
+    t.check_constraint "status::text = ANY (ARRAY['queued'::character varying, 'exporting'::character varying, 'ready'::character varying, 'failed'::character varying]::text[])", name: "library_builds_status"
+  end
+
   create_table "library_change_dependencies", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "library_change_id", null: false
@@ -205,6 +225,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_130000) do
     t.index ["parent_folder_id"], name: "index_library_folders_on_parent_folder_id"
     t.index ["user_id"], name: "index_library_folders_on_user_id"
     t.check_constraint "parent_folder_id IS NULL AND logo_id IS NOT NULL OR parent_folder_id IS NOT NULL AND logo_id IS NULL", name: "library_folders_root_only_logo"
+  end
+
+  create_table "library_module_selections", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "library_id", null: false
+    t.bigint "library_module_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["library_id", "library_module_id"], name: "idx_on_library_id_library_module_id_7b3a450109", unique: true
+    t.index ["library_id"], name: "index_library_module_selections_on_library_id"
+    t.index ["library_module_id"], name: "index_library_module_selections_on_library_module_id"
   end
 
   create_table "library_modules", force: :cascade do |t|
@@ -317,6 +347,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_130000) do
   add_foreign_key "libraries", "library_versions", column: ["current_version_id", "id"], primary_key: ["id", "library_id"], name: "fk_libraries_current_version_library"
   add_foreign_key "libraries", "users"
   add_foreign_key "library_assets", "users"
+  add_foreign_key "library_builds", "library_versions"
+  add_foreign_key "library_builds", "users"
   add_foreign_key "library_change_dependencies", "library_changes"
   add_foreign_key "library_change_dependencies", "library_changes", column: "prerequisite_change_id"
   add_foreign_key "library_change_targets", "library_changes"
@@ -335,6 +367,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_130000) do
   add_foreign_key "library_folders", "library_versions"
   add_foreign_key "library_folders", "library_versions", column: ["library_version_id", "library_id"], primary_key: ["id", "library_id"], name: "fk_library_folders_version_library"
   add_foreign_key "library_folders", "users"
+  add_foreign_key "library_module_selections", "libraries"
+  add_foreign_key "library_module_selections", "library_modules"
   add_foreign_key "library_modules", "library_assets", column: "icon_id"
   add_foreign_key "library_modules", "users"
   add_foreign_key "library_version_contents", "contents"

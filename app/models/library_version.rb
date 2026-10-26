@@ -13,6 +13,7 @@ class LibraryVersion < ApplicationRecord
     inverse_of: :library_version,
     dependent: :restrict_with_error
   has_many :library_changes, dependent: :restrict_with_error
+  has_one :library_build, dependent: :restrict_with_error
   has_many :contents, through: :library_version_contents
 
   has_one :next_version,

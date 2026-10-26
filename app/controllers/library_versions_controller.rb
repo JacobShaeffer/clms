@@ -2,6 +2,14 @@ class LibraryVersionsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_library
 
+  rescue_from Pundit::NotAuthorizedError do
+    if request.format.json?
+      render json: { error: "forbidden" }, status: :forbidden
+    else
+      user_not_authorized
+    end
+  end
+
   def new
     @library_version = build_library_version
     authorize @library_version
@@ -13,13 +21,27 @@ class LibraryVersionsController < ApplicationController
     @library_version = build_library_version(library_version_params)
     authorize @library_version
 
-    @library_version = LibraryVersions::Create.call(
-      library: @library,
-      version_number: @library_version.version_number,
-      user: current_user
-    )
+    if ActiveModel::Type::Boolean.new.cast(params[:build_previous_version])
+      result = LibraryVersions::CreateWithBuild.call(
+        library: @library, version_number: @library_version.version_number,
+        expected_current_version_id: params[:expected_current_version_id], user: current_user
+      )
+      @library_version, @library_build = result.new_version, result.build
+    else
+      @library_version = LibraryVersions::Create.call(
+        library: @library, version_number: @library_version.version_number, user: current_user
+      )
+    end
 
     respond_to do |format|
+      format.json do
+        render json: {
+          new_version: { id: @library_version.id, version_number: @library_version.version_number },
+          locked_version: { id: @library_version.previous_version_id,
+            version_number: @library_version.previous_version.version_number },
+          build: (@library_build ? { id: @library_build.id, generation: @library_build.generation, status: @library_build.status } : nil)
+        }, status: :created
+      end
       format.turbo_stream do
         redirect_to library_path(@library), notice: creation_notice, status: :see_other
       end
@@ -30,11 +52,14 @@ class LibraryVersionsController < ApplicationController
   rescue ActiveRecord::RecordInvalid => error
     copy_validation_errors(error.record)
     render_invalid
+  rescue LibraryBuilds::Error => error
+    render json: { error: error.code, message: error.message }, status: :conflict
   end
 
   private
 
   def set_library
+    authorize LibraryVersion, :create? if request.format.json?
     @library = policy_scope(Library).find(params.expect(:library_id))
   end
 
@@ -58,6 +83,7 @@ class LibraryVersionsController < ApplicationController
 
   def render_invalid
     respond_to do |format|
+      format.json { render json: { errors: @library_version.errors.full_messages }, status: :unprocessable_content }
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           "modal",

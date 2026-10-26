@@ -7,6 +7,8 @@ module DevelopmentSeedSupport
     ActiveShelf.delete_all
     ContentTablePreference.delete_all
     ContentDraft.delete_all
+    LibraryBuild.delete_all
+    LibraryModuleSelection.delete_all
     LibraryFolderContent.delete_all
     LibraryVersionContent.delete_all
     ShelfContent.delete_all
@@ -19,6 +21,7 @@ module DevelopmentSeedSupport
     Content.delete_all
     Metadatum.delete_all
     MetadataType.delete_all
+    LibraryModule.delete_all
     LibraryAsset.delete_all
     User.delete_all
   end

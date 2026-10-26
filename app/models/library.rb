@@ -12,6 +12,8 @@ class Library < ApplicationRecord
   has_many :library_folders, inverse_of: :library, dependent: :restrict_with_error
   has_many :library_folder_contents, through: :library_folders
   has_many :contents, through: :library_folder_contents
+  has_many :library_module_selections, dependent: :destroy
+  has_many :selected_modules, through: :library_module_selections, source: :library_module
 
   validates :name, presence: true
   validates :current_version, presence: true, on: :update
