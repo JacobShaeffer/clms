@@ -61,7 +61,32 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
       assert_select "ul.dropdown-menu a.dropdown-item[href='#{library_assets_path}']", text: "Library Assets", count: 1
       assert_select "ul.dropdown-menu a.dropdown-item[href='#{modules_path}']", text: "Modules", count: 1
     end
+    assert_select "#navbarSupportedContent > ul.navbar-nav.ms-auto > #profile-navigation.nav-item.dropdown" do
+      assert_select "button#profile-menu.nav-link.dropdown-toggle[type='button'][data-bs-toggle='dropdown'][aria-expanded='false']", text: "Profile", count: 1
+      assert_select "ul.dropdown-menu.dropdown-menu-end[aria-labelledby='profile-menu'] > li", count: 1
+      assert_select "form[action='#{destroy_user_session_path}'][method='post']" do
+        assert_select "input[type='hidden'][name='_method'][value='delete']"
+        assert_select "button.dropdown-item[type='submit']", text: "Logout", count: 1
+      end
+    end
+    assert_select "#authentication-navigation", count: 0
     assert_select "h1.mb-3", text: "Home Page"
+  end
+
+  test "logging out removes the profile menu and ends the authenticated session" do
+    delete destroy_user_session_url
+
+    assert_redirected_to root_url
+    follow_redirect!
+    assert_select "#profile-navigation", count: 0
+    assert_select "form[action='#{destroy_user_session_path}']", count: 0
+    assert_select "#navbarSupportedContent > #authentication-navigation.ms-auto" do
+      assert_select "a.btn.btn-outline-primary[href='#{new_user_registration_path}']", text: "Sign up", count: 1
+      assert_select "a.btn.btn-primary[href='#{new_user_session_path}']", text: "Login", count: 1
+    end
+
+    get metadata_types_url
+    assert_redirected_to new_user_session_url
   end
 
   test "layout renders success and danger flashes as Bootstrap alerts" do
