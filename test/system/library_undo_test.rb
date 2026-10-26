@@ -76,7 +76,9 @@ class LibraryUndoTest < ApplicationSystemTestCase
     assert_button "Redo", disabled: true
 
     create_child("Another")
-    click_link "Back to libraries"
+    within "#library-navigation" do
+      click_link "Library", exact: true
+    end
     assert_current_path libraries_path
     page.go_back
     assert_link "Another"
