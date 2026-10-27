@@ -215,6 +215,21 @@ thead .content-table-actions {
   --bs-breadcrumb-divider: "\F285";
 }
 
+.library-folder-browser-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.library-folder-browser-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.library-folder-thumbnail {
+  width: 3rem;
+  height: 3rem;
+}
+
 .library-folder-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
   font-family: bootstrap-icons;
 }

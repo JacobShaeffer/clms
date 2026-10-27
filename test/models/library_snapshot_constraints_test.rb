@@ -46,6 +46,14 @@ class LibrarySnapshotConstraintsTest < ActiveSupport::TestCase
     end
   end
 
+  test "database rejects a logo on a child folder" do
+    assert_raises(ActiveRecord::StatementInvalid) do
+      LibraryFolder.transaction(requires_new: true) do
+        @child.update_columns(logo_id: library_assets(:one).id)
+      end
+    end
+  end
+
   test "database rejects a placement whose folder belongs to another version" do
     current_version = LibraryVersions::Create.call(
       library: @library,

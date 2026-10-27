@@ -100,6 +100,33 @@ class LibrariesTest < ApplicationSystemTestCase
     end
   end
 
+  test "chooses and replaces a root folder image by clicking the placeholder and thumbnail" do
+    library = Library.create!(name: "Folder Images", user: users(:one))
+    folder = library.library_folders.create!(name: "Guides", user: users(:one))
+    image = create_library_asset!(name: "Guides Image", asset_type: "Subject")
+    replacement = create_library_asset!(name: "Replacement Image", asset_type: "Subject")
+    thumbnail_selector = "##{ActionView::RecordIdentifier.dom_id(folder, :thumbnail)}"
+
+    visit library_path(library)
+    find("#{thumbnail_selector} i.bi-image").click
+
+    [ image, replacement ].each_with_index do |asset, index|
+      find("#{thumbnail_selector} img").click if index.positive?
+      within "turbo-frame#modal" do
+        assert_selector ".modal-title", text: "Choose folder image"
+        select asset.display_name, from: "Library asset"
+        click_button "Save image"
+      end
+
+      assert_no_selector "turbo-frame#modal .modal"
+      assert_selector "#{thumbnail_selector} img[alt='Guides thumbnail']"
+      assert_equal asset, folder.reload.logo
+    end
+
+    visit library_path(library)
+    assert_selector "#{thumbnail_selector} img[alt='Guides thumbnail']"
+  end
+
   test "an admin creates an editable snapshot from the library page" do
     users(:one).update!(role: :admin)
     library = Library.create!(name: "Versioned Library", user: users(:one))
@@ -494,8 +521,8 @@ class LibrariesTest < ApplicationSystemTestCase
     end
 
     within "turbo-frame#modal" do
+      assert_no_select "Library asset"
       fill_in "Name", with: "Guides"
-      select library_assets(:one).name, from: "Library asset"
       click_on "New Folder"
     end
 
@@ -661,7 +688,7 @@ class LibrariesTest < ApplicationSystemTestCase
   def create_library_asset!(name:, asset_type:)
     LibraryAsset.new(user: users(:one), name: name, asset_type: asset_type).tap do |asset|
       asset.image.attach(
-        io: StringIO.new("PNG contents"),
+        io: File.open(file_fixture("library_asset.png")),
         filename: "#{name.parameterize}.png",
         content_type: "image/png"
       )

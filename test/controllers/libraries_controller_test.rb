@@ -316,6 +316,52 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:two), :browser)}", text: /#{contents(:two).title}/
   end
 
+  test "root thumbnails appear between the checkbox and folder name with a placeholder for missing assets" do
+    users(:one).update!(role: :intern_plus)
+    @root_folder.update!(logo: nil)
+
+    get library_url(@library)
+
+    assert_response :success
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :browser)}" do
+      assert_select "div:has(> input[type='checkbox']) + div > div > a.library-folder-thumbnail[data-turbo-frame='modal'] i.bi-image"
+      assert_select ".flex-shrink-0 + a.link-body-emphasis", text: @root_folder.name
+    end
+
+    asset = library_assets(:one)
+    asset.image.attach(io: File.open(file_fixture("library_asset.png")), filename: "thumbnail.png", content_type: "image/png")
+    @root_folder.update!(logo: asset)
+    get library_url(@library)
+
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)} a img[alt='Health thumbnail']"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)} i.bi-image", count: 0
+
+    get library_url(@library, folder_id: @root_folder.id)
+    assert_select "#library-folder-browser-items .library-folder-thumbnail", count: 0
+  end
+
+  test "root thumbnails are read only for lower roles and historical versions" do
+    get library_url(@library)
+
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)}" do
+      assert_select "span.library-folder-thumbnail", count: 1
+      assert_select "a", count: 0
+    end
+
+    users(:one).update!(role: :intern_plus)
+    historical_version = @library.current_version
+    LibraryVersions::Create.call(library: @library, version_number: "3.0", user: users(:one))
+    current_root = @library.reload.current_version.library_folders.find_by!(name: @root_folder.name)
+    current_root.update!(logo: nil)
+    get library_url(@library, library_version_id: historical_version.id)
+
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)}" do
+      assert_select "span.library-folder-thumbnail", count: 1
+      assert_select "a", count: 0
+    end
+    assert_equal library_assets(:one), @root_folder.reload.logo
+  end
+
   test "folder browser marks files changed since the previous version and resets on the next version" do
     content = create_content_with_file!(bytes: "original library file")
     LibraryFolderContent.create!(library_folder: @root_folder, content:)

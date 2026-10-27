@@ -16,7 +16,6 @@ class LibraryFolder < ApplicationRecord
   scope :roots, -> { where(parent_folder_id: nil) }
 
   validates :name, presence: true
-  validates :logo, presence: true, if: :root_folder?
   validates :logo, absence: true, unless: :root_folder?
   validate :parent_folder_belongs_to_library
   validate :parent_folder_belongs_to_version

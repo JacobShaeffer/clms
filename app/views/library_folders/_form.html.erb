@@ -37,19 +37,6 @@
     <%= form.text_field :name, class: "form-control", autofocus: true, required: true %>
   </div>
 
-  <% unless @parent_folder %>
-    <div class="mb-3">
-      <%= form.label :logo_id, "Library asset", class: "form-label" %>
-      <%= form.collection_select :logo_id,
-        @library_assets,
-        :id,
-        :display_name,
-        { prompt: "Select a library asset" },
-        { class: "form-select", required: true }
-      %>
-    </div>
-  <% end %>
-
   <div class="modal-footer px-0 pb-0">
     <% if local_assigns[:modal] %>
       <% if @picker_operation %>

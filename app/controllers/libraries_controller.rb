@@ -197,7 +197,7 @@ class LibrariesController < ApplicationController
   end
 
   def load_folder_browser
-    folders = @library_version.library_folders.order(:name, :id).to_a
+    folders = @library_version.library_folders.includes(logo: { image_attachment: :blob }).order(:name, :id).to_a
     @folder_path_index = LibraryFolderPathIndex.new(
       library: @library,
       library_version: @library_version,

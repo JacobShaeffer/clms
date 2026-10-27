@@ -6,4 +6,8 @@ class LibraryFolderPolicy < ApplicationPolicy
   def manage?
     create?
   end
+
+  def update?
+    manage?
+  end
 end

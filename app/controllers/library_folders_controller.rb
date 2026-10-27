@@ -5,9 +5,10 @@ class LibraryFoldersController < ApplicationController
   before_action :authorize_management
   before_action :ensure_current_version
   before_action :set_page_context
-  before_action :set_parent_folder
-  before_action :set_picker_context
-  before_action :load_library_assets, only: %i[ new create ]
+  before_action :set_parent_folder, only: %i[ new create ]
+  before_action :set_picker_context, only: %i[ new create ]
+  before_action :set_library_folder, only: %i[ edit update ]
+  before_action :load_library_assets, only: %i[ edit update ]
 
   rescue_from LibraryFolderOperations::Selection::InvalidSelection, with: :render_picker_context_error
 
@@ -55,6 +56,43 @@ class LibraryFoldersController < ApplicationController
     end
   end
 
+  def edit
+    render partial: "library_folders/image_modal_form" if turbo_frame_request?
+  end
+
+  def update
+    values = params[:library_folder]
+    logo_id = values.permit(:logo_id)[:logo_id] if values.respond_to?(:permit)
+    logo = policy_scope(LibraryAsset).find_by(id: Integer(logo_id, exception: false))
+    unless logo
+      @library_folder.errors.add(:logo, "is not available")
+      return render_invalid_image
+    end
+
+    saved = @library.with_lock do
+      LibraryFolderOperations::VersionGuard.ensure_current!(library: @library, library_version: @library_version)
+      @library_folder.reload.update(logo:)
+    end
+    return render_invalid_image unless saved
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: [
+          turbo_stream.update("modal", ""),
+          turbo_stream.replace(
+            helpers.dom_id(@library_folder, :thumbnail),
+            partial: "library_folders/thumbnail",
+            locals: { folder: @library_folder }
+          )
+        ]
+      end
+      format.html do
+        redirect_to library_path(@library, page_context_params),
+          notice: "Folder image was successfully updated.", status: :see_other
+      end
+    end
+  end
+
   private
 
   def set_library
@@ -94,6 +132,11 @@ class LibraryFoldersController < ApplicationController
     @parent_folder = @library_version.library_folders.find(scalar_id!(:parent_folder_id))
   end
 
+  def set_library_folder
+    @library_folder = @library_version.library_folders.roots.find(params.expect(:id))
+    authorize @library_folder
+  end
+
   def set_picker_context
     return if params[:picker_operation].blank?
 
@@ -117,7 +160,7 @@ class LibraryFoldersController < ApplicationController
   end
 
   def load_library_assets
-    @library_assets = @parent_folder ? LibraryAsset.none : policy_scope(LibraryAsset).order(:name, :id)
+    @library_assets = policy_scope(LibraryAsset).with_attached_image.order(:name, :id)
   end
 
   def assign_root_logo
@@ -128,7 +171,7 @@ class LibraryFoldersController < ApplicationController
   end
 
   def load_folder_browser(current_folder: @parent_folder)
-    folders = @library_version.library_folders.order(:name, :id).to_a
+    folders = @library_version.library_folders.includes(logo: { image_attachment: :blob }).order(:name, :id).to_a
     @folder_path_index = LibraryFolderPathIndex.new(
       library: @library,
       library_version: @library_version,
@@ -260,6 +303,18 @@ class LibraryFoldersController < ApplicationController
       render partial: "library_folder_selections/selection_error_modal", status: :unprocessable_content
     else
       redirect_to library_path(@library), alert: @error_message, status: :see_other
+    end
+  end
+
+  def render_invalid_image
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "modal",
+          partial: "library_folders/image_modal_form"
+        ), status: :unprocessable_content
+      end
+      format.html { render :edit, status: :unprocessable_content }
     end
   end
 end

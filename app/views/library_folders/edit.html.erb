@@ -1,0 +1,9 @@
+<% content_for :title, "Choose folder image" %>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8">
+    <h1 class="mb-4">Choose folder image</h1>
+    <%= render "library_folders/image_form" %>
+    <%= link_to "Back to library", library_path(@library, tab: @active_tab, shelf_id: @selected_shelf&.id), class: "btn btn-secondary mt-3" %>
+  </div>
+</div>

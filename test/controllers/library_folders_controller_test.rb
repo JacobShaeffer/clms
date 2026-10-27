@@ -30,15 +30,15 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "new root folder modal includes a library asset field" do
+  test "new root folder modal asks only for a name" do
     get new_library_library_folder_url(@library), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
     assert_select "turbo-frame#modal .modal-title", text: "New folder"
     assert_select "form[action='#{library_library_folders_path(@library)}']" do
       assert_select "input[name='library_folder[name]']"
-      assert_select "select[name='library_folder[logo_id]'][required]"
-      assert_select "label", text: "Library asset"
+      assert_select "select[name='library_folder[logo_id]']", count: 0
+      assert_select "label", text: "Library asset", count: 0
     end
   end
 
@@ -86,6 +86,114 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     assert_nil folder.logo
     assert_select "turbo-stream[action='replace'][target='#{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}']",
       text: /First Aid/
+  end
+
+  test "creates a root folder without an asset and renders an editable placeholder" do
+    assert_difference("LibraryFolder.count") do
+      post library_library_folders_url(@library),
+        params: { library_folder: { name: "No image", logo_id: "" } },
+        headers: TURBO_STREAM_HEADERS
+    end
+
+    assert_response :success
+    folder = @library.library_folders.find_by!(name: "No image")
+    assert_nil folder.logo
+    assert_select "##{ActionView::RecordIdentifier.dom_id(folder, :thumbnail)} a[data-turbo-frame='modal'] i.bi-image"
+  end
+
+  test "edit image modal selects the existing folder asset and preserves page context" do
+    get edit_library_library_folder_url(@library, @root_folder, tab: "library"), headers: TURBO_FRAME_HEADERS
+
+    assert_response :success
+    assert_select "turbo-frame#modal .modal-title", text: "Choose folder image"
+    assert_select "form[action='#{library_library_folder_path(@library, @root_folder)}'][data-turbo-frame='modal']" do
+      assert_select "input[name='library_version_id'][value='#{@library.current_version_id}']"
+      assert_select "input[name='tab'][value='library']"
+      assert_select "select[name='library_folder[logo_id]'][required] option[value='#{@root_folder.logo_id}'][selected]"
+      assert_select "input[name='library_folder[name]']", count: 0
+    end
+  end
+
+  test "updates only the image and replaces the thumbnail" do
+    asset = library_assets(:two)
+    asset.image.attach(io: File.open(file_fixture("library_asset.png")), filename: "thumbnail.png", content_type: "image/png")
+
+    patch library_library_folder_url(@library, @root_folder),
+      params: { library_folder: { logo_id: asset.id, name: "Unwanted rename" } },
+      headers: TURBO_STREAM_HEADERS
+
+    assert_response :success
+    assert_equal asset, @root_folder.reload.logo
+    assert_equal "Guides", @root_folder.name
+    assert_select "turbo-stream[action='update'][target='modal']"
+    assert_select "turbo-stream[action='replace'][target='#{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)}']" do
+      assert_select "a[data-turbo-frame='modal'] img[alt='Guides thumbnail']"
+    end
+  end
+
+  test "invalid image selections keep the existing asset and rerender the selector" do
+    [ "", "invalid", LibraryAsset.maximum(:id) + 1, [ library_assets(:two).id ] ].each do |logo_id|
+      patch library_library_folder_url(@library, @root_folder),
+        params: { library_folder: { logo_id: } },
+        headers: TURBO_STREAM_HEADERS
+
+      assert_response :unprocessable_content
+      assert_equal library_assets(:one), @root_folder.reload.logo
+      assert_select "turbo-stream[action='replace'][target='modal'] .alert-danger", text: /Logo is not available/
+    end
+  end
+
+  test "image endpoints reject child foreign removed and historical folders" do
+    child = @root_folder.child_folders.create!(name: "Child", library: @library, user: @user)
+    removed = @library.library_folders.create!(name: "Removed", user: @user)
+    removed.destroy!
+    historical = @root_folder
+    LibraryVersions::Create.call(library: @library, version_number: "2.0", user: @user)
+
+    [ child, @other_root, removed, historical ].each do |folder|
+      sign_in @user
+      get edit_library_library_folder_url(@library, folder), headers: TURBO_FRAME_HEADERS
+      assert_response :not_found
+
+      sign_in @user
+      patch library_library_folder_url(@library, folder),
+        params: { library_folder: { logo_id: library_assets(:two).id } }, headers: TURBO_STREAM_HEADERS
+      assert_response :not_found
+    end
+    assert_equal library_assets(:one), historical.reload.logo
+  end
+
+  test "image endpoints reject child folders in the current version" do
+    child = @root_folder.child_folders.create!(name: "Child", library: @library, user: @user)
+
+    get edit_library_library_folder_url(@library, child), headers: TURBO_FRAME_HEADERS
+    assert_response :not_found
+
+    sign_in @user
+    patch library_library_folder_url(@library, child),
+      params: { library_folder: { logo_id: library_assets(:two).id } }, headers: TURBO_STREAM_HEADERS
+    assert_response :not_found
+    assert_nil child.reload.logo
+  end
+
+  test "users below intern plus cannot edit or update folder images" do
+    @user.update!(role: :intern)
+
+    get edit_library_library_folder_url(@library, @root_folder), headers: TURBO_FRAME_HEADERS
+    assert_redirected_to root_url
+
+    patch library_library_folder_url(@library, @root_folder),
+      params: { library_folder: { logo_id: library_assets(:two).id } }, headers: TURBO_STREAM_HEADERS
+    assert_redirected_to root_url
+    assert_equal library_assets(:one), @root_folder.reload.logo
+  end
+
+  test "html image update preserves the library tab" do
+    patch library_library_folder_url(@library, @root_folder),
+      params: { library_folder: { logo_id: library_assets(:two).id }, tab: "library" }
+
+    assert_redirected_to library_url(@library, tab: "library")
+    assert_equal library_assets(:two), @root_folder.reload.logo
   end
 
   test "invalid folder rerenders the modal" do

@@ -112,30 +112,35 @@
         class="list-group"
         id="library-folder-browser-items">
         <% @browser_folders.each do |folder| %>
-          <div id="<%= dom_id(folder, :browser) %>" class="list-group-item d-flex flex-wrap align-items-center gap-2">
-            <% if viewing_current_version && policy(LibraryFolder).manage? %>
-              <%= check_box_tag "folder_ids[]",
-                folder.id,
-                false,
-                id: dom_id(folder, :browser_selection),
-                class: "form-check-input flex-shrink-0",
-                aria: { label: "Select folder #{folder.name}" },
-                data: { library_folder_selection_target: "item" }
+          <div id="<%= dom_id(folder, :browser) %>" class="list-group-item library-folder-browser-row align-items-center gap-2">
+            <div class="d-flex justify-content-start">
+              <% if viewing_current_version && policy(LibraryFolder).manage? %>
+                <%= check_box_tag "folder_ids[]",
+                  folder.id,
+                  false,
+                  id: dom_id(folder, :browser_selection),
+                  class: "form-check-input flex-shrink-0 m-0",
+                  aria: { label: "Select folder #{folder.name}" },
+                  data: { library_folder_selection_target: "item" }
+                %>
+              <% end %>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <%= render "library_folders/thumbnail", folder: folder if folder.parent_folder_id.nil? %>
+              <%= link_to folder.name,
+                library_path(
+                  @library,
+                  folder_id: folder.id,
+                  **navigation_context
+                ),
+                class: "library-folder-browser-title link-body-emphasis",
+                data: {
+                  turbo_frame: dom_id(@library, :folder_browser),
+                  turbo_action: "advance"
+                }
               %>
-            <% end %>
-            <%= link_to folder.name,
-              library_path(
-                @library,
-                folder_id: folder.id,
-                **navigation_context
-              ),
-              class: "link-body-emphasis",
-              data: {
-                turbo_frame: dom_id(@library, :folder_browser),
-                turbo_action: "advance"
-              }
-            %>
-            <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
+            </div>
+            <div class="d-flex align-items-center justify-content-end gap-2">
               <span class="badge text-bg-secondary">Folder</span>
             </div>
           </div>
@@ -143,19 +148,21 @@
 
         <% @browser_placements.each do |placement| %>
           <% content = placement.content %>
-          <div id="<%= dom_id(content, :browser) %>" class="list-group-item d-flex flex-wrap align-items-center gap-2">
-            <% if viewing_current_version && policy(LibraryFolder).manage? %>
-              <%= check_box_tag "content_ids[]",
-                content.id,
-                false,
-                id: dom_id(content, :browser_selection),
-                class: "form-check-input flex-shrink-0",
-                aria: { label: "Select content #{content.title}" },
-                data: { library_folder_selection_target: "item" }
-              %>
-            <% end %>
-            <span><%= content.title %></span>
-            <div class="d-flex align-items-center gap-2 ms-auto">
+          <div id="<%= dom_id(content, :browser) %>" class="list-group-item library-folder-browser-row align-items-center gap-2">
+            <div class="d-flex justify-content-start">
+              <% if viewing_current_version && policy(LibraryFolder).manage? %>
+                <%= check_box_tag "content_ids[]",
+                  content.id,
+                  false,
+                  id: dom_id(content, :browser_selection),
+                  class: "form-check-input flex-shrink-0 m-0",
+                  aria: { label: "Select content #{content.title}" },
+                  data: { library_folder_selection_target: "item" }
+                %>
+              <% end %>
+            </div>
+            <span class="library-folder-browser-title"><%= content.title %></span>
+            <div class="d-flex align-items-center justify-content-end gap-2">
               <% if @file_changed_content_ids.key?(content.id) %>
                 <span class="badge text-bg-warning">File changed</span>
               <% end %>

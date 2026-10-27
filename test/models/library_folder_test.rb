@@ -16,8 +16,9 @@ class LibraryFolderTest < ActiveSupport::TestCase
 
   test "only root folders have library assets" do
     root = @library.library_folders.build(name: "Health", user: users(:one))
-    assert_not root.valid?
-    assert_includes root.errors[:logo], "can't be blank"
+    assert root.valid?
+    assert root.save
+    assert_nil root.reload.logo
 
     root.logo = @logo
     assert root.valid?

@@ -1,0 +1,29 @@
+<div id="<%= dom_id(folder, :thumbnail) %>" class="flex-shrink-0">
+  <% thumbnail = capture do %>
+    <% if folder.logo&.image&.attached? %>
+      <%= image_tag folder.logo.image, class: "w-100 h-100 object-fit-contain", alt: "#{folder.name} thumbnail" %>
+    <% else %>
+      <i class="bi bi-image fs-4" aria-hidden="true"></i>
+    <% end %>
+  <% end %>
+  <% thumbnail_class = "library-folder-thumbnail d-inline-flex align-items-center justify-content-center border rounded overflow-hidden bg-body-tertiary text-body-secondary" %>
+  <% if @library_version.id == @library.current_version_id && policy(LibraryFolder).manage? %>
+    <%= link_to edit_library_library_folder_path(
+      @library,
+      folder,
+      library_version_id: @library_version.id,
+      tab: @active_tab,
+      shelf_id: @selected_shelf&.id
+    ),
+      class: thumbnail_class,
+      data: { turbo_frame: "modal" },
+      aria: { label: "Choose image for #{folder.name}" },
+      title: "Choose folder image" do %>
+      <%= thumbnail %>
+    <% end %>
+  <% else %>
+    <span class="<%= thumbnail_class %>" role="img" aria-label="<%= folder.name %> thumbnail">
+      <%= thumbnail %>
+    </span>
+  <% end %>
+</div>

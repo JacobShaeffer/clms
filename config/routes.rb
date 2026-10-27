@@ -2,7 +2,7 @@ Rails.application.routes.draw do
   resources :libraries, only: %i[ index show new create ] do
     resource :module_selection, controller: "library_module_selections", only: %i[ show update ], defaults: { format: :json }
     resource :banner, controller: "library_banners", only: %i[ edit update ]
-    resources :library_folders, only: %i[ new create ]
+    resources :library_folders, only: %i[ new create edit update ]
     resources :library_versions, only: %i[ new create ] do
       resource :build, controller: "library_builds", only: %i[ create show ], defaults: { format: :json } do
         get :download

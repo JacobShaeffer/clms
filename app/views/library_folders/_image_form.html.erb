@@ -1,0 +1,40 @@
+<% form_data = local_assigns[:modal] ? { turbo_frame: "modal" } : { turbo: false } %>
+
+<%= form_with model: [ @library, @library_folder ], data: form_data do |form| %>
+  <% if @library_folder.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <ul class="mb-0">
+        <% @library_folder.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= hidden_field_tag :library_version_id, @library_version.id %>
+  <%= hidden_field_tag :tab, @active_tab %>
+  <%= hidden_field_tag :shelf_id, @selected_shelf&.id if @selected_shelf %>
+
+  <p>Choose an image for <strong><%= @library_folder.name %></strong>.</p>
+  <% if @library_assets.any? %>
+    <div class="mb-3">
+      <%= form.label :logo_id, "Library asset", class: "form-label" %>
+      <%= form.collection_select :logo_id,
+        @library_assets,
+        :id,
+        :display_name,
+        { prompt: "Select a library asset" },
+        { class: "form-select", required: true, autofocus: true }
+      %>
+    </div>
+  <% else %>
+    <p class="text-body-secondary" role="status">No library assets are available.</p>
+  <% end %>
+
+  <div class="modal-footer px-0 pb-0">
+    <% if local_assigns[:modal] %>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <% end %>
+    <%= form.submit "Save image", class: "btn btn-primary", disabled: @library_assets.empty? %>
+  </div>
+<% end %>
