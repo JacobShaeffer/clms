@@ -1,5 +1,6 @@
 class LibraryFoldersController < ApplicationController
   include LibraryEditReceipts
+  include LibraryAssetFiltering
   before_action :authenticate_user!
   before_action :set_library
   before_action :authorize_management
@@ -57,13 +58,17 @@ class LibraryFoldersController < ApplicationController
   end
 
   def edit
-    render partial: "library_folders/image_modal_form" if turbo_frame_request?
+    if turbo_frame_request_id == "image_selection_results"
+      render partial: "library_assets/image_selection_results"
+    elsif turbo_frame_request?
+      render partial: "library_folders/image_modal_form"
+    end
   end
 
   def update
     values = params[:library_folder]
     logo_id = values.permit(:logo_id)[:logo_id] if values.respond_to?(:permit)
-    logo = policy_scope(LibraryAsset).find_by(id: Integer(logo_id, exception: false))
+    logo = policy_scope(LibraryAsset).where(asset_type: "Subject").find_by(id: Integer(logo_id, exception: false))
     unless logo
       @library_folder.errors.add(:logo, "is not available")
       return render_invalid_image
@@ -160,7 +165,9 @@ class LibraryFoldersController < ApplicationController
   end
 
   def load_library_assets
-    @library_assets = policy_scope(LibraryAsset).with_attached_image.order(:name, :id)
+    set_asset_filters(params.except(:asset_type), default_asset_type: "Subject")
+    @selected_image = @library_folder.logo
+    @library_assets = filtered_library_assets(policy_scope(LibraryAsset)).with_attached_image.order(:name, :id)
   end
 
   def assign_root_logo

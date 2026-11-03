@@ -21,10 +21,13 @@ class LibraryBannersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "turbo-frame#modal .modal-title", text: "Choose banner image"
     assert_select "form[action='#{library_banner_path(@library)}'][data-turbo-frame='modal']"
-    assert_select "select[name='library[banner_id]'][required]" do
-      assert_select "option[value='#{@banner.id}']", text: @banner.display_name
-      assert_select "option[value='#{@other_banner.id}']", text: @other_banner.display_name
-      assert_select "option[value='#{@subject.id}']", count: 0
+    assert_select "input[type='search'][name='q']"
+    assert_select "fieldset[aria-label='Language']"
+    assert_select "fieldset[aria-label='Type']", count: 0
+    assert_select "turbo-frame#image_selection_results" do
+      assert_select "button[data-asset-id='#{@banner.id}'] img"
+      assert_select "button[data-asset-id='#{@other_banner.id}'] img"
+      assert_select "button[data-asset-id='#{@subject.id}']", count: 0
     end
   end
 
@@ -35,8 +38,8 @@ class LibraryBannersControllerTest < ActionDispatch::IntegrationTest
     get edit_library_banner_url(@library), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "[role='status']", text: "No Banner library assets are available."
-    assert_select "input[type='submit'][value='Save banner'][disabled]"
+    assert_select "[role='status']", text: "No library assets match your search and filters."
+    assert_select "input[type='submit'][value='Choose'][disabled]"
     assert_select "select[name='library[banner_id]']", count: 0
   end
 
@@ -53,11 +56,13 @@ class LibraryBannersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "replaces an existing banner without offering a blank choice" do
+  test "previews the current banner and replaces it" do
     @library.update!(banner: @banner)
 
     get edit_library_banner_url(@library), headers: TURBO_FRAME_HEADERS
-    assert_select "select[name='library[banner_id]'] option[value='']", count: 0
+    assert_select "[aria-label='Selected image'] img[alt='#{@banner.display_name}']"
+    assert_select "input[name='library[banner_id]'][value='#{@banner.id}']"
+    assert_select "button[data-asset-id='#{@banner.id}'][aria-pressed='true']"
 
     patch library_banner_url(@library),
       params: { library: { banner_id: @other_banner.id } },
@@ -65,6 +70,20 @@ class LibraryBannersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal @other_banner, @library.reload.banner
+  end
+
+  test "search and language filter only banners even when another type is requested" do
+    @banner.update!(language: "English")
+    @other_banner.update!(language: "French")
+
+    get edit_library_banner_url(@library),
+      params: { q: " health ", language: "English", asset_type: "Subject" },
+      headers: { "Turbo-Frame" => "image_selection_results" }
+
+    assert_response :success
+    assert_select "turbo-frame#image_selection_results button[data-asset-id]", count: 1
+    assert_select "button[data-asset-id='#{@banner.id}']"
+    assert_select ".modal", count: 0
   end
 
   test "rejects blank stale non Banner and non scalar selections" do
@@ -114,7 +133,7 @@ class LibraryBannersControllerTest < ActionDispatch::IntegrationTest
   def create_asset!(name:, asset_type:)
     LibraryAsset.new(user: users(:one), name: name, asset_type: asset_type).tap do |asset|
       asset.image.attach(
-        io: StringIO.new("PNG contents"),
+        io: File.open(file_fixture("library_asset.png")),
         filename: "#{name.parameterize}.png",
         content_type: "image/png"
       )

@@ -1,11 +1,16 @@
 class LibraryBannersController < ApplicationController
+  include LibraryAssetFiltering
   before_action :authenticate_user!
   before_action :set_library
   before_action :authorize_banner_update
   before_action :load_banner_assets
 
   def edit
-    render partial: "library_banners/modal_form" if turbo_frame_request?
+    if turbo_frame_request_id == "image_selection_results"
+      render partial: "library_assets/image_selection_results"
+    elsif turbo_frame_request?
+      render partial: "library_banners/modal_form"
+    end
   end
 
   def update
@@ -45,8 +50,10 @@ class LibraryBannersController < ApplicationController
   end
 
   def load_banner_assets
+    set_asset_filters(params.except(:asset_type), default_asset_type: "Banner")
+    @selected_image = @library.banner
     @banner_asset_scope = policy_scope(LibraryAsset).where(asset_type: "Banner")
-    @banner_assets = @banner_asset_scope.with_attached_image.to_a.sort_by do |asset|
+    @library_assets = filtered_library_assets(@banner_asset_scope).with_attached_image.to_a.sort_by do |asset|
       [ asset.display_name.downcase, asset.id ]
     end
   end

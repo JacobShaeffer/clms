@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["form", "query", "language", "assetType", "button", "newLink"]
+  static targets = ["form", "query", "language", "assetType", "button", "newLink", "context"]
 
   connect() {
     this.sync()
@@ -38,6 +38,11 @@ export default class extends Controller {
       button.classList.toggle("active", pressed)
       button.setAttribute("aria-pressed", String(pressed))
     })
+    this.contextTargets.forEach((field) => {
+      field.value = filters[field.dataset.filterField]
+    })
+    if (!this.hasNewLinkTarget) return
+
     const url = new URL(this.newLinkTarget.href)
     Object.entries(filters).forEach(([field, value]) => {
       const key = `library_asset_filters[${field}]`

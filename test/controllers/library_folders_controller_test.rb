@@ -16,6 +16,11 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     )
     sign_in @user
 
+    [ library_assets(:one), library_assets(:two) ].each do |asset|
+      asset.image.attach(io: File.open(file_fixture("library_asset.png")), filename: "#{asset.id}.png", content_type: "image/png")
+      asset.update!(asset_type: "Subject", language: "English")
+    end
+
     @library = Library.create!(name: "Health Library", user: @user)
     @root_folder = @library.library_folders.create!(
       name: "Guides",
@@ -109,9 +114,13 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{library_library_folder_path(@library, @root_folder)}'][data-turbo-frame='modal']" do
       assert_select "input[name='library_version_id'][value='#{@library.current_version_id}']"
       assert_select "input[name='tab'][value='library']"
-      assert_select "select[name='library_folder[logo_id]'][required] option[value='#{@root_folder.logo_id}'][selected]"
+      assert_select "input[name='library_folder[logo_id]'][value='#{@root_folder.logo_id}']"
       assert_select "input[name='library_folder[name]']", count: 0
     end
+    assert_select "[aria-label='Selected image'] img[alt='#{@root_folder.logo.display_name}']"
+    assert_select "button[data-asset-id='#{@root_folder.logo_id}'][aria-pressed='true']"
+    assert_select "fieldset[aria-label='Language']"
+    assert_select "fieldset[aria-label='Type']", count: 0
   end
 
   test "updates only the image and replaces the thumbnail" do
@@ -132,7 +141,8 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "invalid image selections keep the existing asset and rerender the selector" do
-    [ "", "invalid", LibraryAsset.maximum(:id) + 1, [ library_assets(:two).id ] ].each do |logo_id|
+    library_assets(:two).update!(asset_type: "Banner")
+    [ "", "invalid", LibraryAsset.maximum(:id) + 1, [ library_assets(:two).id ], library_assets(:two).id ].each do |logo_id|
       patch library_library_folder_url(@library, @root_folder),
         params: { library_folder: { logo_id: } },
         headers: TURBO_STREAM_HEADERS
@@ -141,6 +151,24 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
       assert_equal library_assets(:one), @root_folder.reload.logo
       assert_select "turbo-stream[action='replace'][target='modal'] .alert-danger", text: /Logo is not available/
     end
+  end
+
+  test "image search and language filters cannot expose other asset types" do
+    library_assets(:two).update!(asset_type: "Banner")
+
+    get edit_library_library_folder_url(@library, @root_folder),
+      params: { q: "mystring", language: "English", asset_type: "Banner" },
+      headers: { "Turbo-Frame" => "image_selection_results" }
+
+    assert_response :success
+    assert_select "turbo-frame#image_selection_results button[data-asset-id]", count: 1
+    assert_select "button[data-asset-id='#{library_assets(:one).id}']"
+    assert_select ".modal", count: 0
+
+    get edit_library_library_folder_url(@library, @root_folder),
+      params: { language: "French" }, headers: { "Turbo-Frame" => "image_selection_results" }
+    assert_select "button[data-asset-id]", count: 0
+    assert_select "[role='status']", text: "No library assets match your search and filters."
   end
 
   test "image endpoints reject child foreign removed and historical folders" do

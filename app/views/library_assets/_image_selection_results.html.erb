@@ -1,0 +1,29 @@
+<%= turbo_frame_tag "image_selection_results", aria: { live: "polite" } do %>
+  <div class="image-selection-results" data-image-selection-target="results">
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 mx-0" role="group" aria-label="Available images">
+      <% @library_assets.each do |asset| %>
+        <div class="col">
+          <%= button_tag type: "button",
+            class: "image-selection-option btn btn-outline-secondary w-100 h-100 p-2 #{"active" if asset.id == @selected_image&.id}",
+            aria: { label: "Select #{asset.display_name}", pressed: (asset.id == @selected_image&.id).to_s },
+            data: { image_selection_target: "option", action: "click->image-selection#select", asset_id: asset.id, asset_name: asset.display_name } do %>
+            <span class="ratio ratio-4x3 d-block mb-2">
+              <% if asset.image.attached? %>
+                <%= image_tag asset.image, alt: asset.display_name, class: "w-100 h-100 object-fit-contain rounded", data: { image_preview: true } %>
+              <% else %>
+                <span class="d-flex align-items-center justify-content-center" data-image-preview>
+                  <i class="bi bi-image fs-1" aria-hidden="true"></i>
+                </span>
+              <% end %>
+            </span>
+            <span class="d-block text-break fw-semibold"><%= asset.display_name %></span>
+            <span class="d-block small"><%= [ asset.language.presence, asset.asset_type.presence ].compact.join(" · ") %></span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    <% if @library_assets.empty? %>
+      <p class="text-body-secondary mb-0" role="status">No library assets match your search and filters.</p>
+    <% end %>
+  </div>
+<% end %>

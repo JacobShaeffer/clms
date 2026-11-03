@@ -53,10 +53,14 @@ class LibrariesTest < ApplicationSystemTestCase
 
     within "turbo-frame#modal" do
       assert_selector ".modal-title", text: "Choose banner image"
-      assert_selector "option", text: banner.display_name
-      assert_no_selector "option", text: subject.display_name
-      select banner.display_name, from: "Banner image"
-      click_button "Save banner"
+      assert_selector "button[aria-label='Select #{banner.display_name}'] img"
+      assert_no_selector "button[aria-label='Select #{subject.display_name}']"
+      assert_no_selector "fieldset[aria-label='Type']"
+      assert_button "Choose", disabled: true
+      find("button[data-asset-id='#{banner.id}']").click
+      assert_selector "[aria-label='Selected image'] img[alt='#{banner.display_name}']"
+      assert_nil library.reload.banner
+      click_button "Choose"
     end
 
     assert_no_selector "turbo-frame#modal .modal"
@@ -65,6 +69,14 @@ class LibrariesTest < ApplicationSystemTestCase
       assert_no_text "No banner image chosen"
     end
     assert_equal banner, library.reload.banner
+
+    find("a[aria-label='Choose banner image for #{library.name}']").click
+    within "turbo-frame#modal" do
+      assert_selector "[aria-label='Selected image'] img[alt='#{banner.display_name}']"
+      assert_selector "button[aria-label='Select #{banner.display_name}'][aria-pressed='true']"
+      click_button "Cancel"
+    end
+    assert_no_selector "turbo-frame#modal .modal"
   end
 
   test "selecting a previous version shows its folder snapshot as read only" do
@@ -103,8 +115,9 @@ class LibrariesTest < ApplicationSystemTestCase
   test "chooses and replaces a root folder image by clicking the placeholder and thumbnail" do
     library = Library.create!(name: "Folder Images", user: users(:one))
     folder = library.library_folders.create!(name: "Guides", user: users(:one))
-    image = create_library_asset!(name: "Guides Image", asset_type: "Subject")
-    replacement = create_library_asset!(name: "Replacement Image", asset_type: "Subject")
+    image = create_library_asset!(name: "Guides Image", asset_type: "Subject", language: "English")
+    replacement = create_library_asset!(name: "Replacement Image", asset_type: "Subject", language: "French")
+    banner = create_library_asset!(name: "Excluded Banner", asset_type: "Banner")
     thumbnail_selector = "##{ActionView::RecordIdentifier.dom_id(folder, :thumbnail)}"
 
     visit library_path(library)
@@ -114,8 +127,28 @@ class LibrariesTest < ApplicationSystemTestCase
       find("#{thumbnail_selector} img").click if index.positive?
       within "turbo-frame#modal" do
         assert_selector ".modal-title", text: "Choose folder image"
-        select asset.display_name, from: "Library asset"
-        click_button "Save image"
+        assert_no_selector "fieldset[aria-label='Type']"
+        assert_no_selector "button[aria-label='Select #{banner.display_name}']"
+        if index.zero?
+          assert_button "Choose", disabled: true
+          fill_in "Search by name", with: "guides"
+          within "fieldset[aria-label='Language']" do
+            click_button "English"
+          end
+          assert_no_selector "button[aria-label='Select #{replacement.display_name}']"
+        else
+          assert_selector "[aria-label='Selected image'] img[alt='#{image.display_name}']"
+          within "fieldset[aria-label='Language']" do
+            click_button "French"
+          end
+        end
+        find("button[data-asset-id='#{asset.id}']").click
+        assert_selector "[aria-label='Selected image'] img[alt='#{asset.display_name}']"
+        fill_in "Search by name", with: "no matching images"
+        assert_text "No library assets match your search and filters."
+        assert_selector "[aria-label='Selected image'] img[alt='#{asset.display_name}']"
+        assert_button "Choose", disabled: false
+        click_button "Choose"
       end
 
       assert_no_selector "turbo-frame#modal .modal"
@@ -125,6 +158,14 @@ class LibrariesTest < ApplicationSystemTestCase
 
     visit library_path(library)
     assert_selector "#{thumbnail_selector} img[alt='Guides thumbnail']"
+
+    find("#{thumbnail_selector} img").click
+    within "turbo-frame#modal" do
+      find("button[data-asset-id='#{image.id}']").click
+      click_button "Cancel"
+    end
+    assert_no_selector "turbo-frame#modal .modal"
+    assert_equal replacement, folder.reload.logo
   end
 
   test "an admin creates an editable snapshot from the library page" do
@@ -685,10 +726,10 @@ class LibrariesTest < ApplicationSystemTestCase
 
   private
 
-  def create_library_asset!(name:, asset_type:)
-    LibraryAsset.new(user: users(:one), name: name, asset_type: asset_type).tap do |asset|
+  def create_library_asset!(name:, asset_type:, language: nil)
+    LibraryAsset.new(user: users(:one), name: name, asset_type: asset_type, language:).tap do |asset|
       asset.image.attach(
-        io: File.open(file_fixture("library_asset.png")),
+        io: File.open(Rails.root.join("public/icon.png")),
         filename: "#{name.parameterize}.png",
         content_type: "image/png"
       )

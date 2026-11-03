@@ -1,0 +1,47 @@
+<div data-controller="image-selection library-asset-filters">
+  <% if record.errors.any? %>
+    <div class="alert alert-danger" role="alert">
+      <ul class="mb-0">
+        <% record.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <section class="mb-4" aria-label="Selected image">
+    <h2 class="h6">Selected image</h2>
+    <div class="image-selection-preview d-flex align-items-center justify-content-center border rounded bg-body-tertiary" data-image-selection-target="preview">
+      <% if selected_image&.image&.attached? %>
+        <%= image_tag selected_image.image, alt: selected_image.display_name, class: "w-100 h-100 object-fit-contain rounded" %>
+      <% else %>
+        <i class="bi bi-image fs-1 text-body-secondary" aria-hidden="true"></i>
+      <% end %>
+    </div>
+    <p class="text-body-secondary mt-2 mb-0" data-image-selection-target="name"><%= selected_image&.display_name || "No image selected" %></p>
+  </section>
+
+  <%= render "library_assets/filters", url: filter_url, frame_id: "image_selection_results", context: context, autofocus: true, show_type_filter: false %>
+  <%= render "library_assets/image_selection_results" %>
+
+  <% form_data = modal ? { turbo_frame: "modal" } : { turbo: false } %>
+  <%= form_with model: record, url: url, data: form_data do |form| %>
+    <% selected_id = selected_image.id if selected_image&.asset_type == @asset_type %>
+    <%= form.hidden_field field, value: selected_id, data: { image_selection_target: "selection" } %>
+    <% context.each do |key, value| %>
+      <%= hidden_field_tag key, value, id: nil %>
+    <% end %>
+    <% { q: @query, language: @language, asset_type: @asset_type }.each do |key, value| %>
+      <%= hidden_field_tag key, value, id: nil, data: { library_asset_filters_target: "context", filter_field: key } %>
+    <% end %>
+
+    <div class="modal-footer px-0 pb-0 mt-3">
+      <% if modal %>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-action="click->modal#hide">Cancel</button>
+      <% else %>
+        <%= link_to "Cancel", library_path(@library, context.except(:library_version_id)), class: "btn btn-secondary" %>
+      <% end %>
+      <%= form.submit "Choose", class: "btn btn-primary", disabled: selected_id.nil?, data: { image_selection_target: "choose" } %>
+    </div>
+  <% end %>
+</div>

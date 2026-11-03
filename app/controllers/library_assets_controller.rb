@@ -1,4 +1,5 @@
 class LibraryAssetsController < ApplicationController
+  include LibraryAssetFiltering
   before_action :authenticate_user!
   before_action :authorize_library_asset_access
   before_action :load_asset_filters
@@ -113,20 +114,13 @@ class LibraryAssetsController < ApplicationController
 
     def load_asset_filters
       values = action_name == "index" ? params : params[:library_asset_filters]
-      values = {} unless values.respond_to?(:permit)
-      @query = values[:q].is_a?(String) ? values[:q].strip : ""
-      @language = LibraryAsset::LANGUAGES.include?(values[:language]) ? values[:language] : ""
-      @asset_type = LibraryAsset::ASSET_TYPES.include?(values[:asset_type]) ? values[:asset_type] : ""
-      @asset_filter_context = { q: @query.presence, language: @language.presence, asset_type: @asset_type.presence }.compact
+      set_asset_filters(values)
     end
 
     def load_library_assets
-      @library_assets = policy_scope(LibraryAsset).with_attached_image.with_attached_design_files.order(:id)
-      if @query.present?
-        @library_assets = @library_assets.where("library_assets.name ILIKE ?", "%#{LibraryAsset.sanitize_sql_like(@query)}%")
-      end
-      @library_assets = @library_assets.where(language: @language) if @language.present?
-      @library_assets = @library_assets.where(asset_type: @asset_type) if @asset_type.present?
+      @library_assets = filtered_library_assets(
+        policy_scope(LibraryAsset).with_attached_image.with_attached_design_files.order(:id)
+      )
     end
 
     def render_asset_results
