@@ -19,7 +19,7 @@ class LibraryAssetsTest < ApplicationSystemTestCase
         assert_selector "button.active[aria-pressed='true']", text: "All"
       end
     end
-    fill_in "Search by name", with: "guide"
+    fill_in "Search by Name", with: "guide"
     assert_selector "#library_assets > .col", count: 3
     within "fieldset[aria-label='Language']" do
       click_button "English"
@@ -46,8 +46,8 @@ class LibraryAssetsTest < ApplicationSystemTestCase
       click_button "All"
     end
     assert_selector "#library_assets > .col", count: 3
-    assert_field "Search by name", with: "guide"
-    fill_in "Search by name", with: ""
+    assert_field "Search by Name", with: "guide"
+    fill_in "Search by Name", with: ""
     assert_selector "#library_assets > .col", count: LibraryAsset.count
   end
 
@@ -60,13 +60,13 @@ class LibraryAssetsTest < ApplicationSystemTestCase
       click_button "Module"
     end
     assert_text "No library assets match your search and filters."
-    click_on "New library asset"
+    click_on "New Library Asset"
     within "#modal" do
       fill_in "Name", with: "Filtered Guide"
       fill_in "Language", with: "English"
       select "Module", from: "Type"
       attach_file "Image (PNG)", file_fixture("library_asset.png")
-      click_button "Create Library asset"
+      click_button "Create Library Asset"
     end
     assert_selector "#library_assets > .col", count: 1
     assert_selector "#library_assets .card-title", text: "Filtered Guide"
@@ -75,7 +75,7 @@ class LibraryAssetsTest < ApplicationSystemTestCase
     end
     within "#modal" do
       fill_in "Language", with: "French"
-      click_button "Update Library asset"
+      click_button "Update Library Asset"
     end
     assert_no_selector "#library_assets > .col"
     assert_text "No library assets match your search and filters."
@@ -99,16 +99,16 @@ class LibraryAssetsTest < ApplicationSystemTestCase
     assert_no_selector "#modal .modal"
     assert_no_selector "#library_assets > .col"
     assert_text "No library assets match your search and filters."
-    assert_field "Search by name", with: "guide"
+    assert_field "Search by Name", with: "guide"
     refute LibraryAsset.exists?(asset.id)
   end
 
   test "creates an image-only asset and edits its optional language and type" do
     visit library_assets_path
-    click_on "New library asset"
+    click_on "New Library Asset"
     within "#modal" do
       attach_file "Image (PNG)", file_fixture("library_asset.png")
-      click_button "Create Library asset"
+      click_button "Create Library Asset"
     end
     assert_no_selector "#modal .modal"
     assert_selector "#library_assets .card-title", text: "library_asset.png"
@@ -122,7 +122,7 @@ class LibraryAssetsTest < ApplicationSystemTestCase
       assert_selector "input#library_asset_language[list='library-asset-languages']"
       fill_in "Language", with: "French"
       select "Module", from: "Type"
-      click_button "Update Library asset"
+      click_button "Update Library Asset"
     end
     assert_no_selector "#modal .modal"
     within "##{ActionView::RecordIdentifier.dom_id(asset, :listing)}" do

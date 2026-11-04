@@ -43,7 +43,7 @@
 	</div>
 
 	<div class="mb-3">
-		<%= form.label :display_title, "Display title", class: "form-label" %>
+		<%= form.label :display_title, "Display Title", class: "form-label" %>
 		<%= form.text_field :display_title, class: "form-control" %>
 	</div>
 
@@ -53,7 +53,7 @@
 	</div>
 
 	<div class="mb-3">
-		<%= form.label :year_of_publication, "Year of publication", class: "form-label" %>
+		<%= form.label :year_of_publication, "Year of Publication", class: "form-label" %>
 		<%= form.number_field :year_of_publication, class: "form-control" %>
 	</div>
 
@@ -76,7 +76,7 @@
 				role="status"
 				aria-live="polite"
 				data-content-file-upload-target="status"
-			><% if content.file.attached? %><%= content.persisted? ? "Current file: #{content.file.filename}" : (draft ? "Saved file: #{content.file.filename}" : "Uploaded and validated: #{content.file.filename}") %><% end %></div>
+			><% if content.file.attached? %><%= content.persisted? ? "Current File: #{content.file.filename}" : (draft ? "Saved File: #{content.file.filename}" : "Uploaded And Validated: #{content.file.filename}") %><% end %></div>
 		</div>
 	<% end %>
 
@@ -97,7 +97,7 @@
 	</div>
 
 	<div class="d-flex gap-2">
-		<%= form.submit class: "btn btn-primary", data: { content_file_upload_target: "submit" } %>
+		<%= form.submit content.persisted? ? "Update Content" : "Create Content", class: "btn btn-primary", data: { content_file_upload_target: "submit" } %>
 		<% unless content.persisted? %>
 			<%= form.button "Save as Draft", type: "submit", formaction: save_draft_contents_path,
 				formnovalidate: true, class: "btn btn-secondary", data: { content_file_upload_target: "draftSubmit" } %>

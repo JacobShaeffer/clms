@@ -11,7 +11,7 @@ export default class extends Controller {
     const selectedShelves = this.shelfTargets.filter((checkbox) => checkbox.checked).length
 
     this.submitTarget.value = selectedShelves === 0
-      ? "Add to NEW Shelf"
+      ? "Add to New Shelf"
       : selectedShelves === 1 ? "Add to Shelf" : "Add to Shelves"
   }
 }

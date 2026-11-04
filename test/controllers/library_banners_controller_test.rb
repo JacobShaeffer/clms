@@ -19,7 +19,7 @@ class LibraryBannersControllerTest < ActionDispatch::IntegrationTest
     get edit_library_banner_url(@library), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Choose banner image"
+    assert_select "turbo-frame#modal .modal-title", text: "Choose Banner Image"
     assert_select "form[action='#{library_banner_path(@library)}'][data-turbo-frame='modal']"
     assert_select "input[type='search'][name='q']"
     assert_select "fieldset[aria-label='Language']"
@@ -52,7 +52,7 @@ class LibraryBannersControllerTest < ActionDispatch::IntegrationTest
     assert_equal @banner, @library.reload.banner
     assert_select "turbo-stream[action='update'][target='modal']"
     assert_select "turbo-stream[action='replace'][target='#{ActionView::RecordIdentifier.dom_id(@library, :banner)}']" do
-      assert_select "img[alt='#{@library.name} banner']"
+      assert_select "img[alt='#{@library.name} Banner']"
     end
   end
 
@@ -60,7 +60,7 @@ class LibraryBannersControllerTest < ActionDispatch::IntegrationTest
     @library.update!(banner: @banner)
 
     get edit_library_banner_url(@library), headers: TURBO_FRAME_HEADERS
-    assert_select "[aria-label='Selected image'] img[alt='#{@banner.display_name}']"
+    assert_select "[aria-label='Selected Image'] img[alt='#{@banner.display_name}']"
     assert_select "input[name='library[banner_id]'][value='#{@banner.id}']"
     assert_select "button[data-asset-id='#{@banner.id}'][aria-pressed='true']"
 

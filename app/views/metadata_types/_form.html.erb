@@ -17,7 +17,7 @@
 
   <% if policy(metadata_type).permitted_attributes.include?(:access_level) %>
     <div class="mb-3">
-      <%= form.label :access_level, "Access level", class: "form-label" %>
+      <%= form.label :access_level, "Access Level", class: "form-label" %>
       <%= form.select :access_level,
         options_for_select(metadata_access_level_options, metadata_type.access_level),
         {},
@@ -28,6 +28,6 @@
 
   <div class="modal-footer px-0 pb-0">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-    <%= form.submit class: "btn btn-primary" %>
+    <%= form.submit metadata_type.persisted? ? "Update Metadata Type" : "Create Metadata Type", class: "btn btn-primary" %>
   </div>
 <% end %>

@@ -37,7 +37,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     get library_url(@library)
 
     assert_response :success
-    assert_select "a[href='#{library_changes_path(@library)}']", text: "Change history", count: 1
+    assert_select "a[href='#{library_changes_path(@library)}']", text: "Change History", count: 1
   end
 
   test "show renders the empty banner state and limits the image button" do
@@ -46,9 +46,9 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".row > .col-xl-5 ##{ActionView::RecordIdentifier.dom_id(@library, :banner)}" do
       assert_select ".ratio[style='--bs-aspect-ratio: 33.2757%;']", count: 1
-      assert_select "span", text: "No banner image chosen"
+      assert_select "span", text: "No Banner Image Chosen"
       assert_select "i.bi.bi-exclamation-triangle-fill.text-warning[aria-hidden='true']", count: 2
-      assert_select "a[aria-label='Choose banner image for #{@library.name}']", count: 0
+      assert_select "a[aria-label='Choose Banner Image For #{@library.name}']", count: 0
     end
 
     users(:one).update!(role: :intern_plus)
@@ -56,8 +56,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "##{ActionView::RecordIdentifier.dom_id(@library, :banner)}" do
       assert_select "a[href='#{edit_library_banner_path(@library)}']" \
-        "[data-turbo-frame='modal'][title='Choose banner image']" \
-        "[aria-label='Choose banner image for #{@library.name}'] i.bi.bi-image[aria-hidden='true']"
+        "[data-turbo-frame='modal'][title='Choose Banner Image']" \
+        "[aria-label='Choose Banner Image For #{@library.name}'] i.bi.bi-image[aria-hidden='true']"
     end
   end
 
@@ -71,8 +71,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "##{ActionView::RecordIdentifier.dom_id(@library, :banner)}" do
-        assert_select "img.h-100.w-100.object-fit-cover[alt='#{@library.name} banner']", count: 1
-        assert_select "span", text: "No banner image chosen", count: 0
+        assert_select "img.h-100.w-100.object-fit-cover[alt='#{@library.name} Banner']", count: 1
+        assert_select "span", text: "No Banner Image Chosen", count: 0
       end
     end
   end
@@ -83,7 +83,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", text: "Libraries"
     assert_select "table.table.table-striped.table-hover.align-middle"
-    assert_select "thead th", text: "Library name"
+    assert_select "thead th", text: "Library Name"
     assert_select "thead th", text: "Version"
     assert_select "tbody tr", count: 2
 
@@ -93,7 +93,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_select "a.nav-link[href='#{libraries_path}']", text: "Library"
-    assert_select "a[href='#{new_library_path}']", text: "New library", count: 0
+    assert_select "a[href='#{new_library_path}']", text: "New Library", count: 0
   end
 
   test "authorized users can open the new library modal" do
@@ -103,7 +103,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#modal .modal[data-controller='modal']" do
-      assert_select ".modal-title", text: "New library"
+      assert_select ".modal-title", text: "New Library"
       assert_select "form[action='#{libraries_path}'][data-turbo-frame='modal']"
       assert_select "input.form-control[name='library[name]']"
     end
@@ -299,9 +299,9 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame##{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}"
-    assert_select "nav.library-folder-breadcrumb[aria-label='Library folder breadcrumb'] .breadcrumb-item", count: 2
-    assert_select "nav[aria-label='Library folder breadcrumb'][style]", count: 0
-    assert_select "nav[aria-label='Library folder breadcrumb'] svg", count: 0
+    assert_select "nav.library-folder-breadcrumb[aria-label='Library Folder Breadcrumb'] .breadcrumb-item", count: 2
+    assert_select "nav[aria-label='Library Folder Breadcrumb'][style]", count: 0
+    assert_select "nav[aria-label='Library Folder Breadcrumb'] svg", count: 0
     assert_select ".breadcrumb-item.active", text: @root_folder.name
     assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}", text: /#{@child_folder.name}/
     assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}", text: /#{contents(:one).title}/
@@ -333,7 +333,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     @root_folder.update!(logo: asset)
     get library_url(@library)
 
-    assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)} a img[alt='Health thumbnail']"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)} a img[alt='Health Thumbnail']"
     assert_select "##{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)} i.bi-image", count: 0
 
     get library_url(@library, folder_id: @root_folder.id)
@@ -370,13 +370,13 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     get library_url(@library, folder_id: current_root.id)
     assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
-      text: "File changed",
+      text: "File Changed",
       count: 0
 
     content.update!(display_title: "Updated display title")
     get library_url(@library, folder_id: current_root.id)
     assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
-      text: "File changed",
+      text: "File Changed",
       count: 0
 
     content.file.attach(
@@ -386,14 +386,14 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     )
     get library_url(@library, folder_id: current_root.id)
     assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
-      text: "File changed",
+      text: "File Changed",
       count: 1
 
     LibraryVersions::Create.call(library: @library, version_number: "4.0", user: users(:one))
     next_root = @library.reload.current_version.library_folders.find_by!(name: @root_folder.name)
     get library_url(@library, folder_id: next_root.id)
     assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
-      text: "File changed",
+      text: "File Changed",
       count: 0
   end
 
@@ -409,7 +409,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     get library_url(@library, folder_id: @root_folder.id)
 
     assert_select "##{ActionView::RecordIdentifier.dom_id(content, :browser)} .badge",
-      text: "File changed",
+      text: "File Changed",
       count: 0
   end
 
@@ -438,7 +438,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
         assert_select "##{ActionView::RecordIdentifier.dom_id(@child_folder, :browser)}" do
           assert_select "input.form-check-input[type='checkbox'][name='folder_ids[]'][value='#{@child_folder.id}']" \
             "[id='#{ActionView::RecordIdentifier.dom_id(@child_folder, :browser_selection)}']" \
-            "[aria-label='Select folder #{@child_folder.name}']" \
+            "[aria-label='Select Folder #{@child_folder.name}']" \
             "[data-library-folder-selection-target='item']",
             count: 1
           assert_select "a[href='#{library_path(@library, folder_id: @child_folder.id, tab: "all")}']",
@@ -447,7 +447,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
         assert_select "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}" do
           assert_select "input.form-check-input[type='checkbox'][name='content_ids[]'][value='#{contents(:one).id}']" \
             "[id='#{ActionView::RecordIdentifier.dom_id(contents(:one), :browser_selection)}']" \
-            "[aria-label='Select content #{contents(:one).title}']" \
+            "[aria-label='Select Content #{contents(:one).title}']" \
             "[data-library-folder-selection-target='item']",
             count: 1
         end
@@ -484,7 +484,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller~='library-content-selection']"
     assert_select "[data-library-content-selection-scope='all'][data-content-table-selection-preserve-before-cache-value='true']"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table"
-    assert_select "th", text: "Library folders"
+    assert_select "th", text: "Library Folders"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table thead th:last-child.content-table-actions", text: "Actions"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table a[aria-label='Preview #{contents(:one).title}'][data-turbo-frame='modal']"
     row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"
@@ -571,7 +571,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='q']", count: 0
     assert_select "button", text: "Advanced Filters", count: 0
     assert_select ".offcanvas", count: 0
-    assert_select "th", text: "Library folders"
+    assert_select "th", text: "Library Folders"
     assert_select "tbody", text: /#{contents(:one).title}/
   end
 

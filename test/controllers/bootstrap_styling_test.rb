@@ -122,9 +122,9 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
     get metadata_types_url
 
     assert_response :success
-    assert_select "h1.mb-0", text: "Metadata types"
+    assert_select "h1.mb-0", text: "Metadata Types"
     assert_select "h1.title", count: 0
-    assert_select "a.btn.btn-primary[data-turbo-frame='modal']", text: "New metadata type"
+    assert_select "a.btn.btn-primary[data-turbo-frame='modal']", text: "New Metadata Type"
     assert_select ".accordion .accordion-button[data-bs-toggle='collapse']"
 
     get metadata_values_metadata_type_url(@metadata_type)
@@ -145,9 +145,9 @@ class BootstrapStylingTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".row.justify-content-center > .col-12.col-md-8" do
-      assert_select "h1.mb-4", text: "New metadata type"
+      assert_select "h1.mb-4", text: "New Metadata Type"
       assert_select "form input.form-control[name='metadata_type[name]']"
-      assert_select "a.btn.btn-secondary", text: "Back to metadata types"
+      assert_select "a.btn.btn-secondary", text: "Back to Metadata Types"
     end
 
     get new_metadata_type_url, headers: { "Turbo-Frame" => "modal" }

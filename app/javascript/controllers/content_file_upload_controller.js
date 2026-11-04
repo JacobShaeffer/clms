@@ -38,7 +38,7 @@ export default class extends Controller {
 		this.abortController = new AbortController()
 		this.setSubmitting(false)
 		this.setDraftSubmitting(false)
-		this.showStatus(`Uploading and checking ${file.name}…`)
+		this.showStatus(`Uploading And Checking ${file.name}…`)
 
 		const body = new FormData()
 		body.append("file", file)
@@ -60,7 +60,7 @@ export default class extends Controller {
 			if (response.ok) {
 				this.addBlob(result.signed_id)
 				this.inputTarget.classList.add("is-valid")
-				this.showStatus(`Uploaded and validated: ${result.filename}`, "text-success")
+				this.showStatus(`Uploaded And Validated: ${result.filename}`, "text-success")
 				this.setSubmitting(true)
 			} else {
 				this.dispatch("preview-reset")

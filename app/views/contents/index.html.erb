@@ -7,7 +7,7 @@
   <% if policy(Content).new? %>
     <div class="col align-self-center d-flex justify-content-end gap-2">
       <%= render "contents/draft_button", drafts: @drafts %>
-      <%= link_to "New content", new_content_path, class: "btn btn-primary", data: { turbo_frame: "modal" } %>
+      <%= link_to "New Content", new_content_path, class: "btn btn-primary", data: { turbo_frame: "modal" } %>
     </div>
   <% end %>
 </div>

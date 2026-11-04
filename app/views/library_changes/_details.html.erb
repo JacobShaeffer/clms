@@ -1,7 +1,7 @@
 <div data-library-change-details data-change-id="<%= @change.id %>" data-dependent-change-ids="<%= @dependent_changes.map(&:id).to_json %>">
   <dl class="row mb-3">
     <dt class="col-sm-3">Item</dt><dd class="col-sm-9"><%= @change.display_label %></dd>
-    <dt class="col-sm-3">Action</dt><dd class="col-sm-9"><%= @change.action_type.humanize %></dd>
+    <dt class="col-sm-3">Action</dt><dd class="col-sm-9"><%= @change.action_type.titleize %></dd>
     <dt class="col-sm-3">Changed by</dt><dd class="col-sm-9"><%= @change.user.name %></dd>
     <dt class="col-sm-3">When</dt><dd class="col-sm-9"><%= @change.created_at.in_time_zone("America/Phoenix").strftime("%Y-%m-%d %H:%M %Z") %></dd>
     <dt class="col-sm-3">Version</dt><dd class="col-sm-9"><%= @change.library_version.version_number %></dd>
@@ -10,10 +10,10 @@
     <% end %>
   </dl>
 
-  <h2 class="h6">Affected items</h2>
+  <h2 class="h6">Affected Items</h2>
   <ul class="list-unstyled">
     <% @history.visible_targets(@change).each do |target| %>
-      <li class="mb-1"><%= target.details["path"].presence || target.label %> <span class="text-body-secondary">· <%= target.details["context"].presence&.humanize || target.effect.humanize %></span></li>
+      <li class="mb-1"><%= target.details["path"].presence || target.label %> <span class="text-body-secondary">· <%= target.details["context"].presence&.titleize || target.effect.titleize %></span></li>
     <% end %>
   </ul>
 
@@ -22,7 +22,7 @@
     <h2 class="h6">Depends on</h2>
     <ul>
       <% prerequisites.each do |change| %>
-        <li><%= change.display_label %> · <%= change.action_type.humanize %></li>
+        <li><%= change.display_label %> · <%= change.action_type.titleize %></li>
       <% end %>
     </ul>
   <% end %>
@@ -31,10 +31,10 @@
     <div class="alert alert-warning" role="alert">
       Undoing this change will also undo all <%= @undo_dependents.length %> dependent edits.
     </div>
-    <h2 class="h6">Edits that will also be undone</h2>
-    <ul aria-label="Dependent edits to undo">
+    <h2 class="h6">Edits That Will Also be Undone</h2>
+    <ul aria-label="Dependent Edits to Undo">
       <% @visible_undo_dependents.each do |change| %>
-        <li><%= change.display_label %> · <%= change.action_type.humanize %></li>
+        <li><%= change.display_label %> · <%= change.action_type.titleize %></li>
       <% end %>
     </ul>
     <% hidden_count = @undo_dependents.length - @visible_undo_dependents.length %>
@@ -56,9 +56,9 @@
       <% if @redo_changes.length > 1 %>
         <div class="alert alert-warning" role="alert">Redo will restore all <%= @redo_changes.length %> edits undone together.</div>
       <% end %>
-      <ul aria-label="Edits to redo">
+      <ul aria-label="Edits to Redo">
         <% @visible_redo_changes.each do |record| %>
-          <li><%= record.display_label %> · <%= record.action_type.humanize %> · <%= record.user.name %></li>
+          <li><%= record.display_label %> · <%= record.action_type.titleize %> · <%= record.user.name %></li>
         <% end %>
       </ul>
       <% hidden_count = @redo_changes.length - @visible_redo_changes.length %>

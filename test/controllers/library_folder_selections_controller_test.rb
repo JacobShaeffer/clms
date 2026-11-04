@@ -31,7 +31,7 @@ class LibraryFolderSelectionsControllerTest < ActionDispatch::IntegrationTest
       headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Remove selected items"
+    assert_select "turbo-frame#modal .modal-title", text: "Remove Selected Items"
     assert_select ".modal-dialog.modal-lg.modal-dialog-scrollable"
     assert_select "ul" do
       assert_select "li", text: /#{Regexp.escape(contents(:one).title)}/
@@ -54,7 +54,7 @@ class LibraryFolderSelectionsControllerTest < ActionDispatch::IntegrationTest
       headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Move items"
+    assert_select "turbo-frame#modal .modal-title", text: "Move Items"
     assert_select "turbo-frame#library-folder-destination-browser" do
       assert_select "a[data-turbo-frame='library-folder-destination-browser']", text: @source.name
       assert_select "input[name='destination_folder_id']", count: 0
@@ -88,7 +88,7 @@ class LibraryFolderSelectionsControllerTest < ActionDispatch::IntegrationTest
       headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Duplicate items"
+    assert_select "turbo-frame#modal .modal-title", text: "Duplicate Items"
     assert_select "input[name='destination_folder_id']", count: 0
     assert_select "button", text: "Duplicate Here", disabled: true
     assert_select "a.btn.btn-success[data-turbo-frame='modal']", text: "New Folder"
@@ -151,7 +151,7 @@ class LibraryFolderSelectionsControllerTest < ActionDispatch::IntegrationTest
       headers: TURBO_FRAME_HEADERS
 
     assert_response :unprocessable_content
-    assert_select "turbo-frame#modal .modal-title", text: "Folder operation unavailable"
+    assert_select "turbo-frame#modal .modal-title", text: "Folder Operation Unavailable"
     assert_select ".alert-danger", text: /no longer available/
   end
 

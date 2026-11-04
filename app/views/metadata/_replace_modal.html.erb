@@ -15,7 +15,7 @@
           controller: "metadata-replacement-search"
         } do %>
         <div class="modal-header">
-          <h1 class="modal-title fs-5" id="metadata-replacement-modal-title">Replace metadata value</h1>
+          <h1 class="modal-title fs-5" id="metadata-replacement-modal-title">Replace Metadata Value</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
@@ -28,7 +28,7 @@
 
           <% search_id = dom_id(metadatum, :replacement_search) %>
           <div class="mb-3 flex-shrink-0">
-            <%= label_tag search_id, "Search metadata values", class: "form-label" %>
+            <%= label_tag search_id, "Search Metadata Values", class: "form-label" %>
             <%= tag.input type: "search",
               id: search_id,
               class: "form-control",
@@ -42,7 +42,7 @@
           </div>
 
           <% if replacement_candidates.any? %>
-            <div class="metadata-replacement-options" role="radiogroup" aria-label="Replacement value">
+            <div class="metadata-replacement-options" role="radiogroup" aria-label="Replacement Value">
               <div class="list-group">
                 <% replacement_candidates.each do |replacement_candidate| %>
                   <% input_id = dom_id(replacement_candidate, :replacement) %>

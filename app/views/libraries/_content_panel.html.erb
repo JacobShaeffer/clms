@@ -11,7 +11,7 @@ end %>
 
 <%= turbo_frame_tag dom_id(@library, :content_panel), data: { turbo_action: "advance" } do %>
   <section aria-labelledby="library-content-heading">
-    <h2 id="library-content-heading" class="visually-hidden">Library content</h2>
+    <h2 id="library-content-heading" class="visually-hidden">Library Content</h2>
 
     <ul class="nav nav-tabs mb-3" role="tablist">
       <% [ [ "all", "All Content" ], [ "shelves", "Shelves" ], [ "library", "Current Library" ] ].each do |tab_key, label| %>

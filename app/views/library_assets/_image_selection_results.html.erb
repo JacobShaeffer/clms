@@ -1,6 +1,6 @@
 <%= turbo_frame_tag "image_selection_results", aria: { live: "polite" } do %>
   <div class="image-selection-results" data-image-selection-target="results">
-    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 mx-0" role="group" aria-label="Available images">
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 mx-0" role="group" aria-label="Available Images">
       <% @library_assets.each do |asset| %>
         <div class="col">
           <%= button_tag type: "button",

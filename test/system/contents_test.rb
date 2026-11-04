@@ -17,11 +17,11 @@ class ContentsTest < ApplicationSystemTestCase
     visit contents_path
     click_button "Shelves"
     within ".shelf-selection-menu" do
-      click_link "Open shelves"
+      click_link "Open Shelves"
     end
 
     assert_current_path shelves_path
-    find("a[aria-label='Create shelf']").click
+    find("a[aria-label='Create Shelf']").click
 
     within "turbo-frame#modal" do
       assert_selector ".modal-title", text: "New Shelf"
@@ -54,7 +54,7 @@ class ContentsTest < ApplicationSystemTestCase
     assert_selector ".shelf-selection-menu.show"
     assert_no_selector "input[data-content-table-selection-target='row']:checked"
     assert_no_selector "input[name='shelf_ids[]']:checked"
-    assert_button "Add to NEW Shelf", exact: true
+    assert_button "Add to New Shelf", exact: true
     assert ShelfContent.exists?(shelf: @shelf, content:)
   end
 
@@ -66,7 +66,7 @@ class ContentsTest < ApplicationSystemTestCase
     click_button "Shelves"
 
     within ".shelf-selection-menu" do
-      assert_button "Add to NEW Shelf", exact: true
+      assert_button "Add to New Shelf", exact: true
       check @shelf.name
       assert_button "Add to Shelf", exact: true
       check second_shelf.name
@@ -74,7 +74,7 @@ class ContentsTest < ApplicationSystemTestCase
       uncheck @shelf.name
       assert_button "Add to Shelf", exact: true
       uncheck second_shelf.name
-      assert_button "Add to NEW Shelf", exact: true
+      assert_button "Add to New Shelf", exact: true
     end
   end
 
@@ -87,7 +87,7 @@ class ContentsTest < ApplicationSystemTestCase
     assert_selector "tbody tr", count: 2
     find("input[data-content-table-selection-target='page']").check
     click_button "Shelves"
-    click_button "Add to NEW Shelf"
+    click_button "Add to New Shelf"
 
     assert_selector "turbo-frame#modal", count: 1
     within "turbo-frame#modal" do
@@ -114,7 +114,7 @@ class ContentsTest < ApplicationSystemTestCase
     assert_selector ".shelf-selection-menu.show"
     within ".shelf-selection-menu" do
       assert_field created.name, checked: false
-      assert_button "Add to NEW Shelf", exact: true
+      assert_button "Add to New Shelf", exact: true
     end
   end
 
@@ -124,7 +124,7 @@ class ContentsTest < ApplicationSystemTestCase
     visit contents_path
     find("input[data-content-table-selection-target='row'][value='#{content.id}']").check
     click_button "Shelves"
-    click_button "Add to NEW Shelf"
+    click_button "Add to New Shelf"
 
     within "turbo-frame#modal" do
       assert_selector ".modal-title", text: "New Shelf"
@@ -146,7 +146,7 @@ class ContentsTest < ApplicationSystemTestCase
     find("input[data-content-table-selection-target='row'][value='#{content.id}']").check
     click_button "Shelves"
     assert_text "No active shelves."
-    click_button "Add to NEW Shelf"
+    click_button "Add to New Shelf"
 
     within "turbo-frame#modal" do
       fill_in "Name", with: "First active shelf"
@@ -163,7 +163,7 @@ class ContentsTest < ApplicationSystemTestCase
   test "creates an empty shelf when no content is selected" do
     visit contents_path
     click_button "Shelves"
-    click_button "Add to NEW Shelf"
+    click_button "Add to New Shelf"
 
     within "turbo-frame#modal" do
       fill_in "Name", with: "Empty shelf"
@@ -182,7 +182,7 @@ class ContentsTest < ApplicationSystemTestCase
 
     visit contents_path
     find("input[data-content-table-selection-target='row'][value='#{content.id}']").check
-    find("thead a[aria-label='Sort Title ascending']").click
+    find("thead a[aria-label='Sort Title Ascending']").click
 
     assert_no_selector "input[data-content-table-selection-target='row']:checked"
   end
@@ -192,10 +192,10 @@ class ContentsTest < ApplicationSystemTestCase
 
     visit contents_path
     find("input[data-content-table-selection-target='row'][value='#{content.id}']").check
-    click_button "Column select"
-    check "Display title"
+    click_button "Column Select"
+    check "Display Title"
 
-    assert_selector "thead th", text: "Display title"
+    assert_selector "thead th", text: "Display Title"
     assert_selector "input[data-content-table-selection-target='row'][value='#{content.id}']:checked"
   end
 
@@ -207,10 +207,10 @@ class ContentsTest < ApplicationSystemTestCase
     visit contents_path
     fill_in "Search", with: "Selection row"
     assert_selector "tbody tr", count: 10
-    find("thead a[aria-label='Sort Title ascending']").click
+    find("thead a[aria-label='Sort Title Ascending']").click
     find("input[data-content-table-selection-target='row'][value='#{selected_content.id}']").check
     find("input[data-content-table-selection-target='row'][value='#{still_visible_content.id}']").check
-    click_button "Column select"
+    click_button "Column Select"
     uncheck "Title"
 
     assert_no_selector "thead th", text: "Title"
@@ -254,18 +254,18 @@ class ContentsTest < ApplicationSystemTestCase
     @user.update!(role: :volunteer)
     visit contents_path
     assert_no_link "View Drafts"
-    click_link "New content"
+    click_link "New Content"
 
     within "turbo-frame#modal" do
       remember_open_modal
       fill_in "Title", with: "Unfinished document"
       attach_file "File", file_fixture("document.pdf")
-      assert_text "Uploaded and validated: document.pdf"
+      assert_text "Uploaded And Validated: document.pdf"
       click_button "Save as Draft"
       assert_text "Draft was saved."
       assert_preserved_modal
       assert_field "Title", with: "Unfinished document"
-      assert_text "Saved file: document.pdf"
+      assert_text "Saved File: document.pdf"
       fill_in "Title", with: "Updated draft", fill_options: { clear: :backspace }
       click_button "Save as Draft"
       assert_text "Draft was saved."
@@ -285,9 +285,9 @@ class ContentsTest < ApplicationSystemTestCase
       remember_open_modal
       click_link "Updated draft"
       assert_field "Title", with: "Updated draft"
-      assert_text "Saved file: document.pdf"
+      assert_text "Saved File: document.pdf"
       assert_preserved_modal
-      fill_in "Display title", with: "Published display"
+      fill_in "Display Title", with: "Published display"
       fill_in "Description", with: "Published description"
       click_button "Create Content"
     end
@@ -302,7 +302,7 @@ class ContentsTest < ApplicationSystemTestCase
   test "failed submissions save one draft and a manual save clears its warning" do
     @user.update!(role: :volunteer)
     visit contents_path
-    click_link "New content"
+    click_link "New Content"
 
     within "turbo-frame#modal" do
       remember_open_modal
@@ -320,7 +320,7 @@ class ContentsTest < ApplicationSystemTestCase
     click_link "View Drafts"
 
     find("#modal .list-group-item a > i.bi-exclamation-triangle-fill.text-danger").hover
-    assert_selector ".tooltip-inner", text: "Draft saved with submission errors:"
+    assert_selector ".tooltip-inner", text: "Draft Saved With Submission Errors:"
     within "turbo-frame#modal" do
       assert_selector ".list-group-item a > i.bi-exclamation-triangle-fill.text-danger + span"
       click_link "Submission draft"
@@ -348,7 +348,7 @@ class ContentsTest < ApplicationSystemTestCase
       remember_open_modal
       dismiss_confirm "Delete this draft? This cannot be undone." do
         within "#content_draft_#{first.id}" do
-          find("button[aria-label='Delete draft']").click
+          find("button[aria-label='Delete Draft']").click
         end
       end
       assert_selector ".list-group-item", count: 2
@@ -356,7 +356,7 @@ class ContentsTest < ApplicationSystemTestCase
 
       accept_confirm "Delete this draft? This cannot be undone." do
         within "#content_draft_#{first.id}" do
-          find("button[aria-label='Delete draft']").click
+          find("button[aria-label='Delete Draft']").click
         end
       end
       assert_no_selector "#content_draft_#{first.id}"
@@ -365,7 +365,7 @@ class ContentsTest < ApplicationSystemTestCase
 
       accept_confirm "Delete this draft? This cannot be undone." do
         within "#content_draft_#{last.id}" do
-          find("button[aria-label='Delete draft']").click
+          find("button[aria-label='Delete Draft']").click
         end
       end
       assert_text "No saved drafts."
@@ -390,22 +390,22 @@ class ContentsTest < ApplicationSystemTestCase
 
     assert_text "Draft was saved."
     assert_field "Title", with: "Unsupported upload"
-    assert_text "Saved file: library_asset.png"
+    assert_text "Saved File: library_asset.png"
     assert_equal file_fixture("library_asset.png").binread, @user.content_drafts.sole.file.download
   end
 
   test "uploads and validates a file when it is selected" do
     @user.update!(role: :volunteer)
     visit contents_path
-    click_on "New content"
+    click_on "New Content"
 
     within "turbo-frame#modal" do
       fill_in "Title", with: "Early upload"
-      fill_in "Display title", with: "Early upload display"
+      fill_in "Display Title", with: "Early upload display"
       fill_in "Description", with: "A file uploaded before the form is submitted"
       attach_file "File", file_fixture("document.pdf")
 
-      assert_text "Uploaded and validated: document.pdf"
+      assert_text "Uploaded And Validated: document.pdf"
       assert_button "Create Content", disabled: false
       click_button "Create Content"
     end
@@ -444,7 +444,7 @@ class ContentsTest < ApplicationSystemTestCase
   test "keeps validation errors in the new content modal" do
     @user.update!(role: :volunteer)
     visit contents_path
-    click_on "New content"
+    click_on "New Content"
 
     within "turbo-frame#modal" do
       remember_open_modal
@@ -547,7 +547,7 @@ class ContentsTest < ApplicationSystemTestCase
       click_link "Trash"
       assert_text "Move #{content.display_title} to Trash?"
       assert_preserved_modal
-      fill_in "Comment (optional)", with: "Needs administrator review"
+      fill_in "Comment (Optional)", with: "Needs administrator review"
       click_button "Move to Trash"
     end
 
@@ -572,7 +572,7 @@ class ContentsTest < ApplicationSystemTestCase
     visit trash_contents_path
     within "##{ActionView::RecordIdentifier.dom_id(content, :trash)}" do
       accept_confirm("Permanently delete #{content.title}? This cannot be undone.") do
-        click_button "Delete permanently"
+        click_button "Delete Permanently"
       end
     end
 
@@ -593,7 +593,7 @@ class ContentsTest < ApplicationSystemTestCase
     within "turbo-frame#modal" do
       remember_open_modal
       click_on "Edit"
-      assert_selector ".modal-title", text: "Edit content"
+      assert_selector ".modal-title", text: "Edit Content"
       assert_preserved_modal
       fill_in "Title", with: "", fill_options: { clear: :backspace }
       click_button "Update Content"
@@ -608,7 +608,7 @@ class ContentsTest < ApplicationSystemTestCase
       assert_field "Description", with: "Updated view description", disabled: true
 
       click_on "Edit"
-      assert_selector ".modal-title", text: "Edit content"
+      assert_selector ".modal-title", text: "Edit Content"
       assert_preserved_modal
       fill_in "Title", with: "Unsaved title", fill_options: { clear: :backspace }
       click_on "Cancel"
@@ -637,7 +637,7 @@ class ContentsTest < ApplicationSystemTestCase
       within "turbo-frame#modal" do
         remember_open_modal
         click_on "Edit"
-        assert_selector ".modal-title", text: "Edit content"
+        assert_selector ".modal-title", text: "Edit Content"
         click_on "Cancel"
         assert_selector ".modal-title", text: content.title
         assert_preserved_modal
@@ -669,13 +669,13 @@ class ContentsTest < ApplicationSystemTestCase
     within "turbo-frame#modal" do
       assert_field "Title", with: content.title
       original_preview_url = find(".content-edit-preview iframe.content-preview-pdf")[:src]
-      fill_in "Display title",
+      fill_in "Display Title",
         with: "Updated preview display",
         fill_options: { clear: :backspace }
       attach_file "Choose New File", file_fixture("document.pdf")
       assert_selector ".content-edit-preview iframe.content-preview-pdf[src^='blob:']"
       refute_equal original_preview_url, find(".content-edit-preview iframe.content-preview-pdf")[:src]
-      assert_text "Uploaded and validated: document.pdf"
+      assert_text "Uploaded And Validated: document.pdf"
       click_button "Update Content"
     end
 
@@ -699,7 +699,7 @@ class ContentsTest < ApplicationSystemTestCase
         attach_file "Choose New File", path
         assert_selector ".content-edit-preview audio.content-preview-audio source[type='audio/mpeg'][src^='blob:']",
           visible: :all
-        assert_text "Uploaded and validated:"
+        assert_text "Uploaded And Validated:"
       end
 
       with_temporary_media_file(".mp4", [ 0, 0, 0, 24 ].pack("C*") + "ftypisom\x00\x00\x02\x00isomiso2".b) do |path|
@@ -707,7 +707,7 @@ class ContentsTest < ApplicationSystemTestCase
         assert_no_selector ".content-edit-preview audio"
         assert_selector ".content-edit-preview video.content-preview-video source[type='video/mp4'][src^='blob:']",
           visible: :all
-        assert_text "Uploaded and validated:"
+        assert_text "Uploaded And Validated:"
       end
 
       file_input = find("#content_file", visible: :all)

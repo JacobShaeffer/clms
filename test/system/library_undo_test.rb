@@ -61,7 +61,7 @@ class LibraryUndoTest < ApplicationSystemTestCase
     assert_link "Child"
 
     within browser do
-      find("input[aria-label='Select folder Child']").check
+      find("input[aria-label='Select Folder Child']").check
       click_button "Remove"
     end
     within "#modal" do
@@ -114,7 +114,7 @@ class LibraryUndoTest < ApplicationSystemTestCase
     end
     visit library_path(@library, folder_id: @root.id)
     within browser do
-      %w[First Second].each { |name| find("input[aria-label='Select folder #{name}']").check }
+      %w[First Second].each { |name| find("input[aria-label='Select Folder #{name}']").check }
       click_button "Remove"
     end
     within "#modal" do
@@ -267,7 +267,7 @@ class LibraryUndoTest < ApplicationSystemTestCase
     refute LibraryFolder.exists?(child.id)
     find("[data-change-id='#{creation.id}'] a").click
     within "#modal" do
-      assert_selector "ul[aria-label='Edits to redo'] li", count: 2
+      assert_selector "ul[aria-label='Edits to Redo'] li", count: 2
       assert_text "Redo will restore all 2 edits undone together."
       click_button "Redo"
     end

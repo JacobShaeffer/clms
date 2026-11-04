@@ -3,17 +3,17 @@
 
   <p class="card-text mb-0">
     <strong>Language:</strong>
-    <%= library_asset.language.presence || "Not specified" %>
+    <%= library_asset.language.presence || "Not Specified" %>
   </p>
 
   <p class="card-text mb-0">
     <strong>Type:</strong>
-    <%= library_asset.asset_type.presence || "Not specified" %>
+    <%= library_asset.asset_type.presence || "Not Specified" %>
   </p>
 
   <% if library_asset.design_files.attached? %>
     <p class="card-text mt-2 mb-0">
-      <%= link_to "Download design files",
+      <%= link_to "Download Design Files",
         rails_blob_path(library_asset.design_files, disposition: "attachment")
       %>
     </p>

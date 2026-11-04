@@ -26,10 +26,10 @@ class LibrariesTest < ApplicationSystemTestCase
   test "creating a library from the modal adds it to the table" do
     visit libraries_path
 
-    click_on "New library"
+    click_on "New Library"
 
     within "turbo-frame#modal" do
-      assert_selector ".modal-title", text: "New library"
+      assert_selector ".modal-title", text: "New Library"
       fill_in "Name", with: "Agriculture Library"
       click_on "Create Library"
     end
@@ -46,33 +46,33 @@ class LibrariesTest < ApplicationSystemTestCase
     visit library_path(library)
 
     within "##{ActionView::RecordIdentifier.dom_id(library, :banner)}" do
-      assert_text "No banner image chosen"
+      assert_text "No Banner Image Chosen"
       assert_selector "i.bi-exclamation-triangle-fill.text-warning", count: 2
-      find("a[aria-label='Choose banner image for #{library.name}']").click
+      find("a[aria-label='Choose Banner Image For #{library.name}']").click
     end
 
     within "turbo-frame#modal" do
-      assert_selector ".modal-title", text: "Choose banner image"
+      assert_selector ".modal-title", text: "Choose Banner Image"
       assert_selector "button[aria-label='Select #{banner.display_name}'] img"
       assert_no_selector "button[aria-label='Select #{subject.display_name}']"
       assert_no_selector "fieldset[aria-label='Type']"
       assert_button "Choose", disabled: true
       find("button[data-asset-id='#{banner.id}']").click
-      assert_selector "[aria-label='Selected image'] img[alt='#{banner.display_name}']"
+      assert_selector "[aria-label='Selected Image'] img[alt='#{banner.display_name}']"
       assert_nil library.reload.banner
       click_button "Choose"
     end
 
     assert_no_selector "turbo-frame#modal .modal"
     within "##{ActionView::RecordIdentifier.dom_id(library, :banner)}" do
-      assert_selector "img[alt='#{library.name} banner']"
-      assert_no_text "No banner image chosen"
+      assert_selector "img[alt='#{library.name} Banner']"
+      assert_no_text "No Banner Image Chosen"
     end
     assert_equal banner, library.reload.banner
 
-    find("a[aria-label='Choose banner image for #{library.name}']").click
+    find("a[aria-label='Choose Banner Image For #{library.name}']").click
     within "turbo-frame#modal" do
-      assert_selector "[aria-label='Selected image'] img[alt='#{banner.display_name}']"
+      assert_selector "[aria-label='Selected Image'] img[alt='#{banner.display_name}']"
       assert_selector "button[aria-label='Select #{banner.display_name}'][aria-pressed='true']"
       click_button "Cancel"
     end
@@ -126,38 +126,38 @@ class LibrariesTest < ApplicationSystemTestCase
     [ image, replacement ].each_with_index do |asset, index|
       find("#{thumbnail_selector} img").click if index.positive?
       within "turbo-frame#modal" do
-        assert_selector ".modal-title", text: "Choose folder image"
+        assert_selector ".modal-title", text: "Choose Folder Image"
         assert_no_selector "fieldset[aria-label='Type']"
         assert_no_selector "button[aria-label='Select #{banner.display_name}']"
         if index.zero?
           assert_button "Choose", disabled: true
-          fill_in "Search by name", with: "guides"
+          fill_in "Search by Name", with: "guides"
           within "fieldset[aria-label='Language']" do
             click_button "English"
           end
           assert_no_selector "button[aria-label='Select #{replacement.display_name}']"
         else
-          assert_selector "[aria-label='Selected image'] img[alt='#{image.display_name}']"
+          assert_selector "[aria-label='Selected Image'] img[alt='#{image.display_name}']"
           within "fieldset[aria-label='Language']" do
             click_button "French"
           end
         end
         find("button[data-asset-id='#{asset.id}']").click
-        assert_selector "[aria-label='Selected image'] img[alt='#{asset.display_name}']"
-        fill_in "Search by name", with: "no matching images"
+        assert_selector "[aria-label='Selected Image'] img[alt='#{asset.display_name}']"
+        fill_in "Search by Name", with: "no matching images"
         assert_text "No library assets match your search and filters."
-        assert_selector "[aria-label='Selected image'] img[alt='#{asset.display_name}']"
+        assert_selector "[aria-label='Selected Image'] img[alt='#{asset.display_name}']"
         assert_button "Choose", disabled: false
         click_button "Choose"
       end
 
       assert_no_selector "turbo-frame#modal .modal"
-      assert_selector "#{thumbnail_selector} img[alt='Guides thumbnail']"
+      assert_selector "#{thumbnail_selector} img[alt='Guides Thumbnail']"
       assert_equal asset, folder.reload.logo
     end
 
     visit library_path(library)
-    assert_selector "#{thumbnail_selector} img[alt='Guides thumbnail']"
+    assert_selector "#{thumbnail_selector} img[alt='Guides Thumbnail']"
 
     find("#{thumbnail_selector} img").click
     within "turbo-frame#modal" do
@@ -176,11 +176,11 @@ class LibrariesTest < ApplicationSystemTestCase
     previous_version = library.current_version
 
     visit library_path(library, folder_id: folder.id)
-    click_on "New version"
+    click_on "New Version"
 
     within "turbo-frame#modal" do
-      fill_in "Version number", with: "2.0"
-      click_on "Create version"
+      fill_in "Version Number", with: "2.0"
+      click_on "Create Version"
     end
 
     assert_no_selector "turbo-frame#modal .modal"
@@ -251,7 +251,7 @@ class LibrariesTest < ApplicationSystemTestCase
       assert_no_button "Remove"
       assert_no_button "Duplicate"
 
-      root_checkbox = find("input[aria-label='Select folder #{root_folder.name}']")
+      root_checkbox = find("input[aria-label='Select Folder #{root_folder.name}']")
       root_checkbox.check
 
       assert root_checkbox.checked?
@@ -266,8 +266,8 @@ class LibrariesTest < ApplicationSystemTestCase
       assert_no_button "Remove"
       assert_no_button "Duplicate"
 
-      child_checkbox = find("input[aria-label='Select folder #{child_folder.name}']")
-      content_checkbox = find("input[aria-label='Select content #{contents(:one).title}']")
+      child_checkbox = find("input[aria-label='Select Folder #{child_folder.name}']")
+      content_checkbox = find("input[aria-label='Select Content #{contents(:one).title}']")
       child_checkbox.check
       content_checkbox.check
       assert_selector "input[data-library-folder-selection-target='item']:checked", count: 2
@@ -313,13 +313,13 @@ class LibrariesTest < ApplicationSystemTestCase
     visit library_path(library, folder_id: source.id)
 
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
-      find("input[aria-label='Select folder #{selected_folder.name}']").check
-      find("input[aria-label='Select content #{contents(:one).title}']").check
+      find("input[aria-label='Select Folder #{selected_folder.name}']").check
+      find("input[aria-label='Select Content #{contents(:one).title}']").check
       click_button "Remove"
     end
 
     within "turbo-frame#modal" do
-      assert_text "Remove selected items"
+      assert_text "Remove Selected Items"
       assert_text selected_folder.name
       assert_text nested_folder.name
       assert_text contents(:one).title
@@ -378,10 +378,10 @@ class LibrariesTest < ApplicationSystemTestCase
     visit library_path(library, folder_id: root.id)
 
     assert_no_link "Undo", exact: true
-    click_on "Change history"
+    click_on "Change History"
     assert_current_path library_changes_path(library)
-    assert_link "New Child Add folder"
-    click_on "New Child Add folder"
+    assert_link "New Child Add Folder"
+    click_on "New Child Add Folder"
     within "#modal" do
       assert_text users(:one).name
       assert_button "Undo"
@@ -408,7 +408,7 @@ class LibrariesTest < ApplicationSystemTestCase
 
     visit library_changes_path(library)
     assert_selector ".library-change-row[data-change-id='#{change.id}']"
-    click_on "Back to library"
+    click_on "Back to Library"
     assert_current_path library_path(library)
     content.trash!
     page.go_back
@@ -456,7 +456,7 @@ class LibrariesTest < ApplicationSystemTestCase
     within "#modal" do
       assert_text "Library System User"
       assert_text "Undoing this change will also undo all 2 dependent edits"
-      assert_selector "ul[aria-label='Dependent edits to undo'] li", count: 2
+      assert_selector "ul[aria-label='Dependent Edits to Undo'] li", count: 2
       Selenium::WebDriver::Wait.new(timeout: Capybara.default_max_wait_time).until do
         page.evaluate_script("window.bootstrap.Modal.getInstance(document.querySelector('#modal .modal'))?._isTransitioning === false")
       end
@@ -485,8 +485,8 @@ class LibrariesTest < ApplicationSystemTestCase
     visit library_path(library, folder_id: source.id)
 
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
-      find("input[aria-label='Select folder #{selected_folder.name}']").check
-      find("input[aria-label='Select content #{contents(:one).title}']").check
+      find("input[aria-label='Select Folder #{selected_folder.name}']").check
+      find("input[aria-label='Select Content #{contents(:one).title}']").check
       click_button "Move"
     end
 
@@ -520,8 +520,8 @@ class LibrariesTest < ApplicationSystemTestCase
     visit library_path(library, folder_id: source.id)
 
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
-      find("input[aria-label='Select folder #{selected_folder.name}']").check
-      find("input[aria-label='Select content #{contents(:one).title}']").check
+      find("input[aria-label='Select Folder #{selected_folder.name}']").check
+      find("input[aria-label='Select Content #{contents(:one).title}']").check
       click_button "Duplicate"
     end
 
@@ -562,7 +562,7 @@ class LibrariesTest < ApplicationSystemTestCase
     end
 
     within "turbo-frame#modal" do
-      assert_no_select "Library asset"
+      assert_no_select "Library Asset"
       fill_in "Name", with: "Guides"
       click_on "New Folder"
     end
@@ -576,7 +576,7 @@ class LibrariesTest < ApplicationSystemTestCase
     end
 
     within "turbo-frame#modal" do
-      assert_no_select "Library asset"
+      assert_no_select "Library Asset"
       fill_in "Name", with: "First Aid"
       click_on "New Folder"
     end
@@ -695,7 +695,7 @@ class LibrariesTest < ApplicationSystemTestCase
 
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
       find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
-      find("thead a[aria-label='Sort Title ascending']").click
+      find("thead a[aria-label='Sort Title Ascending']").click
 
       assert_no_selector "input[data-content-table-selection-target='row']:checked"
 
@@ -712,10 +712,10 @@ class LibrariesTest < ApplicationSystemTestCase
 
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
       find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
-      click_button "Column select"
-      check "Display title"
+      click_button "Column Select"
+      check "Display Title"
 
-      assert_selector "thead th", text: "Display title"
+      assert_selector "thead th", text: "Display Title"
       assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:one).id}']:checked"
 
       click_on "Current Library"

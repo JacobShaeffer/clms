@@ -1,18 +1,18 @@
-<% content_for :title, "Showing metadata type" %>
+<% content_for :title, "Showing Metadata Type" %>
 
 <div class="row justify-content-center">
   <div class="col-12 col-md-8">
-    <h1 class="mb-4">Showing metadata type</h1>
+    <h1 class="mb-4">Showing Metadata Type</h1>
 
     <%= render @metadata_type %>
 
     <div class="d-grid d-sm-flex gap-2 mt-3">
       <% if policy(@metadata_type).edit? %>
-        <%= link_to "Edit this metadata type", edit_metadata_type_path(@metadata_type), class: "btn btn-secondary" %>
+        <%= link_to "Edit This Metadata Type", edit_metadata_type_path(@metadata_type), class: "btn btn-secondary" %>
       <% end %>
-      <%= link_to "Back to metadata types", metadata_types_path, class: "btn btn-secondary" %>
+      <%= link_to "Back to Metadata Types", metadata_types_path, class: "btn btn-secondary" %>
       <% if policy(@metadata_type).destroy? %>
-        <%= button_to "Destroy this metadata type", @metadata_type, method: :delete, form_class: "d-grid", class: "btn btn-danger", data: { turbo_confirm: "Are you sure?" } %>
+        <%= button_to "Destroy This Metadata Type", @metadata_type, method: :delete, form_class: "d-grid", class: "btn btn-danger", data: { turbo_confirm: "Are you sure?" } %>
       <% end %>
     </div>
   </div>

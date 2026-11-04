@@ -71,7 +71,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       assert_select "input[name='shelf_ids[]']", count: 2
       assert_select "label", text: second_shelf.name
       assert_select "label", text: first_shelf.name
-      assert_select "input[type='submit'][value='Add to NEW Shelf']:not([disabled])"
+      assert_select "input[type='submit'][value='Add to New Shelf']:not([disabled])"
       assert_select "#contents-add-to-shelves-status[role='status']"
     end
   end
@@ -199,7 +199,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", text: "Contents"
     assert_select "h1.title", count: 0
-    assert_select "a.btn.btn-primary[data-turbo-frame='modal']", text: "New content"
+    assert_select "a.btn.btn-primary[data-turbo-frame='modal']", text: "New Content"
     assert_select "turbo-frame#contents_table"
     assert_select "turbo-frame#contents_table input[name='q']", count: 0
     assert_select "form[action='#{table_contents_path}'][data-turbo-frame='contents_table'] input.form-control[name='q']"
@@ -283,7 +283,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".modal-dialog.modal-nearly-fullscreen.content-edit-dialog.content-view-dialog"
     assert_select ".modal-content" do
       assert_select "> .modal-body .content-edit-layout.content-view-layout" do
-        assert_select ".content-view-details-pane fieldset.content-view-details[disabled][aria-label='Content details']" do
+        assert_select ".content-view-details-pane fieldset.content-view-details[disabled][aria-label='Content Details']" do
           assert_select "input#content-view-title[disabled][value='#{@matching_content.title}']"
           assert_select "input#content-view-display-title[disabled][value='#{@matching_content.display_title}']"
           assert_select "textarea#content-view-description[disabled]", text: @matching_content.description
@@ -450,7 +450,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     draft = @user.content_drafts.create!(form_data: { title: "My draft" })
     get contents_url
     assert_select "#contents-draft-button a[href='#{drafts_contents_path}'][data-turbo-frame='modal']", text: "View Drafts"
-    assert_select "#contents-draft-button + a[href='#{new_content_path}']", text: "New content"
+    assert_select "#contents-draft-button + a[href='#{new_content_path}']", text: "New Content"
     assert_select "a", text: "View Draft", count: 0
 
     get drafts_contents_url, headers: TURBO_FRAME_HEADERS
@@ -480,10 +480,10 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#content_draft_#{date_draft.id} a span", text: I18n.l(date_draft.updated_at, format: :long)
     assert_select "#content_draft_#{date_draft.id} a > i.bi-exclamation-triangle-fill.text-danger + span"
     assert_select "i[data-controller='tooltip'][data-bs-toggle='tooltip']" do |icons|
-      assert_equal "Draft saved with submission errors: #{date_draft.submission_errors.to_sentence}", icons.first["title"]
+      assert_equal "Draft Saved With Submission Errors: #{date_draft.submission_errors.to_sentence}", icons.first["title"]
     end
     assert_select ".list-group script", count: 0
-    assert_select ".list-group-item > form[data-turbo-confirm='Delete this draft? This cannot be undone.'] button.text-danger[aria-label='Delete draft'] i.bi-trash-fill", count: 3
+    assert_select ".list-group-item > form[data-turbo-confirm='Delete this draft? This cannot be undone.'] button.text-danger[aria-label='Delete Draft'] i.bi-trash-fill", count: 3
     assert_select ".list-group-item a form", count: 0
   end
 
@@ -537,7 +537,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       assert_select ".alert.alert-success[role='status']", text: "Draft was saved."
       assert_select ".alert.alert-danger", count: 0
       assert_select "input[name='draft_id'][value='#{draft.id}']"
-      assert_select "[data-content-file-upload-target='status']", text: /Saved file:/
+      assert_select "[data-content-file-upload-target='status']", text: /Saved File:/
     end
     assert_select "turbo-stream[target='contents-draft-button'] template a", text: "View Drafts"
   end
@@ -551,7 +551,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     get new_content_url(draft_id: draft.id), headers: TURBO_FRAME_HEADERS
     assert_select "input[type='hidden'][name='content[file]'][value='#{draft.file.blob.signed_id}']"
-    assert_select "[data-content-file-upload-target='status']", text: "Saved file: library_asset.png"
+    assert_select "[data-content-file-upload-target='status']", text: "Saved File: library_asset.png"
 
     assert_no_difference("ContentDraft.count") do
       post contents_url, params: {
@@ -685,7 +685,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get new_content_url
 
     assert_response :success
-    assert_select "h1", text: "New content"
+    assert_select "h1", text: "New Content"
     assert_select "h1.title", count: 0
     assert_select "form[action='#{contents_path}'][method='post'][data-turbo-frame='_top'][data-controller='content-file-upload']" do
       assert_select "label.form-label[for='content_title']", text: "Title"
@@ -703,13 +703,13 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get edit_content_url(@matching_content), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Edit content"
+    assert_select "turbo-frame#modal .modal-title", text: "Edit Content"
     assert_select ".modal-dialog.modal-nearly-fullscreen.content-edit-dialog"
     assert_select ".content-edit-layout[data-controller='content-preview']" do |layouts|
       assert_includes layouts.first["data-action"], "content-file-upload:preview->content-preview#show"
       assert_includes layouts.first["data-action"], "content-file-upload:preview-reset->content-preview#reset"
       assert_select ".content-edit-form"
-      assert_select ".content-edit-preview[aria-label='Content preview'][data-content-preview-target='container'] iframe.content-preview-pdf[src*='/rails/active_storage/blobs/']", count: 1
+      assert_select ".content-edit-preview[aria-label='Content Preview'][data-content-preview-target='container'] iframe.content-preview-pdf[src*='/rails/active_storage/blobs/']", count: 1
     end
     assert_select "form[action='#{content_path(@matching_content)}'][data-turbo-frame='modal']" do
       assert_select "input[name='content[title]'][value='#{@matching_content.title}']"
@@ -754,7 +754,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "label[for='content_file']", text: "Choose New File"
     assert_select "input#content_file[type='file'][name='content[file]']"
     assert_select "[data-content-file-upload-required-value='false']"
-    assert_select "[data-content-file-upload-target='status']", text: /Current file:/
+    assert_select "[data-content-file-upload-target='status']", text: /Current File:/
   end
 
   test "update changes content fields and keeps the current file when no file is submitted" do
@@ -832,7 +832,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     assert_select "turbo-stream[action='replace'][target='modal'] template turbo-frame#modal" do
-      assert_select ".modal-title", text: "Edit content"
+      assert_select ".modal-title", text: "Edit Content"
       assert_select ".alert.alert-danger", text: /prevented this content from being saved/
     end
   end
@@ -1159,7 +1159,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get table_contents_url, params: { per_page: 20 }
 
     assert_response :success
-    assert_select "th", text: "Display title"
+    assert_select "th", text: "Display Title"
     assert_includes @response.body, @matching_content.display_title
   end
 
@@ -1261,7 +1261,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     get table_contents_url, params: { clear_filters: "1" }
 
     assert_response :success
-    assert_select "th", text: "Display title"
+    assert_select "th", text: "Display Title"
     assert_select "tbody tr", 13
     assert_includes @response.body, cleared_filter_content.display_title
     refute_includes @response.body, @other_content.display_title
@@ -1289,7 +1289,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='per_page'] option[value='50'][selected]"
     assert_select "input[name='q'][value='River']"
     assert_select "input[name='filters[description][value]'][value='Hydrology']"
-    assert_sort_header "Display title", sort_key: "display_title", aria_sort: "ascending", current_direction: "asc"
+    assert_sort_header "Display Title", sort_key: "display_title", aria_sort: "ascending", current_direction: "asc"
     assert_includes @response.body, @matching_content.display_title
     refute_includes @response.body, @other_content.display_title
 
@@ -1419,7 +1419,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_nil content_table_state["sort_column"]
     assert_nil content_table_state["sort_direction"]
     assert_nil content_header("Title")
-    assert_sort_header "Display title", sort_key: "display_title", aria_sort: "none", current_direction: "default"
+    assert_sort_header "Display Title", sort_key: "display_title", aria_sort: "none", current_direction: "default"
   end
 
   test "reset deletes only the contents table preference" do
@@ -1541,12 +1541,12 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     expected_headers = [
       [ "ID", "id" ],
       [ "Title", "title" ],
-      [ "Display title", "display_title" ],
+      [ "Display Title", "display_title" ],
       [ "Description", "description" ],
-      [ "Year of publication", "year_of_publication" ],
-      [ "Additional notes", "additional_notes" ],
-      [ "Date created", "created_at" ],
-      [ "Date updated", "updated_at" ],
+      [ "Year of Publication", "year_of_publication" ],
+      [ "Additional Notes", "additional_notes" ],
+      [ "Date Created", "created_at" ],
+      [ "Date Updated", "updated_at" ],
       [ "Added by", "added_by" ],
       [ "Subject", "metadata_type:#{@metadata_type.id}" ],
       [ "Language", "metadata_type:#{language_type.id}" ]
@@ -1611,13 +1611,13 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     click_content_header "Title"
 
     assert_sort_header "Title", sort_key: "title", aria_sort: "ascending", current_direction: "asc"
-    assert_sort_header "Display title", sort_key: "display_title", aria_sort: "none", current_direction: "default"
+    assert_sort_header "Display Title", sort_key: "display_title", aria_sort: "none", current_direction: "default"
 
-    click_content_header "Display title"
+    click_content_header "Display Title"
 
-    assert_equal [ "Display Match", "Display Miss" ], content_column_values("Display title")
+    assert_equal [ "Display Match", "Display Miss" ], content_column_values("Display Title")
     assert_sort_header "Title", sort_key: "title", aria_sort: "none", current_direction: "default"
-    assert_sort_header "Display title", sort_key: "display_title", aria_sort: "ascending", current_direction: "asc"
+    assert_sort_header "Display Title", sort_key: "display_title", aria_sort: "ascending", current_direction: "asc"
     assert_select "th[aria-sort='ascending'], th[aria-sort='descending']", count: 1
   end
 
@@ -1659,16 +1659,16 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
       [ "Description", "description",
         [ third_content.title, @matching_content.title, @other_content.title ],
         [ @matching_content.title, third_content.title, @other_content.title ] ],
-      [ "Year of publication", "year_of_publication",
+      [ "Year of Publication", "year_of_publication",
         [ third_content.title, @matching_content.title, @other_content.title ],
         [ @matching_content.title, third_content.title, @other_content.title ] ],
-      [ "Additional notes", "additional_notes",
+      [ "Additional Notes", "additional_notes",
         [ third_content.title, @matching_content.title, @other_content.title ],
         [ @matching_content.title, third_content.title, @other_content.title ] ],
-      [ "Date created", "created_at",
+      [ "Date Created", "created_at",
         [ @other_content.title, @matching_content.title, third_content.title ],
         [ third_content.title, @matching_content.title, @other_content.title ] ],
-      [ "Date updated", "updated_at",
+      [ "Date Updated", "updated_at",
         [ third_content.title, @matching_content.title, @other_content.title ],
         [ @other_content.title, @matching_content.title, third_content.title ] ]
     ]
@@ -1981,7 +1981,7 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(@matching_content, :trash)}" do
       assert_select "td", text: "Administrative review"
       assert_select "form[action='#{restore_content_path(@matching_content)}']", text: /Restore/
-      assert_select "form[action='#{content_path(@matching_content)}']", text: /Delete permanently/
+      assert_select "form[action='#{content_path(@matching_content)}']", text: /Delete Permanently/
     end
 
     patch restore_content_url(@matching_content)

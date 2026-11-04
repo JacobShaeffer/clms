@@ -21,7 +21,7 @@
   </p>
 
   <div class="mb-3">
-    <%= form.label :version_number, class: "form-label" %>
+    <%= form.label :version_number, "Version Number", class: "form-label" %>
     <%= form.text_field :version_number, class: "form-control", autofocus: true, required: true %>
   </div>
 
@@ -29,6 +29,6 @@
     <% if local_assigns[:modal] %>
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
     <% end %>
-    <%= form.submit "Create version", class: "btn btn-primary" %>
+    <%= form.submit "Create Version", class: "btn btn-primary" %>
   </div>
 <% end %>

@@ -10,8 +10,8 @@ class LibraryEditControlsController < ApplicationController
     @library.with_lock do
       changes = receipt_changes
       params[:direction] == "redo" ? validate_redo!(changes) : LibraryChanges::UndoBatch.validate!(changes:, user: current_user, library: @library)
-      label = changes.first.action_type.humanize
-      label += " (#{changes.length} items)" if changes.length > 1
+      label = changes.first.action_type.titleize
+      label += " (#{changes.length} Items)" if changes.length > 1
       render json: { available: true, label: }
     end
   end

@@ -18,7 +18,7 @@
 
   <div class="row g-2 px-3 pb-2 fw-semibold" aria-hidden="true">
     <div class="col">Name</div>
-    <div class="col">Access level</div>
+    <div class="col">Access Level</div>
     <div class="col-auto" style="width: 5.5rem;">Order</div>
   </div>
 
@@ -28,7 +28,7 @@
         <%= hidden_field_tag "metadata_type_ids[]", metadata_type.id %>
         <div class="row g-2 align-items-center">
           <div class="col">
-            <%= label_tag "metadata_types_#{metadata_type.id}_name", "Name for #{metadata_type.name}", class: "visually-hidden" %>
+            <%= label_tag "metadata_types_#{metadata_type.id}_name", "Name For #{metadata_type.name}", class: "visually-hidden" %>
             <%= text_field_tag "metadata_types[#{metadata_type.id}][name]",
               metadata_type.name,
               id: "metadata_types_#{metadata_type.id}_name",
@@ -36,7 +36,7 @@
             %>
           </div>
           <div class="col">
-            <%= label_tag "metadata_types_#{metadata_type.id}_access_level", "Access level for #{metadata_type.name}", class: "visually-hidden" %>
+            <%= label_tag "metadata_types_#{metadata_type.id}_access_level", "Access Level For #{metadata_type.name}", class: "visually-hidden" %>
             <%= select_tag "metadata_types[#{metadata_type.id}][access_level]",
               options_for_select(metadata_access_level_options, metadata_type.access_level),
               id: "metadata_types_#{metadata_type.id}_access_level",
@@ -54,7 +54,7 @@
               <button
                 type="button"
                 class="btn btn-outline-secondary"
-                aria-label="Move <%= metadata_type.name %> down"
+                aria-label="Move <%= metadata_type.name %> Down"
                 data-action="metadata-type-order#moveDown"
               >↓</button>
             </div>

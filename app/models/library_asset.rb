@@ -29,7 +29,7 @@ class LibraryAsset < ApplicationRecord
   validate :banner_type_when_assigned
 
   def display_name
-    name.presence || (image.filename.to_s if image.attached?) || "Library asset"
+    name.presence || (image.filename.to_s if image.attached?) || "Library Asset"
   end
 
   private

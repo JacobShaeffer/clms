@@ -153,12 +153,12 @@ module ContentTables
       Array(raw_groups).map do |group|
         values = group.respond_to?(:to_h) ? group.to_h.symbolize_keys : {}
         key = values.fetch(:key).to_sym
-        label = key.to_s.humanize
+        label = key.to_s.humanize.gsub(/\b[[:alpha:]]{3,}\b/, &:capitalize)
 
         values.merge(
           key:,
-          columns_label: values[:columns_label].presence || "#{label} columns",
-          filters_label: values[:filters_label].presence || "#{label} filters"
+          columns_label: values[:columns_label].presence || "#{label} Columns",
+          filters_label: values[:filters_label].presence || "#{label} Filters"
         ).freeze
       end
     end

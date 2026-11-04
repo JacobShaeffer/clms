@@ -7,6 +7,6 @@
       shelf: @shelf,
       return_to_contents: @return_to_contents || false,
       content_ids: @selected_content_ids || [] %>
-    <%= link_to "Back to shelves", shelves_path(selected_shelf_id: @selected_shelf&.id), class: "btn btn-secondary mt-3" %>
+    <%= link_to "Back to Shelves", shelves_path(selected_shelf_id: @selected_shelf&.id), class: "btn btn-secondary mt-3" %>
   </div>
 </div>

@@ -39,7 +39,7 @@ class LibraryEditControlsControllerTest < ActionDispatch::IntegrationTest
     initial_receipt = receipt
     get status_library_edit_controls_url(@library), params: { receipt:, direction: "undo" }, headers: @headers
     assert_response :success
-    assert_equal "Add content (2 items)", response.parsed_body["label"]
+    assert_equal "Add Content (2 Items)", response.parsed_body["label"]
     patch undo_library_edit_controls_url(@library), params: { receipt: }, headers: @headers, as: :json
     assert_response :success
     assert_empty @root.library_folder_contents

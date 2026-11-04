@@ -74,9 +74,9 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
     get library_changes_url(@library)
 
     assert_response :success
-    assert_select "h1", text: "Change history"
-    assert_select "section[aria-label='Version 1.0 changes']" do
-      assert_select ".library-change-undone[data-change-id='#{change.id}'] a", text: /#{Regexp.escape(change.display_label)}.*Add content.*Undone/
+    assert_select "h1", text: "Change History"
+    assert_select "section[aria-label='Version 1.0 Changes']" do
+      assert_select ".library-change-undone[data-change-id='#{change.id}'] a", text: /#{Regexp.escape(change.display_label)}.*Add Content.*Undone/
     end
     assert_select "a[data-turbo-frame='modal'][href='#{library_change_path(@library, change)}']"
     assert_select "input[type='submit'][value='Undo']", count: 0
@@ -90,12 +90,12 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
     get library_change_url(@library, first), headers: { "Turbo-Frame" => "modal" }
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Change details"
+    assert_select "turbo-frame#modal .modal-title", text: "Change Details"
     assert_select "dd", text: @author.name
-    assert_select "dd", text: "Add content"
+    assert_select "dd", text: "Add Content"
     assert_select "[data-library-change-details][data-change-id='#{first.id}'][data-dependent-change-ids='[#{second.id}]']"
     assert_select ".alert-warning", text: /will also undo all 1 dependent edits/
-    assert_select "ul[aria-label='Dependent edits to undo'] li", text: /Remove content/
+    assert_select "ul[aria-label='Dependent Edits to Undo'] li", text: /Remove Content/
     assert_select "input[name='dependent_change_ids[]'][value='#{second.id}']"
     assert_select "input[type='submit'][value='Undo']"
   end
@@ -288,7 +288,7 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
     get library_change_url(@library, folder_change), headers: { "Turbo-Frame" => "modal" }
     assert_response :success
     refute_includes response.body, content.title
-    assert_select "ul[aria-label='Dependent edits to undo'] li", count: 2
+    assert_select "ul[aria-label='Dependent Edits to Undo'] li", count: 2
     assert_select ".alert-warning", text: /undo all 3 dependent edits/
     assert_select "p", text: "1 additional dependent edit involving content in Trash will also be undone."
     assert_select "input[name='dependent_change_ids[]']", count: 3
@@ -361,7 +361,7 @@ class LibraryChangesControllerTest < ActionDispatch::IntegrationTest
     patch undo_library_change_url(@library, first), params: { cascade: "1", dependent_change_ids: [ second.id ] }
     assert_redirected_to library_changes_url(@library)
     get library_change_url(@library, first), headers: { "Turbo-Frame" => "modal" }
-    assert_select "ul[aria-label='Edits to redo'] li", count: 2
+    assert_select "ul[aria-label='Edits to Redo'] li", count: 2
     assert_select "input[type=submit][value=Redo]"
     assert_select ".alert-warning", text: /all 2 edits undone together/
     undo_group_key = first.reload.undo_group_key

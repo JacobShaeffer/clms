@@ -14,7 +14,7 @@
           id="library-version-dropdown"
           data-bs-toggle="dropdown"
           aria-expanded="false"
-          aria-label="Library version">
+          aria-label="Library Version">
           <%= @library_version.version_number %>
         </button>
         <ul class="dropdown-menu" aria-labelledby="library-version-dropdown">
@@ -41,10 +41,10 @@
 
     <div class="col-12 col-xl-4 d-flex flex-wrap justify-content-xl-end gap-2">
       <% if policy(LibraryChange).index? %>
-        <%= link_to "Change history", library_changes_path(@library), class: "btn btn-outline-secondary" %>
+        <%= link_to "Change History", library_changes_path(@library), class: "btn btn-outline-secondary" %>
       <% end %>
       <% if policy(LibraryVersion).create? %>
-        <%= link_to "New version",
+        <%= link_to "New Version",
           new_library_library_version_path(@library),
           class: "btn btn-primary",
           data: { turbo_frame: "modal" } %>

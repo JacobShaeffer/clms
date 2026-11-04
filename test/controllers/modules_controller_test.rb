@@ -27,7 +27,7 @@ class ModulesControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[data-turbo-frame='module_results'] input[type='search'][name='q']"
     assert_select "thead th", text: "Name"
     assert_select "thead th", text: "Folder Name"
-    assert_select "thead th", text: "Library asset"
+    assert_select "thead th", text: "Library Asset"
     assert_select "thead .visually-hidden", text: "Actions"
     assert_select "##{ActionView::RecordIdentifier.dom_id(@library_module)}" do
       assert_select "td", text: @library_module.name

@@ -10,7 +10,7 @@
             <input
               type="checkbox"
               class="form-check-input"
-              aria-label="Select all content on this page"
+              aria-label="Select All Content on This Page"
               data-content-table-selection-target="page"
               data-action="change->content-table-selection#togglePage"
               <%= "disabled" if records.empty? || selected_columns.empty? %>
@@ -25,11 +25,11 @@
 
             <% if column.sortable? %>
               <% sort_action = if state.sort_direction == "asc" && sorted
-                "Sort #{column.label} descending"
+                "Sort #{column.label} Descending"
               elsif state.sort_direction == "desc" && sorted
-                "Clear sorting for #{column.label}"
+                "Clear Sorting For #{column.label}"
               else
-                "Sort #{column.label} ascending"
+                "Sort #{column.label} Ascending"
               end %>
 
               <th scope="col" aria-sort="<%= aria_sort %>">
@@ -108,7 +108,7 @@
       }
     ) do |form| %>
       <%= form.label :per_page,
-        "Rows to display",
+        "Rows to Display",
         for: per_page_input_id,
         class: "form-label mb-0"
       %>

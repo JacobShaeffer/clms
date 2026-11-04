@@ -55,7 +55,7 @@ class LibraryChange < ApplicationRecord
   end
 
   def display_label
-    direct_target&.label || action_type.humanize
+    direct_target&.label || action_type.titleize
   end
 
   def mark_redone!

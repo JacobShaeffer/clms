@@ -65,7 +65,7 @@
         </div>
       <% end %>
 
-      <nav class="library-folder-breadcrumb" aria-label="Library folder breadcrumb">
+      <nav class="library-folder-breadcrumb" aria-label="Library Folder Breadcrumb">
         <ol class="breadcrumb flex-nowrap overflow-x-auto">
           <% root_is_current = @current_folder.nil? %>
           <li class="breadcrumb-item <%= "active" if root_is_current %>" <%= "aria-current=page" if root_is_current %>>
@@ -120,7 +120,7 @@
                   false,
                   id: dom_id(folder, :browser_selection),
                   class: "form-check-input flex-shrink-0 m-0",
-                  aria: { label: "Select folder #{folder.name}" },
+                  aria: { label: "Select Folder #{folder.name}" },
                   data: { library_folder_selection_target: "item" }
                 %>
               <% end %>
@@ -156,7 +156,7 @@
                   false,
                   id: dom_id(content, :browser_selection),
                   class: "form-check-input flex-shrink-0 m-0",
-                  aria: { label: "Select content #{content.title}" },
+                  aria: { label: "Select Content #{content.title}" },
                   data: { library_folder_selection_target: "item" }
                 %>
               <% end %>
@@ -164,7 +164,7 @@
             <span class="library-folder-browser-title"><%= content.title %></span>
             <div class="d-flex align-items-center justify-content-end gap-2">
               <% if @file_changed_content_ids.key?(content.id) %>
-                <span class="badge text-bg-warning">File changed</span>
+                <span class="badge text-bg-warning">File Changed</span>
               <% end %>
               <span class="badge text-bg-light">Content</span>
             </div>

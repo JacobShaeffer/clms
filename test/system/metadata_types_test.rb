@@ -16,9 +16,9 @@ class MetadataTypesTest < ApplicationSystemTestCase
   test "reorders metadata types in the modal" do
     visit metadata_types_path
 
-    find("[aria-label='Edit metadata types']").click
+    find("[aria-label='Edit Metadata Types']").click
     within "turbo-frame#modal" do
-      assert_selector ".modal-title", text: "Edit metadata types"
+      assert_selector ".modal-title", text: "Edit Metadata Types"
       find("button[aria-label='Move Language up']").click
       assert_equal [ @second_type.id, @first_type.id ],
         all("input[name='metadata_type_ids[]']", visible: :all).map { |input| input.value.to_i }
@@ -36,12 +36,12 @@ class MetadataTypesTest < ApplicationSystemTestCase
   test "edits a metadata type in the modal" do
     visit metadata_types_path
 
-    find("[aria-label='Edit metadata types']").click
+    find("[aria-label='Edit Metadata Types']").click
 
     within "turbo-frame#modal" do
-      assert_selector ".modal-title", text: "Edit metadata types"
-      fill_in "Name for Subject", with: "Topic"
-      select "Volunteer", from: "Access level for Subject"
+      assert_selector ".modal-title", text: "Edit Metadata Types"
+      fill_in "Name For Subject", with: "Topic"
+      select "Volunteer", from: "Access Level For Subject"
       click_button "Save"
     end
 
@@ -59,13 +59,13 @@ class MetadataTypesTest < ApplicationSystemTestCase
     find("#metadata_type_#{original.metadata_type_id} .accordion-button").click
 
     within "#metadatum_#{original.id}" do
-      find("button[aria-label='Metadata value actions']").click
+      find("button[aria-label='Metadata Value Actions']").click
       click_link "Replace"
     end
 
     short_modal_height = nil
     within "turbo-frame#modal" do
-      assert_selector ".modal-title", text: "Replace metadata value"
+      assert_selector ".modal-title", text: "Replace Metadata Value"
       wait_for_replacement_modal
       short_modal_height = replacement_modal_height
       click_button "Cancel"
@@ -77,12 +77,12 @@ class MetadataTypesTest < ApplicationSystemTestCase
     end
 
     within "#metadatum_#{original.id}" do
-      find("button[aria-label='Metadata value actions']").click
+      find("button[aria-label='Metadata Value Actions']").click
       click_link "Replace"
     end
 
     within "turbo-frame#modal" do
-      assert_selector ".modal-title", text: "Replace metadata value"
+      assert_selector ".modal-title", text: "Replace Metadata Value"
       wait_for_replacement_modal
       assert_in_delta short_modal_height, replacement_modal_height, 1
       top_gap = evaluate_script(
@@ -117,7 +117,7 @@ class MetadataTypesTest < ApplicationSystemTestCase
       within ".list-group-item", text: other_candidate.name do
         assert_selector ".badge", text: "Reviewed"
       end
-      fill_in "Search metadata values", with: "replace"
+      fill_in "Search Metadata Values", with: "replace"
       assert_selector ".list-group-item", text: replacement.name
       assert_no_selector ".list-group-item", text: other_candidate.name
       choose replacement.name

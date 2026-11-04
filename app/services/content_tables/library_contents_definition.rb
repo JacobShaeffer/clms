@@ -2,7 +2,7 @@ module ContentTables
   class LibraryContentsDefinition < ContentsDefinition
     LIBRARY_GROUP = {
       key: :library,
-      columns_label: "Library columns",
+      columns_label: "Library Columns",
       filters_label: "Library Filters"
     }.freeze
     LIBRARY_FOLDERS_COLUMN_KEY = "library_folders"
@@ -96,7 +96,7 @@ module ContentTables
 
       Column.new(
         key: LIBRARY_FOLDERS_COLUMN_KEY,
-        label: "Library folders",
+        label: "Library Folders",
         group: :library,
         cell_partial: "content_tables/library_folders_cell",
         filter:,

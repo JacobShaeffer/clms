@@ -3,8 +3,8 @@
     <%= hidden_field_tag key, value %>
   <% end %>
   <div class="mb-3">
-    <%= form.label :q, "Search by name", for: "#{frame_id}_query", class: "form-label" %>
-    <%= form.search_field :q, id: "#{frame_id}_query", value: @query, class: "form-control", placeholder: "Search assets by name", autofocus: local_assigns.fetch(:autofocus, false), data: { library_asset_filters_target: "query", action: "input->library-asset-filters#search" } %>
+    <%= form.label :q, "Search by Name", for: "#{frame_id}_query", class: "form-label" %>
+    <%= form.search_field :q, id: "#{frame_id}_query", value: @query, class: "form-control", placeholder: "Search Assets by Name", autofocus: local_assigns.fetch(:autofocus, false), data: { library_asset_filters_target: "query", action: "input->library-asset-filters#search" } %>
   </div>
   <%= form.hidden_field :language, id: "#{frame_id}_language", value: @language, data: { library_asset_filters_target: "language" } %>
   <%= form.hidden_field :asset_type, id: "#{frame_id}_asset_type", value: @asset_type, data: { library_asset_filters_target: "assetType" } %>

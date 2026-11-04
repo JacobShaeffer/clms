@@ -24,10 +24,10 @@ class LibraryVersionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#modal .modal[data-controller='modal']" do
-      assert_select ".modal-title", text: "New version"
+      assert_select ".modal-title", text: "New Version"
       assert_select "form[action='#{library_library_versions_path(@library)}'][data-turbo-frame='_top']" do
         assert_select "input.form-control[name='library_version[version_number]'][required]"
-        assert_select "input[type='submit'][value='Create version']"
+        assert_select "input[type='submit'][value='Create Version']"
       end
     end
   end
@@ -144,13 +144,13 @@ class LibraryVersionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href='#{new_library_library_version_path(@library)}'][data-turbo-frame='modal']",
-      text: "New version"
+      text: "New Version"
 
     @admin.update!(role: :intern_plus)
     get library_url(@library)
 
     assert_response :success
-    assert_select "a[href='#{new_library_library_version_path(@library)}']", text: "New version", count: 0
+    assert_select "a[href='#{new_library_library_version_path(@library)}']", text: "New Version", count: 0
   end
 
   test "unauthenticated users are redirected to sign in" do

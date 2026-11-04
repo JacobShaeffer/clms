@@ -107,7 +107,7 @@ class ContentTables::TableTest < ActionView::TestCase
       selection_form_id: "bulk-content-form"
     ))
 
-    assert_select "thead input[type='checkbox'][aria-label='Select all content on this page']"
+    assert_select "thead input[type='checkbox'][aria-label='Select All Content on This Page']"
     assert_select "tbody input[type='checkbox'][name='content_ids[]'][value='#{@record.id}'][form='bulk-content-form']"
     assert_select "tbody input[data-content-table-selection-target='row'][aria-label='Select #{@record.title}']"
   end
@@ -146,11 +146,11 @@ class ContentTables::TableTest < ActionView::TestCase
 
     assert_select "label[for='custom-search']", text: "Search"
     assert_select "input#custom-search[name='q']"
-    assert_select "label[for='custom-per-page']", text: "Rows to display"
+    assert_select "label[for='custom-per-page']", text: "Rows to Display"
     assert_select "select#custom-per-page[name='per_page']"
     assert_select "#q, #per_page", count: 0
-    assert_select ".dropdown-menu h2", text: "Custom columns"
-    assert_select ".offcanvas h3", text: "Custom filters"
+    assert_select ".dropdown-menu h2", text: "Custom Columns"
+    assert_select ".offcanvas h3", text: "Custom Filters"
   end
 
   test "pagination renders pre-render scroll preservation hooks" do
@@ -230,7 +230,7 @@ class ContentTables::TableTest < ActionView::TestCase
     assert_select "input[name='q']", count: 0
     assert_select "button", text: "Filters", count: 0
     assert_select ".offcanvas", count: 0
-    assert_select "button", text: "Column select"
+    assert_select "button", text: "Column Select"
     assert_select "select[name='per_page']"
   end
 

@@ -17,9 +17,9 @@ class ModulesTest < ApplicationSystemTestCase
     )
     visit modules_path
 
-    fill_in "Search by name", with: "missing"
+    fill_in "Search by Name", with: "missing"
     assert_text "No modules match your search."
-    fill_in "Search by name", with: ""
+    fill_in "Search by Name", with: ""
     assert_selector "##{ActionView::RecordIdentifier.dom_id(existing)}"
 
     click_on "New Module"

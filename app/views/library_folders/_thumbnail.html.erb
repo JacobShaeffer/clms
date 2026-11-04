@@ -1,7 +1,7 @@
 <div id="<%= dom_id(folder, :thumbnail) %>" class="flex-shrink-0">
   <% thumbnail = capture do %>
     <% if folder.logo&.image&.attached? %>
-      <%= image_tag folder.logo.image, class: "w-100 h-100 object-fit-contain", alt: "#{folder.name} thumbnail" %>
+      <%= image_tag folder.logo.image, class: "w-100 h-100 object-fit-contain", alt: "#{folder.name} Thumbnail" %>
     <% else %>
       <i class="bi bi-image fs-4" aria-hidden="true"></i>
     <% end %>
@@ -17,12 +17,12 @@
     ),
       class: thumbnail_class,
       data: { turbo_frame: "modal" },
-      aria: { label: "Choose image for #{folder.name}" },
-      title: "Choose folder image" do %>
+      aria: { label: "Choose Image For #{folder.name}" },
+      title: "Choose Folder Image" do %>
       <%= thumbnail %>
     <% end %>
   <% else %>
-    <span class="<%= thumbnail_class %>" role="img" aria-label="<%= folder.name %> thumbnail">
+    <span class="<%= thumbnail_class %>" role="img" aria-label="<%= folder.name %> Thumbnail">
       <%= thumbnail %>
     </span>
   <% end %>

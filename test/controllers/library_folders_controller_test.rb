@@ -39,11 +39,11 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     get new_library_library_folder_url(@library), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "New folder"
+    assert_select "turbo-frame#modal .modal-title", text: "New Folder"
     assert_select "form[action='#{library_library_folders_path(@library)}']" do
       assert_select "input[name='library_folder[name]']"
       assert_select "select[name='library_folder[logo_id]']", count: 0
-      assert_select "label", text: "Library asset", count: 0
+      assert_select "label", text: "Library Asset", count: 0
     end
   end
 
@@ -110,14 +110,14 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     get edit_library_library_folder_url(@library, @root_folder, tab: "library"), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Choose folder image"
+    assert_select "turbo-frame#modal .modal-title", text: "Choose Folder Image"
     assert_select "form[action='#{library_library_folder_path(@library, @root_folder)}'][data-turbo-frame='modal']" do
       assert_select "input[name='library_version_id'][value='#{@library.current_version_id}']"
       assert_select "input[name='tab'][value='library']"
       assert_select "input[name='library_folder[logo_id]'][value='#{@root_folder.logo_id}']"
       assert_select "input[name='library_folder[name]']", count: 0
     end
-    assert_select "[aria-label='Selected image'] img[alt='#{@root_folder.logo.display_name}']"
+    assert_select "[aria-label='Selected Image'] img[alt='#{@root_folder.logo.display_name}']"
     assert_select "button[data-asset-id='#{@root_folder.logo_id}'][aria-pressed='true']"
     assert_select "fieldset[aria-label='Language']"
     assert_select "fieldset[aria-label='Type']", count: 0
@@ -136,7 +136,7 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Guides", @root_folder.name
     assert_select "turbo-stream[action='update'][target='modal']"
     assert_select "turbo-stream[action='replace'][target='#{ActionView::RecordIdentifier.dom_id(@root_folder, :thumbnail)}']" do
-      assert_select "a[data-turbo-frame='modal'] img[alt='Guides thumbnail']"
+      assert_select "a[data-turbo-frame='modal'] img[alt='Guides Thumbnail']"
     end
   end
 
@@ -257,7 +257,7 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     ), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "New folder"
+    assert_select "turbo-frame#modal .modal-title", text: "New Folder"
     assert_select "input[name='picker_operation'][value='move']"
     assert_select "input[name='source_folder_id'][value='#{@root_folder.id}']"
     assert_select "input[name='folder_ids[]'][value='#{selected_folder.id}']"
@@ -294,7 +294,7 @@ class LibraryFoldersControllerTest < ActionDispatch::IntegrationTest
     new_destination = destination.child_folders.find_by!(name: "New Destination")
     assert_select "turbo-stream[action='replace'][target='#{ActionView::RecordIdentifier.dom_id(@library, :folder_browser)}']"
     assert_select "turbo-stream[action='replace'][target='modal'] template" do
-      assert_select ".modal-title", text: "Duplicate items"
+      assert_select ".modal-title", text: "Duplicate Items"
       assert_select ".breadcrumb-item.active", text: new_destination.name
       assert_select "input[type='hidden'][name='destination_folder_id']" \
         "[value='#{new_destination.id}']:not([disabled])"

@@ -4,12 +4,12 @@ module ContentTables
     PER_PAGE_OPTIONS = [ 10, 20, 50, 100 ].freeze
     CONTENT_GROUP = {
       key: :content,
-      columns_label: "Content columns",
+      columns_label: "Content Columns",
       filters_label: "General Filters"
     }.freeze
     METADATA_GROUP = {
       key: :metadata,
-      columns_label: "Metadata columns",
+      columns_label: "Metadata Columns",
       filters_label: "Metadata Filters",
       empty_message: "No metadata types available."
     }.freeze
@@ -58,7 +58,7 @@ module ContentTables
         page_size_options: PER_PAGE_OPTIONS,
         default_page_size: 10,
         empty_message: "No content found.",
-        search_placeholder: "Search by title",
+        search_placeholder: "Search by Title",
         quick_search: method(:apply_quick_search),
         default_order: method(:apply_default_order),
         row_partial:,
@@ -100,12 +100,12 @@ module ContentTables
           sort: Sorts::Expression.new(expression: contents[:id])
         ),
         text_content_column("title", "Title"),
-        text_content_column("display_title", "Display title"),
+        text_content_column("display_title", "Display Title"),
         text_content_column("description", "Description"),
-        number_content_column("year_of_publication", "Year of publication"),
-        number_content_column("additional_notes", "Additional notes"),
-        date_content_column("created_at", "Date created"),
-        date_content_column("updated_at", "Date updated"),
+        number_content_column("year_of_publication", "Year of Publication"),
+        number_content_column("additional_notes", "Additional Notes"),
+        date_content_column("created_at", "Date Created"),
+        date_content_column("updated_at", "Date Updated"),
         added_by_column
       ]
     end

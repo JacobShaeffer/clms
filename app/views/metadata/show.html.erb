@@ -1,17 +1,17 @@
-<% content_for :title, "Showing metadatum" %>
+<% content_for :title, "Showing Metadatum" %>
 
 <div class="row justify-content-center">
   <div class="col-12 col-md-8">
-    <h1 class="mb-4">Showing metadatum</h1>
+    <h1 class="mb-4">Showing Metadatum</h1>
 
     <div class="border rounded p-3">
       <%= render @metadatum, metadata_type: @metadata_type %>
     </div>
 
     <div class="d-grid d-sm-flex gap-2 mt-3">
-      <%= link_to "Edit this metadatum", edit_metadata_type_metadatum_path(@metadata_type, @metadatum), class: "btn btn-secondary" %>
-      <%= link_to "Back to metadata types", metadata_types_path, class: "btn btn-secondary" %>
-      <%= button_to "Destroy this metadatum", metadata_type_metadatum_path(@metadata_type, @metadatum), method: :delete, form_class: "d-grid", class: "btn btn-danger", data: { turbo_confirm: "Are you sure?" } %>
+      <%= link_to "Edit This Metadatum", edit_metadata_type_metadatum_path(@metadata_type, @metadatum), class: "btn btn-secondary" %>
+      <%= link_to "Back to Metadata Types", metadata_types_path, class: "btn btn-secondary" %>
+      <%= button_to "Destroy This Metadatum", metadata_type_metadatum_path(@metadata_type, @metadatum), method: :delete, form_class: "d-grid", class: "btn btn-danger", data: { turbo_confirm: "Are you sure?" } %>
     </div>
   </div>
 </div>

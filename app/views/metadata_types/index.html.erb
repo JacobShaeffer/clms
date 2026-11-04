@@ -1,15 +1,15 @@
-<% content_for :title, "Metadata types" %>
+<% content_for :title, "Metadata Types" %>
 
 <div class="row align-items-center g-3 mb-4">
   <div class="col-12 col-sm">
     <div class="d-flex align-items-center gap-2">
-      <h1 class="mb-0">Metadata types</h1>
+      <h1 class="mb-0">Metadata Types</h1>
       <% if policy(MetadataType).manage? %>
         <%= link_to "⋮",
           edit_all_metadata_types_path,
           class: "btn btn-outline-secondary fs-4 lh-1 px-2",
           role: "button",
-          aria: { label: "Edit metadata types" },
+          aria: { label: "Edit Metadata Types" },
           data: { turbo_frame: "modal" }
         %>
       <% end %>
@@ -17,7 +17,7 @@
   </div>
   <% if policy(MetadataType).new? %>
     <div class="col-12 col-sm-auto d-grid">
-      <%= link_to "New metadata type", new_metadata_type_path, class: "btn btn-primary", data: { turbo_frame: "modal" } %>
+      <%= link_to "New Metadata Type", new_metadata_type_path, class: "btn btn-primary", data: { turbo_frame: "modal" } %>
     </div>
   <% end %>
 </div>

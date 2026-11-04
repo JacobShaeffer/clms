@@ -1,7 +1,7 @@
 <% metadata_type = local_assigns.fetch(:metadata_type, metadatum.metadata_type) %>
 <% frame_params = local_assigns.fetch(:frame_params, {}) %>
 <% metadatum_policy = policy(metadatum) %>
-<% review_action_label = metadatum.under_review? ? "Approve" : "Mark for Review" %>
+<% review_action_label = metadatum.under_review? ? "Approve" : "Mark For Review" %>
 <% status_label = metadatum.under_review? ? "Under Review" : "Reviewed" %>
 <% status_class = metadatum.under_review? ? "text-bg-warning" : "text-bg-success" %>
 
@@ -16,7 +16,7 @@
         type="button"
         data-bs-toggle="dropdown"
         aria-expanded="false"
-        aria-label="<%= status_label %> status actions"
+        aria-label="<%= status_label %> Status Actions"
       >
         <%= status_label %>
       </button>
@@ -32,7 +32,7 @@
           </li>
         <% end %>
         <li>
-          <%= link_to "See all tagged items",
+          <%= link_to "See All Tagged Items",
             tagged_items_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
             class: "dropdown-item",
             data: { turbo_frame: "modal" }
@@ -43,7 +43,7 @@
   </div>
   <div class="col-3 col-sm-1 d-flex justify-content-end">
     <div class="dropdown">
-      <button class="btn btn-secondary rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Metadata value actions">
+      <button class="btn btn-secondary rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Metadata Value Actions">
         ...
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
@@ -76,7 +76,7 @@
           </li>
         <% end %>
         <li>
-          <%= link_to "See all tagged items",
+          <%= link_to "See All Tagged Items",
             tagged_items_metadata_type_metadatum_path(metadata_type, metadatum, frame_params),
             class: "dropdown-item",
             data: { turbo_frame: "modal" }

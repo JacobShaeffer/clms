@@ -21,7 +21,7 @@
     %>
   <% end %>
 
-  <nav class="mb-3" aria-label="Destination folder breadcrumb">
+  <nav class="mb-3" aria-label="Destination Folder Breadcrumb">
     <ol class="breadcrumb flex-nowrap overflow-x-auto mb-0">
       <% root_is_current = @picker.current_folder.nil? %>
       <li class="breadcrumb-item <%= "active" if root_is_current %>" <%= "aria-current=page" if root_is_current %>>

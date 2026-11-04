@@ -1,9 +1,9 @@
-<% content_for :title, "Library assets" %>
+<% content_for :title, "Library Assets" %>
 
 <div data-controller="library-asset-filters">
   <div class="d-flex justify-content-between align-items-center my-4">
-    <h1 class="mb-0">Library assets</h1>
-    <%= link_to "New library asset", new_library_asset_path(library_asset_filters: @asset_filter_context), class: "btn btn-primary", data: { turbo_frame: "modal", library_asset_filters_target: "newLink" } %>
+    <h1 class="mb-0">Library Assets</h1>
+    <%= link_to "New Library Asset", new_library_asset_path(library_asset_filters: @asset_filter_context), class: "btn btn-primary", data: { turbo_frame: "modal", library_asset_filters_target: "newLink" } %>
   </div>
 
   <%= render "library_assets/filters", url: library_assets_path, frame_id: "library_asset_results" %>

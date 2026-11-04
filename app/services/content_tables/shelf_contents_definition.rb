@@ -2,7 +2,7 @@ module ContentTables
   class ShelfContentsDefinition < ContentsDefinition
     SHELF_GROUP = {
       key: :shelf,
-      columns_label: "Shelf columns",
+      columns_label: "Shelf Columns",
       filters_label: "Shelf Filters"
     }.freeze
 

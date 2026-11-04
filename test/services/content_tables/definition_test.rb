@@ -56,7 +56,7 @@ class ContentTables::DefinitionTest < ActiveSupport::TestCase
   test "supports configurable groups DOM ids row partial and safe update URLs" do
     assert_equal [ @title_column, @plain_column ], @definition.columns_for_group(:content)
     assert_equal "Fields", @definition.groups.first.fetch(:columns_label)
-    assert_equal "Content filters", @definition.groups.first.fetch(:filters_label)
+    assert_equal "Content Filters", @definition.groups.first.fetch(:filters_label)
     assert_equal "archive-advanced-filters", @definition.dom_id(:advanced_filters)
     assert_equal "custom/row", @definition.row_partial
     assert_equal "/archive/table", @definition.update_url
@@ -72,8 +72,8 @@ class ContentTables::DefinitionTest < ActiveSupport::TestCase
     definition = build_definition(groups: [ { key: :content } ])
     group = definition.groups.first
 
-    assert_equal "Content columns", group.fetch(:columns_label)
-    assert_equal "Content filters", group.fetch(:filters_label)
+    assert_equal "Content Columns", group.fetch(:columns_label)
+    assert_equal "Content Filters", group.fetch(:filters_label)
   end
 
   test "can disable search and filtering capabilities" do

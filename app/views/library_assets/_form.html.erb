@@ -40,15 +40,15 @@
     <%= form.label :image, "Image (PNG)", class: "form-label" %>
     <%= form.file_field :image, class: "form-control", accept: "image/png,.png", required: !library_asset.image.attached? %>
     <% if library_asset.image.attached? %>
-      <div class="form-text">Current file: <%= library_asset.image.filename %></div>
+      <div class="form-text">Current File: <%= library_asset.image.filename %></div>
     <% end %>
   </div>
 
   <div class="mb-3">
-    <%= form.label :design_files, "Design files (ZIP)", class: "form-label" %>
+    <%= form.label :design_files, "Design Files (ZIP)", class: "form-label" %>
     <%= form.file_field :design_files, class: "form-control", accept: "application/zip,.zip" %>
     <% if library_asset.design_files.attached? %>
-      <div class="form-text">Current file: <%= library_asset.design_files.filename %></div>
+      <div class="form-text">Current File: <%= library_asset.design_files.filename %></div>
     <% end %>
   </div>
 
@@ -56,6 +56,6 @@
     <% if local_assigns[:modal] %>
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
     <% end %>
-    <%= form.submit class: "btn btn-primary" %>
+    <%= form.submit library_asset.persisted? ? "Update Library Asset" : "Create Library Asset", class: "btn btn-primary" %>
   </div>
 <% end %>

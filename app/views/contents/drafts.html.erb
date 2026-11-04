@@ -1,4 +1,4 @@
-<%= render layout: "shared/modal", locals: { title: "Content drafts", preserve_modal: true } do %>
+<%= render layout: "shared/modal", locals: { title: "Content Drafts", preserve_modal: true } do %>
   <% if @drafts.empty? %>
     <p class="mb-0">No saved drafts.</p>
   <% else %>
@@ -11,8 +11,8 @@
             <% if draft.submission_errors.any? %>
               <i class="bi bi-exclamation-triangle-fill text-danger"
                 tabindex="0"
-                aria-label="Draft saved with submission errors"
-                title="Draft saved with submission errors: <%= draft.submission_errors.to_sentence %>"
+                aria-label="Draft Saved With Submission Errors"
+                title="Draft Saved With Submission Errors: <%= draft.submission_errors.to_sentence %>"
                 data-controller="tooltip"
                 data-bs-toggle="tooltip"></i>
             <% end %>
@@ -21,7 +21,7 @@
           <%= button_to destroy_draft_contents_path(draft_id: draft.id),
             method: :delete,
             class: "btn btn-link text-danger p-0",
-            aria: { label: "Delete draft" },
+            aria: { label: "Delete Draft" },
             form_class: "me-3 flex-shrink-0",
             form: { data: { turbo_frame: "modal", turbo_confirm: "Delete this draft? This cannot be undone." } } do %>
             <i class="bi bi-trash-fill text-danger" aria-hidden="true"></i>

@@ -8,7 +8,7 @@
           <%= link_to new_shelf_path(selected_shelf_id: @selected_shelf&.id),
             class: "btn btn-sm btn-success",
             data: { turbo_frame: "modal" },
-            aria: { label: "Create shelf" } do %>
+            aria: { label: "Create Shelf" } do %>
             <span aria-hidden="true">+</span>
           <% end %>
         </div>
@@ -38,7 +38,7 @@
                 class: "btn btn-sm btn-outline-secondary",
                 disabled: index == @active_shelf_records.length - 1,
                 form: { class: "d-inline" },
-                aria: { label: "Move #{shelf.name} down" }
+                aria: { label: "Move #{shelf.name} Down" }
               %>
               <%= button_to "Archive",
                 archive_shelf_path(shelf),
@@ -72,7 +72,7 @@
                 shelves_path(selected_shelf_id: shelf.id),
                 class: "flex-grow-1 link-body-emphasis text-decoration-none"
               %>
-              <%= button_to "Make active",
+              <%= button_to "Make Active",
                 activate_shelf_path(shelf),
                 method: :patch,
                 class: "btn btn-sm btn-primary",

@@ -106,9 +106,9 @@ class MetadataControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     row = css_select("#metadatum_#{@metadatum.id}").first
     assert_equal "Reviewed", row.css(".col-sm-5 button.badge[data-bs-toggle='dropdown']").text.strip
-    assert_equal [ "Mark for Review", "See all tagged items" ],
+    assert_equal [ "Mark For Review", "See All Tagged Items" ],
       row.css(".col-sm-5 .dropdown-menu .dropdown-item").map { |item| item.text.strip }
-    assert_equal [ "Edit", "Replace", "Mark for Review", "See all tagged items", "Delete" ],
+    assert_equal [ "Edit", "Replace", "Mark For Review", "See All Tagged Items", "Delete" ],
       row.css(".col-sm-1 .dropdown-menu .dropdown-item").map { |item| item.text.strip }
   end
 
@@ -121,10 +121,10 @@ class MetadataControllerTest < ActionDispatch::IntegrationTest
       headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Replace metadata value"
+    assert_select "turbo-frame#modal .modal-title", text: "Replace Metadata Value"
     assert_select ".modal-dialog.modal-dialog-centered.modal-dialog-scrollable.metadata-replacement-dialog"
     assert_select "form.modal-content.metadata-replacement-form" do
-      assert_select ".modal-body .metadata-replacement-options[role='radiogroup'][aria-label='Replacement value']"
+      assert_select ".modal-body .metadata-replacement-options[role='radiogroup'][aria-label='Replacement Value']"
       assert_select ".modal-footer input[type='submit'][value='Replace']"
       assert_select ".modal-footer button", text: "Cancel"
     end
@@ -133,7 +133,7 @@ class MetadataControllerTest < ActionDispatch::IntegrationTest
     other_type_value = Metadatum.find_by!(metadata_type: metadata_types(:two))
     assert_select "input[type='radio'][value='#{other_type_value.id}']", count: 0
     assert_select "form[data-controller='metadata-replacement-search']" do
-      assert_select "label.form-label", text: "Search metadata values"
+      assert_select "label.form-label", text: "Search Metadata Values"
       assert_select "input[type='search'][data-action='input->metadata-replacement-search#filter']"
     end
     assert_equal [ earlier.name, later.name ],
@@ -217,7 +217,7 @@ class MetadataControllerTest < ActionDispatch::IntegrationTest
     get delete_confirmation_metadata_type_metadatum_url(@metadata_type, @metadatum), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Delete metadata value"
+    assert_select "turbo-frame#modal .modal-title", text: "Delete Metadata Value"
     assert_select "form[action='#{metadata_type_metadatum_path(@metadata_type, @metadatum)}']"
 
     assert_difference("Metadatum.count", -1) do

@@ -24,7 +24,7 @@ class MetadataTypesControllerTest < ActionDispatch::IntegrationTest
       assert_select ".accordion-button", text: /#{Regexp.escape(@metadata_type.name)}/
       assert_select "#metadata_count_metadata_type_#{@metadata_type.id}", text: @metadata_type.metadata.count.to_s
     end
-    assert_select "a[aria-label='Edit metadata types'][data-turbo-frame='modal']", text: "⋮"
+    assert_select "a[aria-label='Edit Metadata Types'][data-turbo-frame='modal']", text: "⋮"
   end
 
   test "index renders metadata types in display order" do
@@ -123,7 +123,7 @@ class MetadataTypesControllerTest < ActionDispatch::IntegrationTest
     get edit_metadata_type_url(@metadata_type), headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Edit metadata type"
+    assert_select "turbo-frame#modal .modal-title", text: "Edit Metadata Type"
     assert_select "form[action='#{metadata_type_path(@metadata_type)}'][data-turbo-frame='modal']" do
       assert_select "input[name='metadata_type[name]']"
       assert_select "select.form-select[name='metadata_type[access_level]']" do
@@ -168,7 +168,7 @@ class MetadataTypesControllerTest < ActionDispatch::IntegrationTest
     get edit_all_metadata_types_url, headers: TURBO_FRAME_HEADERS
 
     assert_response :success
-    assert_select "turbo-frame#modal .modal-title", text: "Edit metadata types"
+    assert_select "turbo-frame#modal .modal-title", text: "Edit Metadata Types"
     assert_select "form[action='#{update_all_metadata_types_path}'][data-controller='metadata-type-order']" do
       assert_select "input[name='metadata_type_ids[]']", ordered_types.length
       ordered_types.each do |metadata_type|
@@ -226,7 +226,7 @@ class MetadataTypesControllerTest < ActionDispatch::IntegrationTest
     original_order = MetadataType.in_display_order.pluck(:id)
 
     get metadata_types_url
-    assert_select "[aria-label='Edit metadata types']", count: 0
+    assert_select "[aria-label='Edit Metadata Types']", count: 0
 
     get metadata_values_metadata_type_url(@metadata_type)
     assert_select "a[href='#{edit_metadata_type_path(@metadata_type)}']", count: 0

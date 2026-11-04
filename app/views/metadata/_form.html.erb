@@ -18,12 +18,12 @@
   <% if policy(metadatum).permitted_attributes.include?(:under_review) %>
     <div class="form-check">
       <%= form.check_box :under_review, class: "form-check-input" %>
-      <%= form.label :under_review, "Under review", class: "form-check-label" %>
+      <%= form.label :under_review, "Under Review", class: "form-check-label" %>
     </div>
   <% end %>
 
   <div class="modal-footer px-0 pb-0">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-    <%= form.submit class: "btn btn-primary" %>
+    <%= form.submit metadatum.persisted? ? "Update Metadatum" : "Create Metadatum", class: "btn btn-primary" %>
   </div>
 <% end %>

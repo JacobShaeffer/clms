@@ -9,7 +9,7 @@
 
   <%= form_with url: trash_content_path(content), method: :patch, data: { turbo_frame: "modal" } do %>
     <div class="mb-3">
-      <%= label_tag "content_trash_comment", "Comment (optional)", class: "form-label" %>
+      <%= label_tag "content_trash_comment", "Comment (Optional)", class: "form-label" %>
       <%= text_area_tag "content[trash_comment]", nil,
         id: "content_trash_comment",
         class: "form-control",

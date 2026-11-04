@@ -37,7 +37,7 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
   test "defines current content and dynamic metadata columns and defaults" do
     assert_equal ContentTables::ContentsDefinition::STATE_KEY, @definition.state_key
     assert_equal "contents_table", @definition.frame_id
-    assert_equal "Search by title", @definition.search_placeholder
+    assert_equal "Search by Title", @definition.search_placeholder
     assert @definition.selectable?
     assert_nil @definition.selection_form_id
     assert_equal %w[id title display_title description year_of_publication additional_notes created_at updated_at added_by],

@@ -13,11 +13,11 @@
     method: :get,
     class: "mb-4",
     data: { turbo_frame: "module_results", module_filters_target: "form" } do |form| %>
-    <%= form.label :q, "Search by name", class: "form-label" %>
+    <%= form.label :q, "Search by Name", class: "form-label" %>
     <%= form.search_field :q,
       value: @query,
       class: "form-control",
-      placeholder: "Search modules by name",
+      placeholder: "Search Modules by Name",
       data: { module_filters_target: "query", action: "input->module-filters#search" } %>
   <% end %>
 

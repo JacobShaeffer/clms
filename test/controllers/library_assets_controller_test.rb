@@ -20,7 +20,7 @@ class LibraryAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(@library_asset, :listing)}.col .card.h-100" do
       assert_select ".card-img-top.ratio.ratio-4x3 img[alt='#{@library_asset.name} image']", count: 1
       assert_select ".card-body"
-      assert_select "a[href*='/rails/active_storage/blobs/']", text: "Download design files", count: 1
+      assert_select "a[href*='/rails/active_storage/blobs/']", text: "Download Design Files", count: 1
     end
     assert_select "a[href='#{library_asset_path(@library_asset)}'][data-turbo-frame='modal']", text: "Show"
     assert_select "a[href='#{edit_library_asset_path(@library_asset)}'][data-turbo-frame='modal']", text: "Edit"
@@ -234,7 +234,7 @@ class LibraryAssetsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#modal .modal[data-controller='modal']"
-    assert_select ".modal-title", text: "Library asset"
+    assert_select ".modal-title", text: "Library Asset"
   end
 
   test "should get edit" do
@@ -276,7 +276,7 @@ class LibraryAssetsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#modal .modal[data-controller='modal']"
-    assert_select ".modal-title", text: "Delete library asset"
+    assert_select ".modal-title", text: "Delete Library Asset"
     assert_select "form[data-turbo-frame='modal'][action='#{library_asset_path(@library_asset)}']"
   end
 

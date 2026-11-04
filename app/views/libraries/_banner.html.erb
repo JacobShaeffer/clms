@@ -3,11 +3,11 @@
     <% if library.banner&.image&.attached? %>
       <%= image_tag library.banner.image,
         class: "h-100 w-100 object-fit-cover",
-        alt: "#{library.name} banner" %>
+        alt: "#{library.name} Banner" %>
     <% else %>
       <div class="d-flex align-items-center justify-content-center gap-2 text-body-secondary">
         <i class="bi bi-exclamation-triangle-fill text-warning" aria-hidden="true"></i>
-        <span>No banner image chosen</span>
+        <span>No Banner Image Chosen</span>
         <i class="bi bi-exclamation-triangle-fill text-warning" aria-hidden="true"></i>
       </div>
     <% end %>
@@ -17,8 +17,8 @@
     <%= link_to edit_library_banner_path(library),
       class: "btn btn-sm btn-light border shadow-sm position-absolute top-0 start-0 m-2 z-1",
       data: { turbo_frame: "modal" },
-      aria: { label: "Choose banner image for #{library.name}" },
-      title: "Choose banner image" do %>
+      aria: { label: "Choose Banner Image For #{library.name}" },
+      title: "Choose Banner Image" do %>
       <i class="bi bi-image" aria-hidden="true"></i>
     <% end %>
   <% end %>

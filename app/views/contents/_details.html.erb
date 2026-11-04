@@ -1,7 +1,7 @@
 <% selected_metadata_by_type_id = content.metadata.group_by(&:metadata_type_id) %>
 
-<fieldset class="content-view-details" disabled aria-label="Content details">
-  <legend class="visually-hidden">Content details</legend>
+<fieldset class="content-view-details" disabled aria-label="Content Details">
+  <legend class="visually-hidden">Content Details</legend>
 
   <div class="mb-3">
     <label class="form-label" for="content-view-title">Title</label>
@@ -9,7 +9,7 @@
   </div>
 
   <div class="mb-3">
-    <label class="form-label" for="content-view-display-title">Display title</label>
+    <label class="form-label" for="content-view-display-title">Display Title</label>
     <%= tag.input id: "content-view-display-title", type: "text", class: "form-control", value: content.display_title, disabled: true %>
   </div>
 
@@ -19,7 +19,7 @@
   </div>
 
   <div class="mb-3">
-    <label class="form-label" for="content-view-year-of-publication">Year of publication</label>
+    <label class="form-label" for="content-view-year-of-publication">Year of Publication</label>
     <%= tag.input id: "content-view-year-of-publication",
       type: "number",
       class: "form-control",
@@ -32,7 +32,7 @@
     <%= tag.input id: "content-view-filename",
       type: "text",
       class: "form-control",
-      value: content.file.attached? ? content.file.filename.to_s : "No file attached",
+      value: content.file.attached? ? content.file.filename.to_s : "No File Attached",
       disabled: true %>
   </div>
 

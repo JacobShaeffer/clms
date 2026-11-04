@@ -31,7 +31,7 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
     assert_select "#active-shelves a", text: @shelf.name
     assert_select "#archived-shelves a", text: second_shelf.name
     assert_select "#archived-shelves", text: shelves(:two).name, count: 0
-    assert_select "a.btn.btn-success[data-turbo-frame='modal'][aria-label='Create shelf']", text: "+"
+    assert_select "a.btn.btn-success[data-turbo-frame='modal'][aria-label='Create Shelf']", text: "+"
     assert_select "turbo-frame#modal"
   end
 

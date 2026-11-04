@@ -9,8 +9,8 @@
     </div>
   <% end %>
 
-  <section class="mb-4" aria-label="Selected image">
-    <h2 class="h6">Selected image</h2>
+  <section class="mb-4" aria-label="Selected Image">
+    <h2 class="h6">Selected Image</h2>
     <div class="image-selection-preview d-flex align-items-center justify-content-center border rounded bg-body-tertiary" data-image-selection-target="preview">
       <% if selected_image&.image&.attached? %>
         <%= image_tag selected_image.image, alt: selected_image.display_name, class: "w-100 h-100 object-fit-contain rounded" %>
@@ -18,7 +18,7 @@
         <i class="bi bi-image fs-1 text-body-secondary" aria-hidden="true"></i>
       <% end %>
     </div>
-    <p class="text-body-secondary mt-2 mb-0" data-image-selection-target="name"><%= selected_image&.display_name || "No image selected" %></p>
+    <p class="text-body-secondary mt-2 mb-0" data-image-selection-target="name"><%= selected_image&.display_name || "No Image Selected" %></p>
   </section>
 
   <%= render "library_assets/filters", url: filter_url, frame_id: "image_selection_results", context: context, autofocus: true, show_type_filter: false %>
