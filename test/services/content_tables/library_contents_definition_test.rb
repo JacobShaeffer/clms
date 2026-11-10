@@ -25,6 +25,7 @@ class ContentTables::LibraryContentsDefinitionTest < ActiveSupport::TestCase
     assert_equal "libraries.#{@library.id}.all_contents", @definition.state_key
     assert_equal "library_#{@library.id}_all_contents_table", @definition.frame_id
     assert_includes @definition.default_column_keys, "library_folders"
+    assert_includes @definition.default_column_keys, "issues"
     assert_equal "Library Columns", @definition.groups.find { |group| group[:key] == :library }[:columns_label]
     assert_equal "content_tables/library_folders_cell", @definition.column("library_folders").cell_partial
   end

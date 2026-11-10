@@ -18,7 +18,9 @@ module ContentTables
       filters_label: "Advanced Filters",
       column_keys: %w[created_at updated_at description additional_notes]
     }.freeze
-    DEFAULT_CONTENT_COLUMN_KEYS = %w[title created_at added_by].freeze
+    DEFAULT_CONTENT_COLUMN_KEYS = %w[issues title created_at added_by].freeze
+
+    attr_reader :metadata_types
 
     def initialize(
       source:,
@@ -39,6 +41,7 @@ module ContentTables
       selection_form_id: nil
     )
       metadata_types = Array(metadata_types)
+      @metadata_types = metadata_types
       replacement_keys = Array(additional_columns).map(&:key)
       removed_keys = Array(excluded_column_keys).map(&:to_s) | replacement_keys
       configured_columns = (content_columns + metadata_columns(metadata_types))
@@ -71,12 +74,21 @@ module ContentTables
       )
     end
 
+    def issues_for(content)
+      Issues.new(content:, metadata_types:)
+    end
+
+    def relation_for(state)
+      relation = super
+      state.selected_column_keys.include?("issues") ? relation.includes(:file_attachment) : relation
+    end
+
     private
 
     def build_filter_groups(configured_columns, additional_groups)
       advanced_keys = ADVANCED_FILTER_GROUP.fetch(:column_keys)
       general_keys = configured_columns
-        .select { |column| column.group == CONTENT_GROUP.fetch(:key) }
+        .select { |column| column.group == CONTENT_GROUP.fetch(:key) && column.filterable? }
         .map(&:key) - advanced_keys
 
       [
@@ -91,6 +103,12 @@ module ContentTables
       contents = Content.arel_table
 
       [
+        Column.new(
+          key: "issues",
+          label: "Issues",
+          group: :content,
+          cell_partial: "content_tables/issues_cell"
+        ),
         Column.new(
           key: "id",
           label: "ID",

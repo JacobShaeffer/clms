@@ -1,0 +1,12 @@
+<% severity = definition.issues_for(record).severity %>
+<% if severity %>
+  <i class="bi bi-flag-fill text-<%= severity %>"
+    tabindex="0"
+    aria-label="Missing Fields: "
+    title="Missing Fields: "
+    data-controller="tooltip"
+    data-bs-toggle="tooltip"
+    data-bs-custom-class="content-issues-tooltip"
+    data-tooltip-url-value="<%= issues_content_path(record) %>"
+    data-tooltip-frame-id-value="<%= definition.dom_id("content-#{record.id}-issues-tooltip") %>"></i>
+<% end %>

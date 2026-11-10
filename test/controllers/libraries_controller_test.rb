@@ -485,16 +485,18 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-library-content-selection-scope='all'][data-content-table-selection-preserve-before-cache-value='true']"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table"
     assert_select "th", text: "Library Folders"
+    assert_select "th", text: "Issues"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table thead th:last-child.content-table-actions", text: "Actions"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table a[aria-label='Preview #{contents(:one).title}'][data-turbo-frame='modal']"
     row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"
     assert_select "tr##{row_id}" do
-      assert_select "[data-controller='tooltip']", count: 2
+      assert_select "i.bi-flag-fill.text-warning[data-controller='tooltip']", count: 1
+      assert_select ".badge[data-controller='tooltip']", count: 2
       assert_select "[title='Health Library / Health']", text: "Health"
       assert_select "[title='Health Library / Health / First Aid']", text: "First Aid"
     end
     other_row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:two)).dasherize}"
-    assert_select "tr##{other_row_id} [data-controller='tooltip']", count: 0
+    assert_select "tr##{other_row_id} .badge[data-controller='tooltip']", count: 0
   end
 
   test "library content tab lists each placed content once and excludes other content" do
@@ -528,7 +530,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     get library_url(@library, tab: "all")
     row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"
-    assert_select "tr##{row_id} [data-controller='tooltip']", count: 0
+    assert_select "tr##{row_id} .badge[data-controller='tooltip']", count: 0
 
     get library_url(@library, folder_id: @root_folder.id)
     assert_response :success

@@ -203,6 +203,17 @@ class ContentsController < ApplicationController
     end
   end
 
+  def issues
+    content = policy_scope(Content).includes(:metadata, :file_attachment).find(params.expect(:id))
+    authorize content, :show?
+    issues = ContentTables::Issues.new(content:, metadata_types: policy_scope(MetadataType).to_a)
+
+    render partial: "contents/issues", locals: {
+      issues:,
+      frame_id: turbo_frame_request_id || helpers.dom_id(content, :issues)
+    }
+  end
+
   def trash_confirmation
     authorize @content, :trash_confirmation?
 

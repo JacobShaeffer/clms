@@ -40,12 +40,15 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
     assert_equal "Search by Title", @definition.search_placeholder
     assert @definition.selectable?
     assert_nil @definition.selection_form_id
-    assert_equal %w[id title display_title description year_of_publication additional_notes created_at updated_at added_by],
+    assert_equal %w[issues id title display_title description year_of_publication additional_notes created_at updated_at added_by],
       @definition.columns_for_group(:content).map(&:key)
     assert_equal @metadata_types.map { |type| "metadata_type:#{type.id}" },
       @definition.columns_for_group(:metadata).map(&:key)
-    assert_equal %w[title created_at added_by] + @metadata_types.first(2).map { |type| "metadata_type:#{type.id}" },
+    assert_equal %w[issues title created_at added_by] + @metadata_types.first(2).map { |type| "metadata_type:#{type.id}" },
       @definition.default_column_keys
+    assert_equal "content_tables/issues_cell", @definition.column("issues").cell_partial
+    refute @definition.column("issues").filterable?
+    refute @definition.column("issues").sortable?
     assert_equal [ :content, :metadata, :advanced ], @definition.filter_groups.map { |group| group.fetch(:key) }
     assert_equal %w[id title display_title year_of_publication added_by],
       @definition.columns_for_filter_group(:content).map(&:key)
@@ -171,6 +174,20 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
     definition = build_definition(selection_form_id: "bulk-action-form")
 
     assert_equal "bulk-action-form", definition.selection_form_id
+  end
+
+  test "issue flags preload attachment presence without loading file blobs" do
+    @first.file.attach(io: StringIO.new("preload test"), filename: "preload.pdf", content_type: "application/pdf")
+    records = relation_for.to_a
+
+    records.each do |record|
+      assert record.association(:file_attachment).loaded?
+      refute record.file_attachment.association(:blob).loaded? if record.file_attachment
+      assert_no_queries { @definition.issues_for(record).severity }
+    end
+
+    records = relation_for(selected_column_keys: [ "title" ]).to_a
+    records.each { |record| refute record.association(:file_attachment).loaded? }
   end
 
   private

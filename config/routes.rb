@@ -67,6 +67,7 @@ Rails.application.routes.draw do
     end
 
     member do
+      get :issues
       get :trash_confirmation
       patch :trash
       patch :restore

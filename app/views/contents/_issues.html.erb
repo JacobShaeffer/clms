@@ -1,0 +1,3 @@
+<%= turbo_frame_tag frame_id do %>
+  <%= issues.missing_fields.any? ? [ "Missing Fields:", *issues.missing_fields.map { |field| "• #{field}" } ].join("\n") : "Missing Fields: None" %>
+<% end %>

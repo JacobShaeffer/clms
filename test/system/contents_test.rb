@@ -177,6 +177,83 @@ class ContentsTest < ApplicationSystemTestCase
     assert_current_path contents_path
   end
 
+  test "issues tooltips show missing fields and reconnect after a table update" do
+    rights_type = MetadataType.create!(name: "Rights holder", user: @user)
+    rights_value = Metadatum.create!(name: "Provided", metadata_type: rights_type, user: @user)
+    all_metadata = Metadatum.all.to_a
+    complete = create_preview_content!("Complete issue row", Time.current)
+    warning = create_preview_content!("Warning issue row", 1.minute.ago)
+    danger = create_preview_content!("Danger issue row", 2.minutes.ago)
+    complete.metadata = all_metadata
+    warning.metadata = all_metadata.reject { |value| value.metadata_type_id == metadata_types(:one).id }
+    danger.metadata = all_metadata - [ rights_value ]
+
+    visit contents_path
+
+    page.execute_script(<<~JAVASCRIPT)
+      window.issueRequests = []
+      window.pauseIssueRequests = true
+      document.addEventListener("turbo:before-fetch-request", (event) => {
+        if (!event.detail.url.pathname.endsWith("/issues")) return
+
+        window.issueRequests.push(event.detail.url.pathname)
+        if (window.pauseIssueRequests) {
+          event.preventDefault()
+          window.resumeIssueRequest = event.detail.resume
+        }
+      })
+    JAVASCRIPT
+
+    assert_selector "thead th", text: "Issues"
+    assert_no_selector "tr#contents-content-#{complete.id} i.bi-flag-fill"
+    assert_no_selector "turbo-frame[src*='/issues']", visible: :all
+    find("tr#contents-content-#{warning.id} i.bi-flag-fill.text-warning").hover
+    assert_selector ".content-issues-tooltip .tooltip-inner", exact_text: "Missing Fields:"
+    assert_equal [ issues_content_path(warning) ], page.evaluate_script("window.issueRequests")
+    find("thead th", text: "Issues").hover
+    assert_no_selector ".content-issues-tooltip"
+    page.execute_script("window.pauseIssueRequests = false; window.resumeIssueRequest()")
+    assert_selector "turbo-frame#contents-content-#{warning.id}-issues-tooltip[complete]", visible: :all
+    assert_no_selector ".content-issues-tooltip"
+    find("tr#contents-content-#{warning.id} i.bi-flag-fill.text-warning").hover
+    assert_selector ".content-issues-tooltip .tooltip-inner", text: "Missing Fields:\n• #{metadata_types(:one).name}"
+
+    find("tr#contents-content-#{danger.id} i.bi-flag-fill.text-danger").hover
+    assert_selector ".content-issues-tooltip .tooltip-inner", text: "Missing Fields:\n• Rights holder"
+
+    find("tr#contents-content-#{warning.id} i.bi-flag-fill.text-warning").hover
+    assert_selector ".content-issues-tooltip .tooltip-inner", text: "Missing Fields:\n• #{metadata_types(:one).name}"
+    assert_equal [ issues_content_path(warning), issues_content_path(danger) ], page.evaluate_script("window.issueRequests")
+
+    find("thead a[aria-label='Sort Title Ascending']").click
+
+    assert_no_selector ".content-issues-tooltip"
+    assert_no_selector "turbo-frame[src*='/issues']", visible: :all
+    find("tr#contents-content-#{danger.id} i.bi-flag-fill.text-danger").hover
+    assert_selector ".content-issues-tooltip .tooltip-inner", text: "Missing Fields:\n• Rights holder"
+    assert_equal 3, page.evaluate_script("window.issueRequests.length")
+
+    page.execute_script("document.dispatchEvent(new CustomEvent('turbo:before-cache'))")
+
+    assert_no_selector ".content-issues-tooltip"
+    assert_no_selector "turbo-frame[src*='/issues']", visible: :all
+  end
+
+  test "issues tooltips load on keyboard focus and keep field names as text" do
+    type = MetadataType.create!(name: '<b>Audience</b> "quoted" & other', user: @user)
+    content = create_preview_content!("Focused issue row", Time.current)
+    content.metadata = Metadatum.all.to_a
+
+    visit contents_path
+
+    flag = find("tr#contents-content-#{content.id} i.bi-flag-fill")
+    page.execute_script("arguments[0].focus()", flag)
+
+    assert_selector ".content-issues-tooltip .tooltip-inner", text: "Missing Fields:\n• #{type.name}"
+    assert_no_selector ".content-issues-tooltip .tooltip-inner b"
+    assert_equal "Missing Fields:\n• #{type.name}", flag["aria-label"]
+  end
+
   test "table replacement does not retain selected rows" do
     content = contents(:one)
 

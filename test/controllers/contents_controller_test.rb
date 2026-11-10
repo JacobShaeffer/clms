@@ -76,6 +76,116 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "issues column shows a warning for missing fields and leaves complete content blank" do
+    [ @matching_content, @other_content ].each { |content| content.metadata = Metadatum.all.to_a }
+    @matching_content.update_columns(description: nil, additional_notes: nil, year_of_publication: nil)
+    @other_content.update_columns(additional_notes: nil, year_of_publication: nil)
+
+    get contents_url
+
+    assert_response :success
+    assert_select "thead th[aria-sort='none']", text: "Issues" do
+      assert_select "a", count: 0
+    end
+    assert_select "tr#contents-content-#{@matching_content.id} td" do
+      assert_select "i.bi-flag-fill.text-warning[data-controller='tooltip'][data-bs-toggle='tooltip'][tabindex='0']" do |flags|
+        assert_equal "Missing Fields: ", flags.first["title"]
+        assert_equal "Missing Fields: ", flags.first["aria-label"]
+        assert_equal issues_content_path(@matching_content), flags.first["data-tooltip-url-value"]
+        assert_equal "contents-content-#{@matching_content.id}-issues-tooltip", flags.first["data-tooltip-frame-id-value"]
+      end
+    end
+    assert_select "tr#contents-content-#{@other_content.id} td:first-of-type + td", text: ""
+    assert_select "tr#contents-content-#{@other_content.id} i.bi-flag-fill", count: 0
+    assert_select "turbo-frame[src*='/issues']", count: 0
+  end
+
+  test "issues include hidden metadata types and safely escape their names in tooltips" do
+    [ @matching_content, @other_content ].each { |content| content.metadata = Metadatum.all.to_a }
+    type = MetadataType.create!(name: '<b>Audience</b> "quoted" & other', user: @user)
+
+    get table_contents_url, params: { columns_present: "1", columns: [ "issues" ] }
+
+    assert_response :success
+    assert_select "tbody i.bi-flag-fill.text-warning", count: 2 do |flags|
+      flags.each do |flag|
+        assert_equal "Missing Fields: ", flag["title"]
+        assert_nil flag["data-bs-html"]
+      end
+    end
+    assert_select "tbody b, tbody script", count: 0
+
+    get issues_content_url(@matching_content), headers: { "Turbo-Frame" => "content-issues-test" }
+
+    assert_response :success
+    assert_select "turbo-frame#content-issues-test" do |frames|
+      assert_equal "Missing Fields:\n• #{type.name}", frames.first.text.strip
+      assert_select "b, script", count: 0
+    end
+  end
+
+  test "issues flags become dangerous immediately for missing rights metadata" do
+    [ @matching_content, @other_content ].each { |content| content.metadata = Metadatum.all.to_a }
+    [ "Rights holder", "Rights statement" ].each do |name|
+      type = MetadataType.create!(name:, user: @user)
+      value = Metadatum.create!(name: "Provided", metadata_type: type, user: @user)
+      @other_content.metadata << value
+    end
+
+    get table_contents_url, params: { columns_present: "1", columns: [ "issues" ] }
+
+    assert_response :success
+    assert_select "tr#contents-content-#{@matching_content.id} i.bi-flag-fill.text-danger[title='Missing Fields: ']"
+    assert_select "tr#contents-content-#{@other_content.id} i.bi-flag-fill", count: 0
+
+    get issues_content_url(@matching_content), headers: { "Turbo-Frame" => "content-issues-test" }
+
+    assert_response :success
+    assert_select "turbo-frame#content-issues-test" do |frames|
+      assert_equal "Missing Fields:\n• Rights holder\n• Rights statement", frames.first.text.strip
+    end
+  end
+
+  test "issues endpoint reports current fields and ignores publication year and additional notes" do
+    @matching_content.metadata = Metadatum.all.to_a
+    @matching_content.update_columns(additional_notes: nil, year_of_publication: nil)
+
+    get issues_content_url(@matching_content), headers: { "Turbo-Frame" => "content-issues-test" }
+
+    assert_response :success
+    assert_select "turbo-frame#content-issues-test", text: "Missing Fields: None"
+
+    @matching_content.update_column(:description, " ")
+
+    get issues_content_url(@matching_content), headers: { "Turbo-Frame" => "content-issues-test" }
+
+    assert_response :success
+    assert_select "turbo-frame#content-issues-test" do |frames|
+      assert_equal "Missing Fields:\n• Description", frames.first.text.strip
+    end
+  end
+
+  test "issues endpoint requires authentication and excludes inaccessible or trashed content" do
+    sign_out @user
+    get issues_content_url(@matching_content)
+    assert_redirected_to new_user_session_path
+
+    sign_in @user
+    @user.update!(role: :guest)
+    get issues_content_url(@matching_content)
+    assert_response :not_found
+
+    @user.update!(role: :volunteer)
+    sign_in @user
+    @matching_content.trash!
+    get issues_content_url(@matching_content)
+    assert_response :not_found
+
+    sign_in @user
+    get issues_content_url(id: Content.maximum(:id) + 1)
+    assert_response :not_found
+  end
+
   test "add to shelves opens the new shelf modal with the selected content when no shelves are selected" do
     assert_no_difference([ "Shelf.count", "ActiveShelf.count", "ShelfContent.count" ]) do
       post add_to_shelves_contents_url,
