@@ -1,0 +1,27 @@
+<% input_id = definition.dom_id("filter-issues") %>
+<% selected = column.filter.selected_option(values) %>
+
+<div class="col-12 col-md-6">
+  <%= label_tag input_id, column.label, class: "form-label", id: "#{input_id}-label" %>
+  <div class="dropdown" data-controller="issue-filter" data-action="issue-filter:clear->issue-filter#clear">
+    <%= hidden_field_tag "filters[#{column.key}][value]", selected[:value], data: { issue_filter_target: "input" } %>
+    <button type="button" id="<%= input_id %>" class="form-select text-start"
+      data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="listbox"
+      aria-labelledby="<%= input_id %>-label <%= input_id %>-selected">
+      <span id="<%= input_id %>-selected" data-issue-filter-target="label">
+        <%= render "content_tables/filters/issues_choice", option: selected %>
+      </span>
+    </button>
+    <ul class="dropdown-menu w-100" role="listbox" aria-labelledby="<%= input_id %>-label">
+      <% ContentTables::Filters::Issues::OPTIONS.each do |option| %>
+        <li role="presentation">
+          <button type="button" class="dropdown-item <%= "active" if option == selected %>" role="option"
+            aria-selected="<%= option == selected %>" data-value="<%= option[:value] %>"
+            data-issue-filter-target="option" data-action="issue-filter#select">
+            <%= render "content_tables/filters/issues_choice", option: %>
+          </button>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+</div>

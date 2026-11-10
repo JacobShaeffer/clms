@@ -127,7 +127,8 @@ module ContentTables
           key: "issues",
           label: "Issues",
           group: :content,
-          cell_partial: "content_tables/issues_cell"
+          cell_partial: "content_tables/issues_cell",
+          filter: Filters::Issues.new(metadata_types:)
         ),
         Column.new(
           key: "id",

@@ -37,6 +37,10 @@ export default class extends Controller {
       element.dispatchEvent(new CustomEvent("content-multi-select:clear"))
     })
 
+    this.element.querySelectorAll("[data-controller~='issue-filter']").forEach((element) => {
+      element.dispatchEvent(new CustomEvent("issue-filter:clear"))
+    })
+
     this.element.requestSubmit(event.currentTarget)
   }
 

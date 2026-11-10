@@ -47,12 +47,12 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
     assert_equal %w[issues title created_at added_by] + @metadata_types.first(2).map { |type| "metadata_type:#{type.id}" },
       @definition.default_column_keys
     assert_equal "content_tables/issues_cell", @definition.column("issues").cell_partial
-    refute @definition.column("issues").filterable?
+    assert @definition.column("issues").filterable?
     refute @definition.column("issues").sortable?
     assert_equal [ :content, :metadata, :library, :advanced ], @definition.filter_groups.map { |group| group.fetch(:key) }
     assert_equal [ "libraries" ], @definition.columns_for_group(:library).map(&:key)
     refute_includes @definition.default_column_keys, "libraries"
-    assert_equal %w[id title display_title year_of_publication added_by],
+    assert_equal %w[issues id title display_title year_of_publication added_by],
       @definition.columns_for_filter_group(:content).map(&:key)
     assert_equal %w[created_at updated_at description additional_notes],
       @definition.columns_for_filter_group(:advanced).map(&:key)

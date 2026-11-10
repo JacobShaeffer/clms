@@ -537,6 +537,22 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "library tables apply issue filtering within their existing content scope" do
+    LibraryFolderContent.create!(library_folder: @child_folder, content: contents(:one))
+    contents(:one).update_columns(title: nil, display_title: nil, description: nil)
+
+    get all_contents_table_library_url(@library), params: { filters: { "issues" => { "value" => "danger" } } }
+
+    assert_response :success
+    assert_select "tbody tr", count: 1
+    assert_select "tbody i.bi-flag-fill.text-danger", count: 1
+
+    get library_contents_table_library_url(@library), params: { filters: { "issues" => { "value" => "warning" } } }
+
+    assert_response :success
+    assert_select "tbody td", text: "No content found."
+  end
+
   test "removed folders disappear from the browser library tables and tooltips" do
     users(:one).update!(role: :intern_plus)
     placement = LibraryFolderContent.create!(

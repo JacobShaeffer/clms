@@ -254,6 +254,76 @@ class ContentsTest < ApplicationSystemTestCase
     assert_equal "Missing Fields:\n• #{type.name}", flag["aria-label"]
   end
 
+  test "filters content by issue level with flag icons and clears the selection" do
+    rights_type = MetadataType.create!(name: "Rights holder", user: @user)
+    rights_value = Metadatum.create!(name: "Provided", metadata_type: rights_type, user: @user)
+    all_metadata = Metadatum.all.to_a
+    complete = create_preview_content!("Complete filter row", Time.current)
+    warning = create_preview_content!("Warning filter row", 1.minute.ago)
+    danger = create_preview_content!("Danger filter row", 2.minutes.ago)
+    complete.metadata = all_metadata
+    warning.metadata = all_metadata.reject { |value| value.metadata_type_id == metadata_types(:one).id }
+    danger.metadata = all_metadata - [ rights_value ]
+
+    visit contents_path
+    fill_in "Search", with: "filter row"
+    assert_selector "tbody tr", count: 3
+    click_button "Column Select"
+    uncheck "Issues", exact: true
+    assert_no_selector "thead th", text: "Issues", exact_text: true
+    click_button "Column Select"
+    click_button "Filters", exact: true
+    assert_selector "#contents-advanced-filters.show:not(.showing)"
+
+    within "#contents-advanced-filters" do
+      find("#contents-filter-issues").send_keys(:arrow_down)
+      assert_selector "[role='option'][data-value='']:focus"
+      page.driver.browser.switch_to.active_element.send_keys(:arrow_down)
+      assert_selector "[role='option'][data-value='none']:focus"
+      page.driver.browser.switch_to.active_element.send_keys(:enter)
+      assert_selector "#contents-filter-issues-selected", text: "No Issues"
+      click_button "Apply Filters"
+    end
+    assert_selector "tbody tr", count: 1
+    assert_selector "tr#contents-content-#{complete.id}"
+
+    [ [ "warning", warning, "Yellow Flags Only" ], [ "danger", danger, "Red Flags Only" ], [ "any", nil, "Has an Issue" ] ].each do |value, record, label|
+      within "#contents-advanced-filters" do
+        find("#contents-filter-issues").click
+        within ".dropdown-menu.show" do
+          assert_selector "[data-value='warning'] i.text-warning"
+          assert_selector "[data-value='danger'] i.text-danger"
+          assert_selector "[data-value='any'] i.bi-flag-fill", count: 2
+          find("[data-value='#{value}']").click
+        end
+        assert_selector "#contents-filter-issues-selected", text: label
+        click_button "Apply Filters"
+      end
+      assert_selector "tbody tr", count: record ? 1 : 2
+      assert_selector "tr#contents-content-#{record.id}" if record
+    end
+
+    within "#contents-advanced-filters" do
+      find(".btn-close").click
+    end
+    select "50", from: "Rows to Display"
+    visit contents_path
+    assert_selector "#contents-filter-issues-selected", text: "Has an Issue", visible: :all
+    assert_selector "tbody tr", count: 2
+
+    click_button "Filters", exact: true
+    within "#contents-advanced-filters" do
+      assert_selector "#contents-filter-issues-selected i.bi-flag-fill", count: 2
+      click_button "Clear Filters"
+      assert_selector "#contents-filter-issues-selected", text: "All Content"
+      assert_no_selector "#contents-filter-issues-selected i.bi-flag-fill"
+    end
+    assert_selector "tbody tr", count: 3
+    assert_field "Search", with: "filter row"
+    assert_select "Rows to Display", selected: "50"
+    assert_no_selector "thead th", text: "Issues", exact_text: true
+  end
+
   test "table replacement does not retain selected rows" do
     content = contents(:one)
 

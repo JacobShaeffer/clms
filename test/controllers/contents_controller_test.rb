@@ -100,6 +100,89 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame[src*='/issues']", count: 0
   end
 
+  test "issue filtering persists works with hidden flags and can be cleared" do
+    [ @matching_content, @other_content ].each { |content| content.metadata = Metadatum.all.to_a }
+    @matching_content.update_column(:description, nil)
+
+    get table_contents_url, params: {
+      columns_present: "1", columns: [ "title" ], filters: { "issues" => { "value" => "warning" } }, per_page: 20
+    }
+
+    assert_response :success
+    assert_select "tbody tr", count: 1
+    assert_select "tbody td", text: @matching_content.title
+    assert_select "thead th", text: "Issues", count: 0
+    assert_equal({ "value" => "warning" }, content_table_state.dig("filters", "issues"))
+
+    get table_contents_url, params: { per_page: 50 }
+
+    assert_response :success
+    assert_select "tbody tr", count: 1
+    get contents_url
+    assert_select "#contents-filter-issues-selected i.bi-flag-fill.text-warning", count: 1
+    assert_select "input[name='filters[issues][value]'][value='warning']"
+
+    get table_contents_url, params: { clear_filters: "1" }
+
+    assert_response :success
+    assert_select "tbody tr", count: 2
+    assert_empty content_table_state["filters"]
+    assert_equal 50, content_table_state["per_page"]
+    assert_equal [ "title" ], content_table_state["columns"]
+  end
+
+  test "issue dropdown renders flag icons and ignores invalid selections" do
+    get contents_url
+
+    assert_response :success
+    assert_select "#contents-filter-issues-selected", text: "All Content"
+    assert_select "[data-controller='issue-filter'] [role='option'][data-value='none']", text: "No Issues" do
+      assert_select "i.bi-flag-fill", count: 0
+    end
+    assert_select "[role='option'][data-value='warning'] i.bi-flag-fill.text-warning", count: 1
+    assert_select "[role='option'][data-value='danger'] i.bi-flag-fill.text-danger", count: 1
+    assert_select "[role='option'][data-value='any']" do
+      assert_select "i.bi-flag-fill.text-warning", count: 1
+      assert_select "i.bi-flag-fill.text-danger", count: 1
+    end
+
+    get table_contents_url, params: { filters: { "issues" => { "value" => "invalid" } } }
+
+    assert_response :success
+    assert_select "tbody tr", count: 2
+    assert_nil @user.content_table_preferences.find_by(table_key: CONTENTS_TABLE_KEY)
+  end
+
+  test "issue filters combine with search and metadata filters before pagination" do
+    [ @matching_content, @other_content ].each { |content| content.metadata = Metadatum.all.to_a }
+    @matching_content.update_column(:description, nil)
+    11.times do |index|
+      complete = create_content!(title: "River complete #{index}", display_title: "Complete #{index}", description: "Description")
+      complete.metadata = Metadatum.all.to_a
+      complete.update_column(:created_at, Time.current + 1.hour)
+    end
+
+    get table_contents_url, params: {
+      q: "River", page: 99,
+      filters: {
+        "issues" => { "value" => "warning" },
+        "metadata_type:#{@metadata_type.id}" => { "metadatum_ids" => [ @history.id ] }
+      }
+    }
+
+    assert_response :success
+    assert_select "tbody tr", count: 1
+    assert_select "tbody td", text: @matching_content.title
+    assert_equal 1, content_table_state["page"]
+
+    get table_contents_url, params: { filters: { "issues" => { "value" => "none" } } }
+
+    assert_response :success
+    assert_select "tbody tr", count: 10
+    assert_select "tbody td", text: @matching_content.title, count: 0
+    assert_select "a.page-link[href*='page=2']"
+  end
+
   test "libraries are optional on the content page and show each current library once" do
     library = Library.create!(name: "Health Library", user: @user)
     root = library.current_version.library_folders.create!(name: "Guides", user: @user)

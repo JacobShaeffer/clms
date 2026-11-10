@@ -263,6 +263,18 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
     assert_select "tbody td", text: "Unrelated Document", count: 0
   end
 
+  test "selected shelf accepts issue filters" do
+    get table_shelf_url(@shelf), params: { filters: { "issues" => { "value" => "none" } } }
+
+    assert_response :success
+    assert_select "tbody td", text: "No content found."
+
+    get table_shelf_url(@shelf), params: { filters: { "issues" => { "value" => "warning" } } }
+
+    assert_response :success
+    assert_select "tbody i.bi-flag-fill.text-warning"
+  end
+
   test "selected shelf search is case insensitive and persists independently per shelf" do
     second_shelf = @user.shelves.create!(name: "Second")
     second_shelf.contents << contents(:one)

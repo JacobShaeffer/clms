@@ -6,6 +6,11 @@ module ContentTables
       description: "Description"
     }.freeze
     RIGHTS_METADATA_NAMES = [ "rights holder", "rights statement" ].freeze
+    DANGER_THRESHOLD = 4
+
+    def self.rights_metadata_type?(type)
+      RIGHTS_METADATA_NAMES.include?(type.name.squish.downcase)
+    end
 
     def initialize(content:, metadata_types:)
       @content = content
@@ -24,7 +29,7 @@ module ContentTables
       missing_count = missing_intrinsic_fields.size + (file_missing? ? 1 : 0) + missing_metadata_types.size
       return if missing_count.zero?
 
-      if missing_count >= 4 || missing_metadata_types.any? { |type| RIGHTS_METADATA_NAMES.include?(type.name.squish.downcase) }
+      if missing_count >= DANGER_THRESHOLD || missing_metadata_types.any? { |type| self.class.rights_metadata_type?(type) }
         :danger
       else
         :warning
