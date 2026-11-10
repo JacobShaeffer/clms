@@ -18,7 +18,8 @@ module ContentTables
       source:,
       metadata_types:,
       update_path:,
-      reset_path:
+      reset_path:,
+      library_scope: Library.none
     )
       @user = user
       @shelf = shelf
@@ -27,6 +28,7 @@ module ContentTables
 
       super(
         source:,
+        library_scope:,
         metadata_types:,
         update_path:,
         reset_path:,

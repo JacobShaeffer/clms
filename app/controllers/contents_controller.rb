@@ -214,6 +214,27 @@ class ContentsController < ApplicationController
     }
   end
 
+  def library_locations
+    content = policy_scope(Content).find(params.expect(:id))
+    authorize content, :show?
+    library = policy_scope(Library).find(params.expect(:library_id))
+    authorize library, :show?
+
+    placed_folder_ids = library.current_version.library_folder_contents.where(content:).select(:library_folder_id)
+    folders = library.current_version.library_folders.where(id: placed_folder_ids).to_a
+    breadcrumbs = if folders.any?
+      path_index = LibraryFolderPathIndex.new(library:)
+      folders.map { |folder| path_index.breadcrumb(folder) }.sort_by { |path| [ path.downcase, path ] }
+    else
+      []
+    end
+
+    render partial: "contents/library_locations", locals: {
+      breadcrumbs:,
+      frame_id: turbo_frame_request_id || "content_#{content.id}_library_#{library.id}_locations"
+    }
+  end
+
   def trash_confirmation
     authorize @content, :trash_confirmation?
 

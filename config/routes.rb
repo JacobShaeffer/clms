@@ -68,6 +68,7 @@ Rails.application.routes.draw do
 
     member do
       get :issues
+      get :library_locations
       get :trash_confirmation
       patch :trash
       patch :restore

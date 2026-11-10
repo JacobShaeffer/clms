@@ -164,6 +164,7 @@ class ShelvesController < ApplicationController
     @table_definition = ContentTables::ShelfContentsDefinition.new(
       user: current_user,
       shelf: @selected_shelf,
+      library_scope: policy_scope(Library),
       source:,
       metadata_types:,
       update_path: table_shelf_path(@selected_shelf),

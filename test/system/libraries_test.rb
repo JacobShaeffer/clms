@@ -200,6 +200,9 @@ class LibrariesTest < ApplicationSystemTestCase
     root_folder = create_folder!(library, "Guides")
     child_folder = create_folder!(library, "First Aid", parent_folder: root_folder)
     LibraryFolderContent.create!(library_folder: child_folder, content: contents(:one))
+    other_library = Library.create!(name: "Science Library", user: users(:one))
+    other_folder = create_folder!(other_library, "Reference")
+    LibraryFolderContent.create!(library_folder: other_folder, content: contents(:one))
     shelf = users(:one).shelves.create!(name: "Reading List")
     shelf.contents << contents(:one)
     ActiveShelf.activate!(user: users(:one), shelf:)
@@ -223,7 +226,37 @@ class LibrariesTest < ApplicationSystemTestCase
     end
     assert_selector ".tooltip .tooltip-inner", text: "Health Library / Guides / First Aid"
 
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      click_on library.name
+      assert_selector ".breadcrumb-item.active", text: library.name
+    end
+
     within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      fill_in "Search", with: contents(:one).title
+      select "20", from: "Rows to Display"
+      find("input[data-content-table-selection-target='row'][value='#{contents(:one).id}']").check
+      click_link child_folder.name
+    end
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :folder_browser)}" do
+      assert_selector ".breadcrumb-item.active", text: child_folder.name
+      assert_selector "##{ActionView::RecordIdentifier.dom_id(contents(:one), :browser)}"
+    end
+
+    within "turbo-frame##{ActionView::RecordIdentifier.dom_id(library, :content_panel)}" do
+      assert_selector ".nav-link.active", text: "Current Library"
+      assert_field "Search", with: contents(:one).title
+      assert_select "Rows to Display", selected: "20"
+      assert_selector "input[data-content-table-selection-target='row'][value='#{contents(:one).id}']:checked"
+      assert_selector "input[name='folder_id'][value='#{child_folder.id}']", visible: :all
+      assert_no_selector "thead th", text: "Libraries", exact_text: true
+      click_button "Column Select"
+      check "Libraries", exact: true
+      assert_selector "thead th", text: "Libraries"
+      assert_selector "thead th", text: "Library Folders"
+      assert_selector ".badge[data-tooltip-url-value]", text: library.name
+      assert_selector ".badge[data-tooltip-url-value]", text: other_library.name
+      click_button "Column Select"
       click_on "Shelves"
       click_on shelf.name
       assert_text contents(:one).title
@@ -236,6 +269,61 @@ class LibrariesTest < ApplicationSystemTestCase
       assert_selector "##{ActionView::RecordIdentifier.dom_id(shelf, :library)}.active"
       assert_text contents(:one).title
     end
+  end
+
+  test "library badges load all paths lazily and cache independently until the table refreshes" do
+    library = Library.create!(name: "Health Library", user: users(:one))
+    root = create_folder!(library, "Guides")
+    child = create_folder!(library, "First Aid", parent_folder: root)
+    [ root, child ].each { |folder| LibraryFolderContent.create!(library_folder: folder, content: contents(:one)) }
+    other_library = Library.create!(name: "Science Library", user: users(:one))
+    other_folder = create_folder!(other_library, "Reference")
+    LibraryFolderContent.create!(library_folder: other_folder, content: contents(:one))
+
+    visit library_path(library)
+
+    page.execute_script(<<~JAVASCRIPT)
+      window.locationRequests = []
+      window.pauseLocationRequests = true
+      document.addEventListener("turbo:before-fetch-request", (event) => {
+        if (!event.detail.url.pathname.endsWith("/library_locations")) return
+
+        window.locationRequests.push(event.detail.url.href)
+        if (window.pauseLocationRequests) {
+          event.preventDefault()
+          window.resumeLocationRequest = event.detail.resume
+        }
+      })
+    JAVASCRIPT
+
+    row_id = "library-#{library.id}-all-contents-content-#{contents(:one).id}"
+    assert_selector "tr##{row_id} .badge[data-tooltip-url-value]", count: 2
+    assert_no_selector "turbo-frame[src*='/library_locations']", visible: :all
+    find("tr##{row_id} .badge", text: library.name).hover
+    assert_selector ".library-locations-tooltip .tooltip-inner", exact_text: "Library Locations:"
+    assert_equal 1, page.evaluate_script("window.locationRequests.length")
+    page.execute_script("window.pauseLocationRequests = false; window.resumeLocationRequest()")
+    assert_selector ".library-locations-tooltip .tooltip-inner",
+      text: "Library Locations:\n• Health Library / Guides\n• Health Library / Guides / First Aid"
+
+    find("thead th", text: "Libraries", exact_text: true).hover
+    other_badge = find("tr##{row_id} .badge", text: other_library.name)
+    page.execute_script("arguments[0].focus()", other_badge)
+    assert_selector ".library-locations-tooltip .tooltip-inner", text: "Library Locations:\n• Science Library / Reference"
+    page.execute_script("arguments[0].blur()", other_badge)
+    find("tr##{row_id} .badge", text: library.name).hover
+    assert_selector ".library-locations-tooltip .tooltip-inner", text: "Health Library / Guides / First Aid"
+    assert_equal 2, page.evaluate_script("window.locationRequests.length")
+
+    page.execute_script("document.dispatchEvent(new CustomEvent('turbo:before-cache'))")
+    assert_no_selector ".library-locations-tooltip"
+    assert_no_selector "turbo-frame[src*='/library_locations']", visible: :all
+    assert_equal "#{library.name} library locations", find("tr##{row_id} .badge", text: library.name)["aria-label"]
+
+    find("thead a[aria-label='Sort Title Ascending']").click
+    find("tr##{row_id} .badge", text: library.name).hover
+    assert_selector ".library-locations-tooltip .tooltip-inner", text: "Health Library / Guides / First Aid"
+    assert_equal 3, page.evaluate_script("window.locationRequests.length")
   end
 
   test "selects visible browser items and clears selection during folder navigation" do

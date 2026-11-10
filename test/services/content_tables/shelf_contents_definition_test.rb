@@ -24,6 +24,8 @@ class ContentTables::ShelfContentsDefinitionTest < ActiveSupport::TestCase
     assert_equal "shelf_#{@shelf.id}_contents_table", @definition.frame_id
     assert_includes @definition.default_column_keys, "shelves"
     assert_includes @definition.default_column_keys, "issues"
+    assert @definition.column("libraries")
+    refute_includes @definition.default_column_keys, "libraries"
     assert_equal "Shelf Columns", @definition.groups.find { |group| group[:key] == :shelf }[:columns_label]
   end
 

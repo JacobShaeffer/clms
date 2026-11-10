@@ -49,7 +49,9 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
     assert_equal "content_tables/issues_cell", @definition.column("issues").cell_partial
     refute @definition.column("issues").filterable?
     refute @definition.column("issues").sortable?
-    assert_equal [ :content, :metadata, :advanced ], @definition.filter_groups.map { |group| group.fetch(:key) }
+    assert_equal [ :content, :metadata, :library, :advanced ], @definition.filter_groups.map { |group| group.fetch(:key) }
+    assert_equal [ "libraries" ], @definition.columns_for_group(:library).map(&:key)
+    refute_includes @definition.default_column_keys, "libraries"
     assert_equal %w[id title display_title year_of_publication added_by],
       @definition.columns_for_filter_group(:content).map(&:key)
     assert_equal %w[created_at updated_at description additional_notes],
@@ -61,6 +63,50 @@ class ContentTables::ContentsDefinitionTest < ActiveSupport::TestCase
   test "quick search remains title only and is case insensitive" do
     assert_equal [ @first.id ], relation_for(q: "River").ids
     assert_equal [ @first.id ], relation_for(q: "river").ids
+  end
+
+  test "libraries filter and sort by current authorized library names without duplicate content" do
+    alpha = Library.create!(name: "alpha Library", user: users(:one))
+    zulu = Library.create!(name: "Zulu Library", user: users(:one))
+    alpha_folder = alpha.current_version.library_folders.create!(name: "Guides", user: users(:one))
+    zulu_folder = zulu.current_version.library_folders.create!(name: "Guides", user: users(:one))
+    LibraryFolderContent.create!(library_folder: alpha_folder, content: @first)
+    [ @first, @second ].each { |content| LibraryFolderContent.create!(library_folder: zulu_folder, content:) }
+    unplaced = @first.dup
+    unplaced.save!(validate: false)
+    @definition = build_definition(library_scope: Library.all)
+
+    assert_equal [ @first.id ], relation_for(filters: { "libraries" => { "value" => "ALPHA" } }).ids
+    assert_equal [ @first.id, @second.id ].sort,
+      relation_for(filters: { "libraries" => { "value" => "library" } }).ids.sort
+    assert_equal [ @first.id, @second.id, unplaced.id ], relation_for(
+      selected_column_keys: [ "libraries" ], sort_column: "libraries", sort_direction: "asc"
+    ).ids
+    assert_equal [ @second.id, @first.id, unplaced.id ], relation_for(
+      selected_column_keys: [ "libraries" ], sort_column: "libraries", sort_direction: "desc"
+    ).ids
+
+    @definition = build_definition(library_scope: Library.where(id: alpha.id))
+    assert_empty relation_for(filters: { "libraries" => { "value" => "Zulu" } }).ids
+  end
+
+  test "memberships are prepared only for displayed records when libraries is selected" do
+    library = Library.create!(name: "Paged Library", user: users(:one))
+    folder = library.current_version.library_folders.create!(name: "Guides", user: users(:one))
+    [ @first, @second ].each { |content| LibraryFolderContent.create!(library_folder: folder, content:) }
+    definition = build_definition(library_scope: Library.all)
+    state = StateDouble.new(q: "", filters: {}, selected_column_keys: [ "title" ], sort_column: nil, sort_direction: nil)
+
+    assert_no_queries { definition.prepare_records(records: [ @first ], state:) }
+    assert_empty definition.libraries_for(@first)
+
+    state = state.with(selected_column_keys: [ "libraries" ])
+    assert_queries_count(1) { definition.prepare_records(records: [ @first ], state:) }
+    assert_equal [ library.id ], definition.libraries_for(@first).map(&:id)
+    assert_empty definition.libraries_for(@second)
+
+    assert_queries_count(1) { definition.prepare_records(records: [ @first, @second ], state:) }
+    assert_no_queries { [ @first, @second ].each { |content| definition.libraries_for(content) } }
   end
 
   test "built-in content filters apply text number date range and added-by values" do

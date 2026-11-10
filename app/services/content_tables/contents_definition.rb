@@ -13,6 +13,11 @@ module ContentTables
       filters_label: "Metadata Filters",
       empty_message: "No metadata types available."
     }.freeze
+    LIBRARY_GROUP = {
+      key: :library,
+      columns_label: "Library Columns",
+      filters_label: "Library Filters"
+    }.freeze
     ADVANCED_FILTER_GROUP = {
       key: :advanced,
       filters_label: "Advanced Filters",
@@ -27,6 +32,7 @@ module ContentTables
       metadata_types:,
       update_path:,
       reset_path:,
+      library_scope: Library.none,
       frame_id: "contents_table",
       state_key: STATE_KEY,
       row_partial: nil,
@@ -42,9 +48,10 @@ module ContentTables
     )
       metadata_types = Array(metadata_types)
       @metadata_types = metadata_types
+      @library_scope = library_scope
       replacement_keys = Array(additional_columns).map(&:key)
       removed_keys = Array(excluded_column_keys).map(&:to_s) | replacement_keys
-      configured_columns = (content_columns + metadata_columns(metadata_types))
+      configured_columns = (content_columns + metadata_columns(metadata_types) + [ libraries_column ])
         .reject { |column| removed_keys.include?(column.key) }
         .concat(additional_columns)
 
@@ -55,7 +62,7 @@ module ContentTables
         reset_path:,
         source:,
         columns: configured_columns,
-        groups: [ CONTENT_GROUP, METADATA_GROUP ] + Array(additional_groups),
+        groups: [ CONTENT_GROUP, METADATA_GROUP, LIBRARY_GROUP ] + Array(additional_groups),
         filter_groups: build_filter_groups(configured_columns, additional_groups),
         default_column_keys: default_column_keys || build_default_column_keys(metadata_types),
         page_size_options: PER_PAGE_OPTIONS,
@@ -78,12 +85,24 @@ module ContentTables
       Issues.new(content:, metadata_types:)
     end
 
+    def prepare_records(records:, state:)
+      @library_memberships = if state.selected_column_keys.include?("libraries")
+        LibraryMemberships.new(content_ids: records.map(&:id), library_scope:)
+      end
+    end
+
+    def libraries_for(content)
+      @library_memberships&.libraries_for(content) || []
+    end
+
     def relation_for(state)
       relation = super
       state.selected_column_keys.include?("issues") ? relation.includes(:file_attachment) : relation
     end
 
     private
+
+    attr_reader :library_scope
 
     def build_filter_groups(configured_columns, additional_groups)
       advanced_keys = ADVANCED_FILTER_GROUP.fetch(:column_keys)
@@ -94,6 +113,7 @@ module ContentTables
       [
         CONTENT_GROUP.merge(column_keys: general_keys),
         METADATA_GROUP,
+        LIBRARY_GROUP,
         *Array(additional_groups),
         ADVANCED_FILTER_GROUP
       ]
@@ -126,6 +146,32 @@ module ContentTables
         date_content_column("updated_at", "Date Updated"),
         added_by_column
       ]
+    end
+
+    def libraries_column
+      placements = LibraryFolderContent.arel_table
+      libraries = Library.arel_table
+      placement_scope = LibraryMemberships.placements(library_scope:)
+      sort_expression = placement_scope
+        .where(placements[:content_id].eq(Content.arel_table[:id]))
+        .select(libraries[:name].lower.minimum)
+
+      Column.new(
+        key: "libraries",
+        label: "Libraries",
+        group: :library,
+        cell_partial: "content_tables/libraries_cell",
+        filter: Filters::Text.new(apply: lambda do |relation:, values:, **|
+          query = ActiveRecord::Base.sanitize_sql_like(values.fetch("value"))
+          matching_content_ids = placement_scope.where(libraries[:name].matches("%#{query}%"))
+            .select(placements[:content_id])
+          relation.where(id: matching_content_ids)
+        end),
+        sort: Sorts::Expression.new(
+          expression: Arel::Nodes::Grouping.new(sort_expression.arel.ast),
+          tie_breaker: Content.arel_table[:id]
+        )
+      )
     end
 
     def text_content_column(key, label)

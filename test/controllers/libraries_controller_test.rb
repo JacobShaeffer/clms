@@ -473,7 +473,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "all content is the default tab and renders library folder placements with independent tooltips" do
+  test "all content is the default tab and renders one lazy library badge for multiple placements" do
     LibraryFolderContent.create!(library_folder: @root_folder, content: contents(:one))
     LibraryFolderContent.create!(library_folder: @child_folder, content: contents(:one))
 
@@ -484,16 +484,17 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller~='library-content-selection']"
     assert_select "[data-library-content-selection-scope='all'][data-content-table-selection-preserve-before-cache-value='true']"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table"
-    assert_select "th", text: "Library Folders"
+    assert_select "th", text: "Libraries"
+    assert_select "input[name='columns[]'][value='library_folders']", count: 0
     assert_select "th", text: "Issues"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table thead th:last-child.content-table-actions", text: "Actions"
     assert_select "turbo-frame#library_#{@library.id}_all_contents_table a[aria-label='Preview #{contents(:one).title}'][data-turbo-frame='modal']"
     row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:one)).dasherize}"
     assert_select "tr##{row_id}" do
       assert_select "i.bi-flag-fill.text-warning[data-controller='tooltip']", count: 1
-      assert_select ".badge[data-controller='tooltip']", count: 2
-      assert_select "[title='Health Library / Health']", text: "Health"
-      assert_select "[title='Health Library / Health / First Aid']", text: "First Aid"
+      assert_select ".badge[data-controller='tooltip']", count: 1
+      assert_select "[title='Library Locations: '][data-tooltip-url-value='#{library_locations_content_path(contents(:one), library_id: @library.id)}']", text: @library.name
+      assert_select "turbo-frame[src]", count: 0
     end
     other_row_id = "library-#{@library.id}-all-contents-#{ActionView::RecordIdentifier.dom_id(contents(:two)).dasherize}"
     assert_select "tr##{other_row_id} .badge[data-controller='tooltip']", count: 0
@@ -507,8 +508,33 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".nav-tabs .nav-link.active", text: "Current Library"
+    assert_select "th", text: "Library Folders"
+    assert_select "th", text: "Libraries", count: 0
+    assert_select "input[name='columns[]'][value='libraries']:not([checked])"
+    assert_select "a.badge[href='#{library_path(@library, folder_id: @child_folder.id, tab: "library")}']" \
+      "[data-turbo-frame='folder_browser_library_#{@library.id}'][data-turbo-action='advance']", text: @child_folder.name
     assert_select "turbo-frame#library_#{@library.id}_library_contents_table tbody tr", count: 1
     assert_select "tbody", text: /#{contents(:one).title}/
+  end
+
+  test "current library can show libraries from other libraries alongside its folder locations" do
+    LibraryFolderContent.create!(library_folder: @child_folder, content: contents(:one))
+    LibraryFolderContent.create!(library_folder: @other_root_folder, content: contents(:one))
+
+    get library_contents_table_library_url(@library), params: {
+      columns_present: "1", columns: %w[title libraries library_folders]
+    }
+
+    assert_response :success
+    assert_select "th", text: "Libraries"
+    assert_select "th", text: "Library Folders"
+    row_id = "library-#{@library.id}-library-contents-content-#{contents(:one).id}"
+    assert_select "tr##{row_id}" do
+      assert_select ".badge[data-tooltip-url-value]", count: 2
+      assert_select ".badge", text: @library.name
+      assert_select ".badge", text: @other_library.name
+      assert_select "a.badge", text: @child_folder.name
+    end
   end
 
   test "removed folders disappear from the browser library tables and tooltips" do
@@ -573,7 +599,8 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='q']", count: 0
     assert_select "button", text: "Advanced Filters", count: 0
     assert_select ".offcanvas", count: 0
-    assert_select "th", text: "Library Folders"
+    assert_select "th", text: "Libraries"
+    assert_select "input[name='columns[]'][value='library_folders']", count: 0
     assert_select "tbody", text: /#{contents(:one).title}/
   end
 

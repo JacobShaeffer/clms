@@ -25,6 +25,10 @@ class ContentTables::CoordinatorTest < ActiveSupport::TestCase
       }
     )
     calls = []
+    prepared_pages = []
+    @definition.define_singleton_method(:prepare_records) do |records:, state:|
+      prepared_pages << { records:, page: state.page }
+    end
     paginator = lambda do |relation:, page:, per_page:|
       calls << { relation:, page:, per_page: }
       [ Pagination.new(page, 2), relation.limit(per_page).to_a ]
@@ -42,6 +46,7 @@ class ContentTables::CoordinatorTest < ActiveSupport::TestCase
     assert_equal 2, table.state.page
     assert_equal 2, table.pagy.page
     assert_equal Content.limit(10).to_a, table.records
+    assert_equal [ { records: table.records, page: 2 } ], prepared_pages
     assert_equal 2, @user.content_table_preferences.find_by!(table_key: @definition.state_key).state.fetch("page")
     navigation_context = ContentTables::PageNavigation.context_for(
       user: @user,

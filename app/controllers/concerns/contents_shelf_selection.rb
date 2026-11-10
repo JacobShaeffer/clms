@@ -11,6 +11,7 @@ module ContentsShelfSelection
     source = policy_scope(Content).includes(:user, metadata: :metadata_type)
     @table_definition = ContentTables::ContentsDefinition.new(
       source:,
+      library_scope: policy_scope(Library),
       metadata_types:,
       update_path: table_contents_path,
       reset_path: reset_table_contents_path,

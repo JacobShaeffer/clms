@@ -211,7 +211,8 @@ thead .content-table-actions {
   z-index: 2;
 }
 
-.content-issues-tooltip .tooltip-inner {
+.content-issues-tooltip .tooltip-inner,
+.library-locations-tooltip .tooltip-inner {
   white-space: pre-line;
   text-align: left;
 }

@@ -64,6 +64,13 @@ module ContentTables
       @columns_by_key.keys
     end
 
+    def column_key_aliases
+      {}
+    end
+
+    def prepare_records(records:, state:)
+    end
+
     def filterable_columns
       return [] unless filters_enabled?
 

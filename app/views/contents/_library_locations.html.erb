@@ -1,0 +1,3 @@
+<%= turbo_frame_tag frame_id do %>
+  <%= breadcrumbs.any? ? [ "Library Locations:", *breadcrumbs.map { |path| "• #{path}" } ].join("\n") : "Library Locations: No current locations." %>
+<% end %>

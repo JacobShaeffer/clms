@@ -225,7 +225,9 @@ module ContentTables
         []
       end
 
-      values.select { |value| value.is_a?(String) }.uniq.intersection(definition.available_column_keys)
+      values.select { |value| value.is_a?(String) }
+        .map { |value| definition.column_key_aliases.fetch(value, value) }
+        .uniq.intersection(definition.available_column_keys)
     end
 
     def sanitize_filter_hash(raw_filters)

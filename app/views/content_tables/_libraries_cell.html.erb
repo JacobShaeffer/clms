@@ -1,0 +1,13 @@
+<% definition.libraries_for(record).each do |library| %>
+  <span class="badge text-bg-secondary me-1"
+    tabindex="0"
+    title="Library Locations: "
+    aria-label="<%= library.name %> library locations"
+    data-controller="tooltip"
+    data-bs-toggle="tooltip"
+    data-bs-custom-class="library-locations-tooltip"
+    data-tooltip-url-value="<%= library_locations_content_path(record, library_id: library.id) %>"
+    data-tooltip-frame-id-value="<%= definition.dom_id("content-#{record.id}-library-#{library.id}-locations") %>">
+    <%= library.name %>
+  </span>
+<% end %>

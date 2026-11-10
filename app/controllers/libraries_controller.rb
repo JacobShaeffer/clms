@@ -240,6 +240,7 @@ class LibrariesController < ApplicationController
 
   def load_all_contents_table
     load_contents_table(
+      table_context: :all,
       source: base_content_source,
       state_key: ContentTables::LibraryContentsDefinition.all_content_state_key(@library),
       frame_id: "library_#{@library.id}_all_contents_table",
@@ -251,6 +252,7 @@ class LibrariesController < ApplicationController
   def load_library_contents_table
     content_ids = @library_version.library_folder_contents.select(:content_id)
     load_contents_table(
+      table_context: :current_library,
       source: base_content_source.where(id: content_ids),
       state_key: ContentTables::LibraryContentsDefinition.library_content_state_key(@library),
       frame_id: "library_#{@library.id}_library_contents_table",
@@ -261,6 +263,7 @@ class LibrariesController < ApplicationController
 
   def load_shelf_contents_table
     load_contents_table(
+      table_context: :shelves,
       source: base_content_source.where(id: @selected_shelf.contents.select(:id)),
       state_key: ContentTables::LibraryContentsDefinition.shelf_content_state_key(@library, @selected_shelf),
       frame_id: "library_#{@library.id}_shelf_#{@selected_shelf.id}_contents_table",
@@ -272,6 +275,7 @@ class LibrariesController < ApplicationController
   end
 
   def load_contents_table(
+    table_context:,
     source:,
     state_key:,
     frame_id:,
@@ -283,6 +287,8 @@ class LibrariesController < ApplicationController
     @table_definition = ContentTables::LibraryContentsDefinition.new(
       library: @library,
       library_version: @library_version,
+      table_context:,
+      library_scope: policy_scope(Library),
       source:,
       metadata_types: policy_scope(MetadataType).order(:order, :name),
       update_path:,

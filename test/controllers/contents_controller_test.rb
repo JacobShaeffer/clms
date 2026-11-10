@@ -100,6 +100,78 @@ class ContentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame[src*='/issues']", count: 0
   end
 
+  test "libraries are optional on the content page and show each current library once" do
+    library = Library.create!(name: "Health Library", user: @user)
+    root = library.current_version.library_folders.create!(name: "Guides", user: @user)
+    child = library.current_version.library_folders.create!(name: "First Aid", parent_folder: root, user: @user)
+    [ root, child ].each { |folder| LibraryFolderContent.create!(library_folder: folder, content: @matching_content) }
+
+    get contents_url
+
+    assert_response :success
+    assert_select "input[name='columns[]'][value='libraries']:not([checked])"
+    assert_select "thead th", text: "Libraries", count: 0
+
+    get table_contents_url, params: { columns_present: "1", columns: %w[title libraries] }
+
+    assert_response :success
+    assert_select "tr#contents-content-#{@matching_content.id} .badge[title='Library Locations: ']", count: 1, text: library.name
+    assert_select "tr#contents-content-#{@other_content.id} .badge", count: 0
+    assert_select "tbody turbo-frame[src]", count: 0
+  end
+
+  test "library location tooltip returns all current breadcrumbs for the selected library as escaped text" do
+    library = Library.create!(name: '<b>Health</b> & "Learning"', user: @user)
+    root = library.current_version.library_folders.create!(name: "Guides", user: @user)
+    child = library.current_version.library_folders.create!(name: '<script>alert("test")</script>', parent_folder: root, user: @user)
+    [ root, child ].each { |folder| LibraryFolderContent.create!(library_folder: folder, content: @matching_content) }
+
+    get library_locations_content_url(@matching_content, library_id: library.id), headers: { "Turbo-Frame" => "library-locations-test" }
+
+    assert_response :success
+    assert_select "turbo-frame#library-locations-test" do |frames|
+      assert_equal "Library Locations:\n• #{library.name} / Guides\n• #{library.name} / Guides / #{child.name}", frames.first.text.strip
+      assert_select "b, script", count: 0
+    end
+  end
+
+  test "library location tooltip excludes historical placements and handles removed placements" do
+    library = Library.create!(name: "Versioned Library", user: @user)
+    folder = library.current_version.library_folders.create!(name: "Guides", user: @user)
+    LibraryFolderContent.create!(library_folder: folder, content: @matching_content)
+    locked_version = library.current_version
+    LibraryVersions::Create.call(library:, version_number: "2.0", user: @user)
+    library.reload.current_version.library_folder_contents.find_by!(content: @matching_content).destroy!
+
+    assert locked_version.library_folder_contents.exists?(content: @matching_content)
+    get library_locations_content_url(@matching_content, library_id: library.id), headers: { "Turbo-Frame" => "library-locations-test" }
+
+    assert_response :success
+    assert_select "turbo-frame#library-locations-test", text: "Library Locations: No current locations."
+  end
+
+  test "library location tooltip requires authentication and authorized active records" do
+    library = Library.create!(name: "Restricted Library", user: @user)
+    sign_out @user
+    get library_locations_content_url(@matching_content, library_id: library.id)
+    assert_redirected_to new_user_session_path
+
+    @user.update!(role: :guest)
+    sign_in @user
+    get library_locations_content_url(@matching_content, library_id: library.id)
+    assert_response :not_found
+
+    @user.update!(role: :volunteer)
+    sign_in @user
+    get library_locations_content_url(@matching_content, library_id: Library.maximum(:id) + 1)
+    assert_response :not_found
+
+    @matching_content.trash!
+    sign_in @user
+    get library_locations_content_url(@matching_content, library_id: library.id)
+    assert_response :not_found
+  end
+
   test "issues include hidden metadata types and safely escape their names in tooltips" do
     [ @matching_content, @other_content ].each { |content| content.metadata = Metadatum.all.to_a }
     type = MetadataType.create!(name: '<b>Audience</b> "quoted" & other', user: @user)

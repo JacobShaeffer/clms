@@ -1,10 +1,5 @@
 module ContentTables
   class LibraryContentsDefinition < ContentsDefinition
-    LIBRARY_GROUP = {
-      key: :library,
-      columns_label: "Library Columns",
-      filters_label: "Library Filters"
-    }.freeze
     LIBRARY_FOLDERS_COLUMN_KEY = "library_folders"
 
     attr_reader :library, :library_version
@@ -30,6 +25,8 @@ module ContentTables
       reset_path:,
       state_key:,
       frame_id:,
+      table_context: :all,
+      library_scope: Library.none,
       search_enabled: true,
       filters_enabled: true,
       path_index: nil,
@@ -37,26 +34,34 @@ module ContentTables
     )
       @library = library
       @library_version = library_version
+      @table_context = table_context
+      raise ArgumentError, "invalid library table context" unless %i[all shelves current_library].include?(table_context)
+
       @path_index = path_index || LibraryFolderPathIndex.new(library:, library_version:)
       metadata_types = Array(metadata_types)
-      library_column = build_library_folders_column
+      library_columns = table_context == :current_library ? [ build_library_folders_column ] : []
+      default_library_column = table_context == :current_library ? LIBRARY_FOLDERS_COLUMN_KEY : "libraries"
 
       super(
         source:,
+        library_scope:,
         metadata_types:,
         update_path:,
         reset_path:,
         state_key:,
         frame_id:,
-        additional_columns: [ library_column ],
-        additional_groups: [ LIBRARY_GROUP ],
+        additional_columns: library_columns,
         default_column_keys: DEFAULT_CONTENT_COLUMN_KEYS +
           metadata_types.first(2).map { |metadata_type| "metadata_type:#{metadata_type.id}" } +
-        [ library_column.key ],
+          [ default_library_column ],
         search_enabled:,
         filters_enabled:,
         selection_form_id:
       )
+    end
+
+    def column_key_aliases
+      @table_context == :current_library ? {} : { LIBRARY_FOLDERS_COLUMN_KEY => "libraries" }
     end
 
     def library_folders_for(content)

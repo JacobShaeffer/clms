@@ -25,6 +25,8 @@ module ContentTables
         @pagy, @records = paginate(relation)
       end
 
+      definition.prepare_records(records:, state:)
+
       if definition.actions?
         @navigation_token = PageNavigation.token_for(
           user:,

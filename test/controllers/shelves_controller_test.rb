@@ -252,6 +252,8 @@ class ShelvesControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table thead input[data-content-table-selection-target='page']"
     assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table tbody input[data-content-table-selection-target='row']"
     assert_select "th", text: "Shelves"
+    assert_select "thead th", text: "Libraries", count: 0
+    assert_select "input[name='columns[]'][value='libraries']:not([checked])"
     assert_select "th", text: "Issues"
     assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table i.bi-flag-fill.text-warning[data-controller='tooltip']"
     assert_select "turbo-frame#shelf_#{@shelf.id}_contents_table thead th:last-child.content-table-actions", text: "Actions"

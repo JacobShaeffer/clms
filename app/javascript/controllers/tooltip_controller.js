@@ -6,6 +6,8 @@ export default class extends Controller {
   connect() {
     if (!window.bootstrap) return
 
+    this.initialTitle = this.element.getAttribute("title") || this.element.getAttribute("data-bs-original-title")
+    this.initialLabel = this.element.getAttribute("aria-label")
     this.tooltip = window.bootstrap.Tooltip.getOrCreateInstance(this.element)
     if (!this.hasUrlValue) return
 
@@ -13,8 +15,12 @@ export default class extends Controller {
     this.clearBeforeCache = () => {
       this.tooltip.hide()
       this.resetFrame()
-      this.tooltip.setContent({ ".tooltip-inner": "Missing Fields: " })
-      this.element.setAttribute("aria-label", "Missing Fields: ")
+      this.tooltip.setContent({ ".tooltip-inner": this.initialTitle })
+      if (this.initialLabel === null) {
+        this.element.removeAttribute("aria-label")
+      } else {
+        this.element.setAttribute("aria-label", this.initialLabel)
+      }
     }
     this.element.addEventListener("show.bs.tooltip", this.loadOnShow)
     document.addEventListener("turbo:before-cache", this.clearBeforeCache)
