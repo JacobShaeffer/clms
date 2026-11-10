@@ -39,16 +39,37 @@
 
 	<div class="mb-3">
 		<%= form.label :title, "Title", class: "form-label" %>
+		<i class="bi bi-info-circle ms-1 text-muted"
+			tabindex="0"
+			role="img"
+			aria-label="English title used internally for library organization"
+			title="English title used internally for library organization"
+			data-controller="tooltip"
+			data-bs-toggle="tooltip"></i>
 		<%= form.text_field :title, class: "form-control", autofocus: true %>
 	</div>
 
 	<div class="mb-3">
 		<%= form.label :display_title, "Display Title", class: "form-label" %>
+		<i class="bi bi-info-circle ms-1 text-muted"
+			tabindex="0"
+			role="img"
+			aria-label="Local Language title (if applicable)"
+			title="Local Language title (if applicable)"
+			data-controller="tooltip"
+			data-bs-toggle="tooltip"></i>
 		<%= form.text_field :display_title, class: "form-control" %>
 	</div>
 
 	<div class="mb-3">
 		<%= form.label :description, "Description", class: "form-label" %>
+		<i class="bi bi-info-circle ms-1 text-muted"
+			tabindex="0"
+			role="img"
+			aria-label="2-3 sentence description of the content"
+			title="2-3 sentence description of the content"
+			data-controller="tooltip"
+			data-bs-toggle="tooltip"></i>
 		<%= form.text_area :description, class: "form-control", rows: 4 %>
 	</div>
 
