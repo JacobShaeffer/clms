@@ -1,6 +1,9 @@
 require "test_helper"
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
+  # Keep Bootstrap transitions from moving focus during browser interactions.
+  Capybara.disable_animation = ":is(.modal, .modal-dialog, .modal-backdrop)"
+
   if ENV["CAPYBARA_SERVER_PORT"]
     served_by host: "rails-app", port: ENV["CAPYBARA_SERVER_PORT"]
 

@@ -1,6 +1,6 @@
-# SolarHub
+# SPELL Hub
 
-SolarHub is a Rails application for managing learning content, metadata, libraries, library assets, folders, and user shelves.
+SPELL Hub is a Rails application for managing learning content, metadata, libraries, library assets, folders, and user shelves.
 
 ## Requirements
 
@@ -31,15 +31,32 @@ The application uses Bootstrap 5.3.8 and import maps. No JavaScript build step i
 
 The development server runs on `http://localhost:3000` by default.
 
+### VS Code dev container
+
+Open this checkout in VS Code and select **Dev Containers: Reopen in Container**.
+The VS Code environment is named **SPELL Hub**, uses `/workspaces/spellhub`, and stores
+PostgreSQL data in the `spellhub_postgres_data` Docker volume.
+
+For an existing installation, follow the [platform rename runbook](docs/platform-rename.md)
+before reopening the container. Restore the databases first: initial setup runs
+`db:prepare`, which can load destructive development seeds into an empty database.
+
 ## Database configuration
 
 Development uses PostgreSQL with these defaults:
 
 - Host: `localhost`
 - User: `postgres`
-- Database: `solarhub_development`
+- Database: `spellhub_development`
+- Test database: `spellhub_test` (parallel workers append a numeric suffix)
 
 Set `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` to override them. Use `POSTGRES_TEST_DB` for the test database.
+
+Production defaults are `spellhub_production`, `spellhub_production_cache`,
+`spellhub_production_queue`, and `spellhub_production_cable`. See the
+[PostgreSQL production setup guide](docs/spellhub-postgresql-setup.pdf)
+for role creation and access configuration. Regenerate that guide with
+`ruby docs/render_spellhub_postgresql_setup.rb` after editing its `.ms` source.
 
 ## Demo data
 
@@ -208,6 +225,13 @@ Run all tests with:
 
 ```sh
 bin/rails test
+```
+
+In the dev container, run browser tests with one worker for the Selenium
+service's single browser session:
+
+```sh
+PARALLEL_WORKERS=1 bin/rails test:system
 ```
 
 ## Local server deployment with Kamal

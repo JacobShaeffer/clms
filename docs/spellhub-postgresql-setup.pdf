@@ -16,16 +16,16 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
 endobj
 6 0 obj
-<< /Title (SolarHub PostgreSQL Production Setup) /Author (SolarHub) /Subject (Production PostgreSQL server configuration) >>
+<< /Title (SPELL Hub PostgreSQL Production Setup) /Author (SPELL Hub) /Subject (Production PostgreSQL server configuration) >>
 endobj
 7 0 obj
-<< /Length 4117 >>
+<< /Length 4118 >>
 stream
 BT
 /F2 22.00 Tf
 0.050 0.230 0.390 rg
-1 0 0 1 105.80 733.00 Tm
-(SolarHub PostgreSQL Production Setup) Tj
+1 0 0 1 99.74 733.00 Tm
+(SPELL Hub PostgreSQL Production Setup) Tj
 ET
 BT
 /F1 11.50 Tf
@@ -48,7 +48,7 @@ BT
 /F1 10.20 Tf
 0.130 0.160 0.190 rg
 1 0 0 1 54.00 656.00 Tm
-(This guide installs PostgreSQL directly on the same server that runs the SolarHub Docker containers. It) Tj
+(This guide installs PostgreSQL directly on the same server that runs the SPELL Hub Docker containers. It) Tj
 ET
 BT
 /F1 10.20 Tf
@@ -245,13 +245,13 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
 endobj
 9 0 obj
-<< /Length 4625 >>
+<< /Length 4628 >>
 stream
 BT
 /F2 8.5 Tf
 0.30 0.38 0.45 rg
 1 0 0 1 54.0 758.0 Tm
-(SolarHub PostgreSQL Production Setup) Tj
+(SPELL Hub PostgreSQL Production Setup) Tj
 ET
 q
 0.78 0.82 0.86 RG
@@ -375,7 +375,7 @@ BT
 /F2 14.00 Tf
 0.050 0.230 0.390 rg
 1 0 0 1 54.00 369.50 Tm
-(4. Create the restricted SolarHub role) Tj
+(4. Create the restricted SPELL Hub role) Tj
 ET
 q
 0.740 0.820 0.880 RG
@@ -404,7 +404,7 @@ BT
 /F3 8.07 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 302.10 Tm
-(sudo -u postgres createuser --login --pwprompt --no-superuser --no-createdb --no-createrole solarhub) Tj
+(sudo -u postgres createuser --login --pwprompt --no-superuser --no-createdb --no-createrole spellhub) Tj
 ET
 BT
 /F1 10.20 Tf
@@ -433,7 +433,7 @@ BT
 /F1 10.20 Tf
 0.130 0.160 0.190 rg
 1 0 0 1 54.00 199.43 Tm
-(Because the SolarHub role does not have CREATEDB permission, create the four production databases once) Tj
+(Because the SPELL Hub role does not have CREATEDB permission, create the four production databases once) Tj
 ET
 BT
 /F1 10.20 Tf
@@ -451,25 +451,25 @@ BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 157.03 Tm
-(sudo -u postgres createdb --owner=solarhub solarhub_production) Tj
+(sudo -u postgres createdb --owner=spellhub spellhub_production) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 145.53 Tm
-(sudo -u postgres createdb --owner=solarhub solarhub_production_cache) Tj
+(sudo -u postgres createdb --owner=spellhub spellhub_production_cache) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 134.03 Tm
-(sudo -u postgres createdb --owner=solarhub solarhub_production_queue) Tj
+(sudo -u postgres createdb --owner=spellhub spellhub_production_queue) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 122.53 Tm
-(sudo -u postgres createdb --owner=solarhub solarhub_production_cable) Tj
+(sudo -u postgres createdb --owner=spellhub spellhub_production_cable) Tj
 ET
 BT
 /F1 10.20 Tf
@@ -500,13 +500,13 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
 endobj
 11 0 obj
-<< /Length 4038 >>
+<< /Length 4040 >>
 stream
 BT
 /F2 8.5 Tf
 0.30 0.38 0.45 rg
 1 0 0 1 54.0 758.0 Tm
-(SolarHub PostgreSQL Production Setup) Tj
+(SPELL Hub PostgreSQL Production Setup) Tj
 ET
 q
 0.78 0.82 0.86 RG
@@ -529,7 +529,7 @@ BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 709.80 Tm
-(sudo -u postgres psql -c "\\du solarhub") Tj
+(sudo -u postgres psql -c "\\du spellhub") Tj
 ET
 BT
 /F3 8.30 Tf
@@ -541,7 +541,7 @@ BT
 /F1 10.20 Tf
 0.130 0.160 0.190 rg
 1 0 0 1 54.00 666.80 Tm
-(The SolarHub role should own all four databases and should not be a superuser.) Tj
+(The SPELL Hub role should own all four databases and should not be a superuser.) Tj
 ET
 BT
 /F2 14.00 Tf
@@ -588,25 +588,25 @@ BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 521.70 Tm
-(host  solarhub_production        solarhub  DOCKER_SUBNET  scram-sha-256) Tj
+(host  spellhub_production        spellhub  DOCKER_SUBNET  scram-sha-256) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 510.20 Tm
-(host  solarhub_production_cache  solarhub  DOCKER_SUBNET  scram-sha-256) Tj
+(host  spellhub_production_cache  spellhub  DOCKER_SUBNET  scram-sha-256) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 498.70 Tm
-(host  solarhub_production_queue  solarhub  DOCKER_SUBNET  scram-sha-256) Tj
+(host  spellhub_production_queue  spellhub  DOCKER_SUBNET  scram-sha-256) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 487.20 Tm
-(host  solarhub_production_cable  solarhub  DOCKER_SUBNET  scram-sha-256) Tj
+(host  spellhub_production_cable  spellhub  DOCKER_SUBNET  scram-sha-256) Tj
 ET
 BT
 /F1 10.20 Tf
@@ -624,25 +624,25 @@ BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 427.50 Tm
-(host  solarhub_production        solarhub  172.18.0.0/16  scram-sha-256) Tj
+(host  spellhub_production        spellhub  172.18.0.0/16  scram-sha-256) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 416.00 Tm
-(host  solarhub_production_cache  solarhub  172.18.0.0/16  scram-sha-256) Tj
+(host  spellhub_production_cache  spellhub  172.18.0.0/16  scram-sha-256) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 404.50 Tm
-(host  solarhub_production_queue  solarhub  172.18.0.0/16  scram-sha-256) Tj
+(host  spellhub_production_queue  spellhub  172.18.0.0/16  scram-sha-256) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 393.00 Tm
-(host  solarhub_production_cable  solarhub  172.18.0.0/16  scram-sha-256) Tj
+(host  spellhub_production_cable  spellhub  172.18.0.0/16  scram-sha-256) Tj
 ET
 BT
 /F1 10.20 Tf
@@ -721,13 +721,13 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
 endobj
 13 0 obj
-<< /Length 4782 >>
+<< /Length 4784 >>
 stream
 BT
 /F2 8.5 Tf
 0.30 0.38 0.45 rg
 1 0 0 1 54.0 758.0 Tm
-(SolarHub PostgreSQL Production Setup) Tj
+(SPELL Hub PostgreSQL Production Setup) Tj
 ET
 q
 0.78 0.82 0.86 RG
@@ -844,13 +844,13 @@ BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 411.80 Tm
-(  psql --host=DOCKER_GATEWAY --username=solarhub \\) Tj
+(  psql --host=DOCKER_GATEWAY --username=spellhub \\) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 400.30 Tm
-(  --dbname=solarhub_production --password \\) Tj
+(  --dbname=spellhub_production --password \\) Tj
 ET
 BT
 /F3 8.30 Tf
@@ -862,13 +862,13 @@ BT
 /F1 10.20 Tf
 0.130 0.160 0.190 rg
 1 0 0 1 54.00 357.30 Tm
-(Enter the SolarHub database password when prompted. Successful output identifies solarhub_production) Tj
+(Enter the SPELL Hub database password when prompted. Successful output identifies spellhub_production) Tj
 ET
 BT
 /F1 10.20 Tf
 0.130 0.160 0.190 rg
 1 0 0 1 54.00 343.10 Tm
-(as the current database and solarhub as the current user. Do not continue to deployment until this test) Tj
+(as the current database and spellhub as the current user. Do not continue to deployment until this test) Tj
 ET
 BT
 /F1 10.20 Tf
@@ -945,31 +945,31 @@ BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 151.50 Tm
-(    POSTGRES_USER: solarhub) Tj
+(    POSTGRES_USER: spellhub) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 140.00 Tm
-(    POSTGRES_DB: solarhub_production) Tj
+(    POSTGRES_DB: spellhub_production) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 128.50 Tm
-(    POSTGRES_CACHE_DB: solarhub_production_cache) Tj
+(    POSTGRES_CACHE_DB: spellhub_production_cache) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 117.00 Tm
-(    POSTGRES_QUEUE_DB: solarhub_production_queue) Tj
+(    POSTGRES_QUEUE_DB: spellhub_production_queue) Tj
 ET
 BT
 /F3 8.30 Tf
 0.100 0.140 0.180 rg
 1 0 0 1 64.00 105.50 Tm
-(    POSTGRES_CABLE_DB: solarhub_production_cable) Tj
+(    POSTGRES_CABLE_DB: spellhub_production_cable) Tj
 ET
 BT
 /F1 10.20 Tf
@@ -994,13 +994,13 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
 endobj
 15 0 obj
-<< /Length 4642 >>
+<< /Length 4643 >>
 stream
 BT
 /F2 8.5 Tf
 0.30 0.38 0.45 rg
 1 0 0 1 54.0 758.0 Tm
-(SolarHub PostgreSQL Production Setup) Tj
+(SPELL Hub PostgreSQL Production Setup) Tj
 ET
 q
 0.78 0.82 0.86 RG
@@ -1106,7 +1106,7 @@ BT
 /F1 10.20 Tf
 0.130 0.160 0.190 rg
 1 0 0 1 72.00 482.70 Tm
-(The solarhub role is not a superuser and cannot create databases or roles.) Tj
+(The spellhub role is not a superuser and cannot create databases or roles.) Tj
 ET
 BT
 /F2 10.20 Tf
@@ -1118,7 +1118,7 @@ BT
 /F1 10.20 Tf
 0.130 0.160 0.190 rg
 1 0 0 1 72.00 465.50 Tm
-(All four production databases exist and are owned by solarhub.) Tj
+(All four production databases exist and are owned by spellhub.) Tj
 ET
 BT
 /F2 10.20 Tf
@@ -1288,18 +1288,18 @@ xref
 0000000246 00000 n 
 0000000348 00000 n 
 0000000443 00000 n 
-0000000583 00000 n 
-0000004752 00000 n 
-0000004898 00000 n 
-0000009575 00000 n 
-0000009722 00000 n 
-0000013813 00000 n 
-0000013961 00000 n 
-0000018796 00000 n 
-0000018944 00000 n 
-0000023639 00000 n 
+0000000585 00000 n 
+0000004755 00000 n 
+0000004901 00000 n 
+0000009581 00000 n 
+0000009728 00000 n 
+0000013821 00000 n 
+0000013969 00000 n 
+0000018806 00000 n 
+0000018954 00000 n 
+0000023650 00000 n 
 trailer
 << /Size 17 /Root 1 0 R /Info 6 0 R >>
 startxref
-23787
+23798
 %%EOF

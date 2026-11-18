@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Small, dependency-free PDF renderer for solarhub-postgresql-setup.ms.
+# Small, dependency-free PDF renderer for spellhub-postgresql-setup.ms.
 # It supports the subset of groff ms macros used by this guide.
 
 PAGE_WIDTH = 612.0
@@ -11,8 +11,8 @@ TOP = 54.0
 BOTTOM = 54.0
 BODY_WIDTH = PAGE_WIDTH - LEFT - RIGHT
 
-SOURCE = File.expand_path("solarhub-postgresql-setup.ms", __dir__)
-OUTPUT = File.expand_path("solarhub-postgresql-setup.pdf", __dir__)
+SOURCE = File.expand_path("spellhub-postgresql-setup.ms", __dir__)
+OUTPUT = File.expand_path("spellhub-postgresql-setup.pdf", __dir__)
 
 def clean_text(text)
   text.gsub("\\e", "\\").strip
@@ -32,19 +32,19 @@ def parse_document(path)
 
     case line
     when ".TL"
-      items << [:title, clean_text(lines[index + 1])]
+      items << [ :title, clean_text(lines[index + 1]) ]
       index += 2
     when ".AU"
-      items << [:subtitle, clean_text(lines[index + 1])]
+      items << [ :subtitle, clean_text(lines[index + 1]) ]
       index += 2
     when ".AI"
-      items << [:date, clean_text(lines[index + 1])]
+      items << [ :date, clean_text(lines[index + 1]) ]
       index += 2
     when /^\.NH\s+/
-      items << [:heading, clean_text(lines[index + 1])]
+      items << [ :heading, clean_text(lines[index + 1]) ]
       index += 2
     when /^\.B\s+/
-      items << [:bold, clean_text(line.sub(/^\.B\s+/, "").delete_prefix('"').delete_suffix('"'))]
+      items << [ :bold, clean_text(line.sub(/^\.B\s+/, "").delete_prefix('"').delete_suffix('"')) ]
       index += 1
     when /^\.DS/
       code = []
@@ -54,21 +54,21 @@ def parse_document(path)
         code << clean_code(current) unless current.match?(/^\.(?:ft|nf|fi)(?:\s|$)/)
         index += 1
       end
-      items << [:code, code]
+      items << [ :code, code ]
       index += 1
     when /^\.IP/
-      items << [:bullet, clean_text(lines[index + 1])]
+      items << [ :bullet, clean_text(lines[index + 1]) ]
       index += 2
     when /^\./, ""
       index += 1
     else
-      paragraph = [clean_text(line)]
+      paragraph = [ clean_text(line) ]
       index += 1
       while index < lines.length && !lines[index].empty? && !lines[index].start_with?(".")
         paragraph << clean_text(lines[index])
         index += 1
       end
-      items << [:paragraph, paragraph.join(" ")]
+      items << [ :paragraph, paragraph.join(" ") ]
     end
   end
 
@@ -95,7 +95,7 @@ end
 
 def wrap_words(text, size, width, bold: false)
   words = text.split
-  return [""] if words.empty?
+  return [ "" ] if words.empty?
 
   lines = []
   current = words.shift
@@ -159,7 +159,7 @@ class Document
     format("%.3f %.3f %.3f rg", red, green, blue)
   end
 
-  def text(value, x:, y:, font: "F1", size: 10.2, rgb: [0.13, 0.16, 0.19])
+  def text(value, x:, y:, font: "F1", size: 10.2, rgb: [ 0.13, 0.16, 0.19 ])
     @pages.last << [
       "BT",
       "/#{font} #{format('%.2f', size)} Tf",
@@ -170,7 +170,7 @@ class Document
     ].join("\n")
   end
 
-  def line(x1:, y1:, x2:, y2:, rgb: [0.78, 0.82, 0.86], width: 0.6)
+  def line(x1:, y1:, x2:, y2:, rgb: [ 0.78, 0.82, 0.86 ], width: 0.6)
     @pages.last << [
       "q",
       format("%.3f %.3f %.3f RG", *rgb),
@@ -181,7 +181,7 @@ class Document
   end
 
   def rectangle(x:, y:, width:, height:, fill:, stroke: nil)
-    commands = ["q", format("%.3f %.3f %.3f rg", *fill)]
+    commands = [ "q", format("%.3f %.3f %.3f rg", *fill) ]
     if stroke
       commands << format("%.3f %.3f %.3f RG", *stroke)
       commands << "0.5 w"
@@ -197,38 +197,38 @@ class Document
     ensure_space(42)
     size = 22.0
     width = approximate_width(value, size, bold: true)
-    text(value, x: (PAGE_WIDTH - width) / 2, y: @y - 5, font: "F2", size:, rgb: [0.05, 0.23, 0.39])
+    text(value, x: (PAGE_WIDTH - width) / 2, y: @y - 5, font: "F2", size:, rgb: [ 0.05, 0.23, 0.39 ])
     @y -= 35
   end
 
   def subtitle(value)
     size = 11.5
     width = approximate_width(value, size)
-    text(value, x: (PAGE_WIDTH - width) / 2, y: @y, size:, rgb: [0.30, 0.38, 0.45])
+    text(value, x: (PAGE_WIDTH - width) / 2, y: @y, size:, rgb: [ 0.30, 0.38, 0.45 ])
     @y -= 20
   end
 
   def date(value)
     size = 9.5
     width = approximate_width(value, size)
-    text(value, x: (PAGE_WIDTH - width) / 2, y: @y, size:, rgb: [0.42, 0.47, 0.52])
+    text(value, x: (PAGE_WIDTH - width) / 2, y: @y, size:, rgb: [ 0.42, 0.47, 0.52 ])
     @y -= 27
-    line(x1: LEFT, y1: @y + 8, x2: PAGE_WIDTH - RIGHT, y2: @y + 8, rgb: [0.10, 0.38, 0.60], width: 1.4)
+    line(x1: LEFT, y1: @y + 8, x2: PAGE_WIDTH - RIGHT, y2: @y + 8, rgb: [ 0.10, 0.38, 0.60 ], width: 1.4)
   end
 
   def heading(value)
     @heading_number += 1
     ensure_space(115)
     @y -= 11
-    text("#{@heading_number}. #{value}", x: LEFT, y: @y, font: "F2", size: 14.0, rgb: [0.05, 0.23, 0.39])
+    text("#{@heading_number}. #{value}", x: LEFT, y: @y, font: "F2", size: 14.0, rgb: [ 0.05, 0.23, 0.39 ])
     @y -= 10
-    line(x1: LEFT, y1: @y, x2: PAGE_WIDTH - RIGHT, y2: @y, rgb: [0.74, 0.82, 0.88])
+    line(x1: LEFT, y1: @y, x2: PAGE_WIDTH - RIGHT, y2: @y, rgb: [ 0.74, 0.82, 0.88 ])
     @y -= 15
   end
 
   def bold_line(value)
     ensure_space(24)
-    text(value, x: LEFT, y: @y, font: "F2", size: 10.6, rgb: [0.54, 0.15, 0.12])
+    text(value, x: LEFT, y: @y, font: "F2", size: 10.6, rgb: [ 0.54, 0.15, 0.12 ])
     @y -= 19
   end
 
@@ -246,7 +246,7 @@ class Document
     lines = wrap_words(value, 10.2, BODY_WIDTH - 18)
     lines.each_with_index do |wrapped, index|
       ensure_space(15)
-      text(index.zero? ? "-" : "", x: LEFT + 4, y: @y, font: "F2", size: 10.2, rgb: [0.05, 0.23, 0.39])
+      text(index.zero? ? "-" : "", x: LEFT + 4, y: @y, font: "F2", size: 10.2, rgb: [ 0.05, 0.23, 0.39 ])
       text(wrapped, x: LEFT + 18, y: @y, size: 10.2)
       @y -= 14.2
     end
@@ -254,8 +254,8 @@ class Document
   end
 
   def code_block(lines)
-    max_length = [lines.map(&:length).max || 1, 1].max
-    font_size = [[(BODY_WIDTH - 20) / (max_length * 0.6), 8.3].min, 6.2].max
+    max_length = [ lines.map(&:length).max || 1, 1 ].max
+    font_size = [ [ (BODY_WIDTH - 20) / (max_length * 0.6), 8.3 ].min, 6.2 ].max
     leading = font_size + 3.2
     height = (lines.length * leading) + 18
     ensure_space(height + 5)
@@ -265,13 +265,13 @@ class Document
       y: @y - height + 5,
       width: BODY_WIDTH,
       height:,
-      fill: [0.955, 0.965, 0.972],
-      stroke: [0.82, 0.85, 0.88]
+      fill: [ 0.955, 0.965, 0.972 ],
+      stroke: [ 0.82, 0.85, 0.88 ]
     )
 
     cursor = @y - 7
     lines.each do |code_line|
-      text(code_line, x: LEFT + 10, y: cursor, font: "F3", size: font_size, rgb: [0.10, 0.14, 0.18]) unless code_line.empty?
+      text(code_line, x: LEFT + 10, y: cursor, font: "F3", size: font_size, rgb: [ 0.10, 0.14, 0.18 ]) unless code_line.empty?
       cursor -= leading
     end
     @y -= height + 9
@@ -285,7 +285,7 @@ class Document
       if page_number > 1
         commands.unshift(
           "BT\n/F2 8.5 Tf\n0.30 0.38 0.45 rg\n1 0 0 1 #{LEFT} #{PAGE_HEIGHT - 34} Tm\n" \
-          "(SolarHub PostgreSQL Production Setup) Tj\nET\n" \
+          "(SPELL Hub PostgreSQL Production Setup) Tj\nET\n" \
           "q\n0.78 0.82 0.86 RG\n0.5 w\n#{LEFT} #{PAGE_HEIGHT - 42} m #{PAGE_WIDTH - RIGHT} #{PAGE_HEIGHT - 42} l S\nQ"
         )
       end
@@ -301,14 +301,14 @@ end
 class PdfWriter
   def initialize(pages)
     @pages = pages
-    @objects = [nil, nil, nil]
+    @objects = [ nil, nil, nil ]
   end
 
   def write(path)
     regular_font = add_object("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
     bold_font = add_object("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
     mono_font = add_object("<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>")
-    info = add_object("<< /Title (SolarHub PostgreSQL Production Setup) /Author (SolarHub) /Subject (Production PostgreSQL server configuration) >>")
+    info = add_object("<< /Title (SPELL Hub PostgreSQL Production Setup) /Author (SPELL Hub) /Subject (Production PostgreSQL server configuration) >>")
 
     page_ids = @pages.map do |commands|
       content = commands.join("\n")
@@ -324,7 +324,7 @@ class PdfWriter
     @objects[2] = "<< /Type /Pages /Kids [#{page_ids.map { |id| "#{id} 0 R" }.join(' ')}] /Count #{page_ids.length} >>"
 
     pdf = +"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n".b
-    offsets = [0]
+    offsets = [ 0 ]
     (1...@objects.length).each do |id|
       offsets[id] = pdf.bytesize
       pdf << "#{id} 0 obj\n#{@objects[id]}\nendobj\n".b

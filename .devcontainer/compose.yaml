@@ -1,4 +1,4 @@
-name: "solarhub"
+name: "spellhub"
 
 services:
   rails-app:
@@ -10,7 +10,7 @@ services:
       - seccomp=unconfined
 
     volumes:
-    - ..:/workspaces/solarhub:cached
+    - ..:/workspaces/spellhub:cached
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
@@ -31,7 +31,7 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_DB: solarhub_development
+      POSTGRES_DB: spellhub_development
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     volumes:
@@ -39,5 +39,4 @@ services:
 
 volumes:
   postgres_data:
-
-  
+    name: spellhub_postgres_data

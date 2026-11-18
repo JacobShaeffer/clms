@@ -1,17 +1,17 @@
-.\" SolarHub PostgreSQL production setup guide.
+.\" SPELL Hub PostgreSQL production setup guide.
 .nr PS 10
 .nr VS 13
 .nr HM 0.75i
 .nr FM 0.65i
 .nr PO 0.75i
 .nr LL 7i
-.ds LH SolarHub
+.ds LH SPELL Hub
 .ds RH PostgreSQL Setup
 .ds LF Production Server Guide
 .ds RF Page %
 .
 .TL
-SolarHub PostgreSQL Production Setup
+SPELL Hub PostgreSQL Production Setup
 .AU
 Single-server Ubuntu/Debian deployment with Docker and Kamal
 .AI
@@ -19,7 +19,7 @@ Prepared October 20, 2026
 .
 .PP
 This guide installs PostgreSQL directly on the same server that runs the
-SolarHub Docker containers. It creates a restricted PostgreSQL role and four
+SPELL Hub Docker containers. It creates a restricted PostgreSQL role and four
 production databases, then permits database connections only from Kamal's
 Docker network.
 .
@@ -143,7 +143,7 @@ sudo systemctl restart postgresql
 .DE
 .
 .NH 1
-Create the restricted SolarHub role
+Create the restricted SPELL Hub role
 .PP
 Generate a long random password and save it in a password manager. Then create
 the PostgreSQL login role:
@@ -151,7 +151,7 @@ the PostgreSQL login role:
 .DS L
 .ft CR
 .nf
-sudo -u postgres createuser --login --pwprompt --no-superuser --no-createdb --no-createrole solarhub
+sudo -u postgres createuser --login --pwprompt --no-superuser --no-createdb --no-createrole spellhub
 .fi
 .ft R
 .DE
@@ -162,16 +162,16 @@ create databases, roles, or superusers.
 .NH 1
 Create the production databases
 .PP
-Because the SolarHub role does not have CREATEDB permission, create the four
+Because the SPELL Hub role does not have CREATEDB permission, create the four
 production databases once using the PostgreSQL administrator:
 .
 .DS L
 .ft CR
 .nf
-sudo -u postgres createdb --owner=solarhub solarhub_production
-sudo -u postgres createdb --owner=solarhub solarhub_production_cache
-sudo -u postgres createdb --owner=solarhub solarhub_production_queue
-sudo -u postgres createdb --owner=solarhub solarhub_production_cable
+sudo -u postgres createdb --owner=spellhub spellhub_production
+sudo -u postgres createdb --owner=spellhub spellhub_production_cache
+sudo -u postgres createdb --owner=spellhub spellhub_production_queue
+sudo -u postgres createdb --owner=spellhub spellhub_production_cable
 .fi
 .ft R
 .DE
@@ -185,13 +185,13 @@ Verify the role and databases:
 .DS L
 .ft CR
 .nf
-sudo -u postgres psql -c "\edu solarhub"
+sudo -u postgres psql -c "\edu spellhub"
 sudo -u postgres psql -l
 .fi
 .ft R
 .DE
 .PP
-The SolarHub role should own all four databases and should not be a superuser.
+The SPELL Hub role should own all four databases and should not be a superuser.
 .
 .NH 1
 Authorize connections from Docker
@@ -212,10 +212,10 @@ network subnet:
 .DS L
 .ft CR
 .nf
-host  solarhub_production        solarhub  DOCKER_SUBNET  scram-sha-256
-host  solarhub_production_cache  solarhub  DOCKER_SUBNET  scram-sha-256
-host  solarhub_production_queue  solarhub  DOCKER_SUBNET  scram-sha-256
-host  solarhub_production_cable  solarhub  DOCKER_SUBNET  scram-sha-256
+host  spellhub_production        spellhub  DOCKER_SUBNET  scram-sha-256
+host  spellhub_production_cache  spellhub  DOCKER_SUBNET  scram-sha-256
+host  spellhub_production_queue  spellhub  DOCKER_SUBNET  scram-sha-256
+host  spellhub_production_cable  spellhub  DOCKER_SUBNET  scram-sha-256
 .fi
 .ft R
 .DE
@@ -225,10 +225,10 @@ Example:
 .DS L
 .ft CR
 .nf
-host  solarhub_production        solarhub  172.18.0.0/16  scram-sha-256
-host  solarhub_production_cache  solarhub  172.18.0.0/16  scram-sha-256
-host  solarhub_production_queue  solarhub  172.18.0.0/16  scram-sha-256
-host  solarhub_production_cable  solarhub  172.18.0.0/16  scram-sha-256
+host  spellhub_production        spellhub  172.18.0.0/16  scram-sha-256
+host  spellhub_production_cache  spellhub  172.18.0.0/16  scram-sha-256
+host  spellhub_production_queue  spellhub  172.18.0.0/16  scram-sha-256
+host  spellhub_production_cable  spellhub  172.18.0.0/16  scram-sha-256
 .fi
 .ft R
 .DE
@@ -312,15 +312,15 @@ time this command runs:
 .ft CR
 .nf
 docker run --rm -it --network kamal postgres:POSTGRES_MAJOR-alpine \
-  psql --host=DOCKER_GATEWAY --username=solarhub \
-  --dbname=solarhub_production --password \
+  psql --host=DOCKER_GATEWAY --username=spellhub \
+  --dbname=spellhub_production --password \
   --command='select current_database(), current_user;'
 .fi
 .ft R
 .DE
 .PP
-Enter the SolarHub database password when prompted. Successful output identifies
-solarhub_production as the current database and solarhub as the current user.
+Enter the SPELL Hub database password when prompted. Successful output identifies
+spellhub_production as the current database and spellhub as the current user.
 Do not continue to deployment until this test passes.
 .
 .NH 1
@@ -340,11 +340,11 @@ env:
   clear:
     SOLID_QUEUE_IN_PUMA: true
     POSTGRES_HOST: DOCKER_GATEWAY
-    POSTGRES_USER: solarhub
-    POSTGRES_DB: solarhub_production
-    POSTGRES_CACHE_DB: solarhub_production_cache
-    POSTGRES_QUEUE_DB: solarhub_production_queue
-    POSTGRES_CABLE_DB: solarhub_production_cable
+    POSTGRES_USER: spellhub
+    POSTGRES_DB: spellhub_production
+    POSTGRES_CACHE_DB: spellhub_production_cache
+    POSTGRES_QUEUE_DB: spellhub_production_queue
+    POSTGRES_CABLE_DB: spellhub_production_cable
 .fi
 .ft R
 .DE
@@ -388,9 +388,9 @@ Completion checklist
 .IP \(bu 3
 PostgreSQL is active and enabled at boot.
 .IP \(bu 3
-The solarhub role is not a superuser and cannot create databases or roles.
+The spellhub role is not a superuser and cannot create databases or roles.
 .IP \(bu 3
-All four production databases exist and are owned by solarhub.
+All four production databases exist and are owned by spellhub.
 .IP \(bu 3
 PostgreSQL listens only on localhost and the Kamal Docker gateway.
 .IP \(bu 3

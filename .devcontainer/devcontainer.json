@@ -1,10 +1,10 @@
 // For format details, see https://containers.dev/implementors/json_reference/.
 // For config options, see the README at: https://github.com/devcontainers/templates/tree/main/src/ruby
 {
-  "name": "solarhub",
+  "name": "SPELL Hub",
   "dockerComposeFile": "compose.yaml",
   "service": "rails-app",
-  "workspaceFolder": "/workspaces/solarhub",
+  "workspaceFolder": "/workspaces/spellhub",
 
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
@@ -20,7 +20,8 @@
     "POSTGRES_HOST": "postgres",
     "POSTGRES_USER": "postgres",
     "POSTGRES_PASSWORD": "password",
-    "POSTGRES_DB": "solarhub_development",
+    "POSTGRES_DB": "spellhub_development",
+    "POSTGRES_TEST_DB": "spellhub_test",
     "KAMAL_REGISTRY_PASSWORD": "$KAMAL_REGISTRY_PASSWORD"
   },
 
