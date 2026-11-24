@@ -32,6 +32,14 @@ class User < ApplicationRecord
 
   validates :name, presence: true
 
+  def active_for_authentication?
+    super && active?
+  end
+
+  def inactive_message
+    active? ? super : :inactive
+  end
+
   private
 
   def set_default_role

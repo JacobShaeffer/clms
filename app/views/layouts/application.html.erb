@@ -36,7 +36,7 @@
       <% if alert.present? %>
         <div class="alert alert-danger mt-3" role="alert"><%= alert %></div>
       <% end %>
-      <%= yield %>
+      <%= content_for?(:admin_body) ? yield(:admin_body) : yield %>
     </div>
   </body>
 </html>

@@ -1,0 +1,17 @@
+<h1>Curator statistics</h1>
+<%= render "admin/shared/period" %>
+<% if @period.ready? %>
+  <p>Counts include active resources created during this period.</p>
+  <div class="table-responsive"><table class="table table-striped">
+    <thead><tr><th scope="col">User</th><th scope="col">Resources added</th><th scope="col">Yellow flags</th><th scope="col">Red flags</th></tr></thead>
+    <tbody>
+      <% @users.each do |user| %>
+        <tr><th scope="row"><%= user.name %><%= " (inactive)" unless user.active? %></th>
+          <% %w[all warning danger].each do |severity| %>
+            <td><%= link_to @counts[severity].fetch(user.id, 0), admin_curator_content_path(@period.params.merge(user_id: user.id, severity: severity == 'all' ? nil : severity)) %></td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table></div>
+<% end %>

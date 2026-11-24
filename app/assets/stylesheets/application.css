@@ -267,3 +267,17 @@ thead .content-table-actions {
 .content-preview-video {
   max-height: calc(100vh - 13rem);
 }
+.admin-week-picker-panel {
+  width: max-content;
+  max-width: 100%;
+}
+
+.admin-week-calendar th,
+.admin-week-calendar td {
+  text-align: center;
+  padding: 0.1rem;
+}
+
+.admin-week-calendar button {
+  min-width: 2.5rem;
+}

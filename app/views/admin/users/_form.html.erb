@@ -1,0 +1,9 @@
+<%= form_with model: [:admin, @user] do |f| %>
+  <% if @user.errors.any? %><div class="alert alert-danger"><%= @user.errors.full_messages.to_sentence %></div><% end %>
+  <div class="mb-3"><%= f.label :name, class: "form-label" %><%= f.text_field :name, required: true, class: "form-control" %></div>
+  <div class="mb-3"><%= f.label :email, class: "form-label" %><%= f.email_field :email, required: true, class: "form-control" %></div>
+  <div class="mb-3"><%= f.label :role, class: "form-label" %><%= f.select :role, User.roles.keys.map { |role| [role.humanize, role] }, {}, class: "form-select" %></div>
+  <div class="mb-3"><%= f.label :password, @user.new_record? ? "Initial password" : "New password (optional)", class: "form-label" %><%= f.password_field :password, required: @user.new_record?, autocomplete: "new-password", class: "form-control" %></div>
+  <div class="mb-3"><%= f.label :password_confirmation, class: "form-label" %><%= f.password_field :password_confirmation, required: @user.new_record?, autocomplete: "new-password", class: "form-control" %></div>
+  <%= f.submit class: "btn btn-primary" %> <%= link_to "Cancel", admin_users_path, class: "btn btn-outline-secondary" %>
+<% end %>

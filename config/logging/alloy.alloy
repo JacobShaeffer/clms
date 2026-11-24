@@ -1,0 +1,32 @@
+discovery.docker "local" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "spellhub" {
+  targets = discovery.docker.local.targets
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex = "/spellhub-web-.*"
+    action = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "container"
+  }
+  rule {
+    target_label = "job"
+    replacement = "spellhub"
+  }
+}
+
+loki.source.docker "spellhub" {
+  host = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.spellhub.output
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

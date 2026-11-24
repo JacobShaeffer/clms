@@ -1,0 +1,43 @@
+<div data-controller="admin-timezone">
+  <% if @period.error %>
+    <div class="alert alert-danger">
+      <%= @period.error %>
+      <%= link_to "Return to current week", request.path + "?" + { timezone: @period.zone.tzinfo.identifier, user_id: params[:user_id], severity: params[:severity] }.compact.to_query, class: "alert-link" %>
+    </div>
+  <% end %>
+  <% if @period.ready? %>
+    <% week_start = @period.start_date.beginning_of_week(:monday) %>
+    <% selected_week = @period.start_date == week_start && @period.end_date == week_start + 6 %>
+    <div class="mb-3" data-controller="admin-week-picker" data-admin-week-picker-date-value="<%= @period.start_date.iso8601 %>" data-admin-week-picker-selected-value="<%= selected_week ? week_start.iso8601 : '' %>">
+      <%= form_with url: request.path, method: :get, data: { admin_week_picker_target: "form" } do %>
+        <%= hidden_field_tag :timezone, @period.zone.tzinfo.identifier %>
+        <%= hidden_field_tag :week, "", data: { admin_week_picker_target: "week" } %>
+        <% if params[:user_id].present? %><%= hidden_field_tag :user_id, params[:user_id] %><% end %>
+        <% if params[:severity].present? %><%= hidden_field_tag :severity, params[:severity] %><% end %>
+        <details class="admin-week-picker" data-admin-week-picker-target="details">
+          <summary class="btn btn-outline-primary"><%= selected_week ? "Week of #{week_start.strftime('%b %-d, %Y')}" : "Select week" %></summary>
+          <div class="admin-week-picker-panel border rounded bg-body p-2 mt-2 shadow-sm">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Previous month" data-action="admin-week-picker#previousMonth">‹</button>
+              <strong aria-live="polite" data-admin-week-picker-target="heading"></strong>
+              <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Next month" data-action="admin-week-picker#nextMonth">›</button>
+            </div>
+            <table class="admin-week-calendar" aria-label="Select a week">
+              <thead><tr><% %w[Mon Tue Wed Thu Fri Sat Sun].each do |day| %><th scope="col"><%= day %></th><% end %></tr></thead>
+              <tbody data-admin-week-picker-target="days" data-action="click->admin-week-picker#select keydown->admin-week-picker#keydown"></tbody>
+            </table>
+            <p class="small text-body-secondary mb-0 mt-2">Choose any day to show its Monday–Sunday week.</p>
+          </div>
+        </details>
+        <noscript><p class="text-body-secondary">JavaScript is required to select a week.</p></noscript>
+      <% end %>
+    </div>
+    <div class="d-flex gap-2 mb-3">
+      <% report_path = action_name == 'stats' ? method(:admin_curator_stats_path) : method(:admin_curator_content_path) %>
+      <% filters = { timezone: @period.zone.tzinfo.identifier, user_id: params[:user_id], severity: params[:severity] } %>
+      <%= link_to "Previous week", report_path.call(filters.merge(week: week_start - 7)), class: "btn btn-outline-secondary" %>
+      <%= link_to "Current week", report_path.call(filters), class: "btn btn-outline-secondary" %>
+      <%= link_to "Next week", report_path.call(filters.merge(week: week_start + 7)), class: "btn btn-outline-secondary" %>
+    </div>
+  <% end %>
+</div>

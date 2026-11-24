@@ -1,4 +1,13 @@
 Rails.application.routes.draw do
+  namespace :admin do
+    root to: "curators#stats"
+    get "curators/stats", to: "curators#stats", as: :curator_stats
+    get "curators/content", to: "curators#content", as: :curator_content
+    get "logs", to: "logs#index"
+    resources :users, except: %i[show destroy] do
+      member { patch :toggle_active }
+    end
+  end
   resources :libraries, only: %i[ index show new create ] do
     resource :module_selection, controller: "library_module_selections", only: %i[ show update ], defaults: { format: :json }
     resource :banner, controller: "library_banners", only: %i[ edit update ]

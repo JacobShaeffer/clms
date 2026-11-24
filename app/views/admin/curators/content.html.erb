@@ -1,0 +1,22 @@
+<h1>Curator content</h1>
+<%= render "admin/shared/period" %>
+<% if @period.ready? %>
+  <%= form_with url: admin_curator_content_path, method: :get, class: "row g-2 mb-3" do |f| %>
+    <% @period.params.each do |key, value| %><%= hidden_field_tag key, value %><% end %>
+    <div class="col-sm-5"><%= f.label :user_id, "User", class: "form-label" %><%= f.select :user_id, options_from_collection_for_select(@users, :id, :name, params[:user_id]), { include_blank: "All users" }, class: "form-select" %></div>
+    <div class="col-sm-4"><%= f.label :severity, "Flags", class: "form-label" %><%= f.select :severity, options_for_select([["All", ""], ["Yellow", "warning"], ["Red", "danger"]], params[:severity]), {}, class: "form-select" %></div>
+    <div class="col-sm-auto align-self-end"><%= f.submit "Filter", class: "btn btn-primary" %></div>
+  <% end %>
+  <p>Times are shown in <%= @period.zone.tzinfo.identifier %>.</p>
+  <div class="table-responsive"><table class="table table-striped align-middle">
+    <thead><tr><th scope="col">Issues</th><th scope="col">Title</th><th scope="col">Added by</th><th scope="col">Date added</th></tr></thead>
+    <tbody>
+      <% @contents.each do |content| %>
+        <tr><td><%= render "content_tables/issues_cell", definition: @table_definition, record: content %></td>
+          <td><%= link_to content.display_title, content_path(content) %></td><td><%= content.user.name %></td><td><%= l(content.created_at.in_time_zone(@period.zone), format: :short) %></td></tr>
+      <% end %>
+      <% if @contents.empty? %><tr><td colspan="4">No content found for this period.</td></tr><% end %>
+    </tbody>
+  </table></div>
+  <%== @pagy.series_nav(:bootstrap) if @pagy.pages > 1 %>
+<% end %>

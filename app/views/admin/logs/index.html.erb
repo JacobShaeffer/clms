@@ -1,0 +1,7 @@
+<h1>Server logs</h1>
+<% if @logs_url.present? %>
+  <p>Open the log viewer to search server errors and related request details. The viewer requires a separate login.</p>
+  <%= link_to "Open log viewer", @logs_url, class: "btn btn-primary", target: "_blank", rel: "noopener noreferrer" %>
+<% else %>
+  <div class="alert alert-info">The log viewer is not configured. Set ADMIN_LOGS_URL after deploying the logging service.</div>
+<% end %>

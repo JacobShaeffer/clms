@@ -42,6 +42,8 @@ env:
     - RAILS_MASTER_KEY
     # - POSTGRES_PASSWORD
   clear:
+    # Set this to the authenticated Grafana Explore URL after configuring logging.
+    # ADMIN_LOGS_URL: https://logs.example.com/explore
     # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
     # When you start using multiple servers, you should split out job processing to a dedicated machine.
     SOLID_QUEUE_IN_PUMA: true

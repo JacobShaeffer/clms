@@ -1,0 +1,8 @@
+<% content_for :title, "Admin | SPELL Hub" %>
+<% content_for :admin_body do %>
+  <div class="row mt-3">
+    <aside class="col-12 col-md-3 col-lg-2"><%= render "admin/shared/navigation" %></aside>
+    <main class="col-12 col-md-9 col-lg-10"><%= yield %></main>
+  </div>
+<% end %>
+<%= render template: "layouts/application" %>

@@ -1,0 +1,13 @@
+<nav aria-label="Admin navigation" class="border rounded p-3 mb-3">
+  <div class="fw-bold mb-2">Curators</div>
+  <ul class="nav nav-pills flex-column mb-3">
+    <% report_params = @period&.ready? ? @period.params : {} %>
+    <li class="nav-item"><%= link_to "Stats", admin_curator_stats_path(report_params), class: "nav-link #{'active' if controller_name == 'curators' && action_name == 'stats'}", aria: (controller_name == 'curators' && action_name == 'stats' ? { current: 'page' } : {}) %></li>
+    <li class="nav-item"><%= link_to "Content", admin_curator_content_path(report_params), class: "nav-link #{'active' if controller_name == 'curators' && action_name == 'content'}", aria: (controller_name == 'curators' && action_name == 'content' ? { current: 'page' } : {}) %></li>
+  </ul>
+  <div class="fw-bold mb-2">System</div>
+  <ul class="nav nav-pills flex-column">
+    <li class="nav-item"><%= link_to "Users", admin_users_path, class: "nav-link #{'active' if controller_name == 'users'}", aria: (controller_name == 'users' ? { current: 'page' } : {}) %></li>
+    <li class="nav-item"><%= link_to "Logs", admin_logs_path, class: "nav-link #{'active' if controller_name == 'logs'}", aria: (controller_name == 'logs' ? { current: 'page' } : {}) %></li>
+  </ul>
+</nav>

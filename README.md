@@ -88,6 +88,10 @@ SEED_DATA=real_world REAL_WORLD_DOCUMENTS_ZIP=/path/to/documents.zip bin/rails d
 
 The real-world seed validates the CSV and archive before deleting existing development data. It creates the standard development users, imported content, metadata, and Active Storage attachments. It does not create shelves or libraries. Size differences between the CSV and ZIP are reported as warnings; missing files and unsupported file types stop the seed before reset.
 
+## Admin log viewer
+
+The admin log viewer setup is documented in [Admin log viewer](docs/admin-logging.md).
+
 ## Library builds and exports
 
 Version creation and building are independent backend operations. Any locked
